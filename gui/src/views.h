@@ -776,6 +776,31 @@ struct LocNode
 	int problems = 0;
 };
 
+// Item count and problem badge at the right end of a tree row. In a narrow panel the count goes first, then the
+// badge, so neither is drawn over the row's label. labelEnd: window-local x where the label text ends.
+static void TreeRowBadges(float labelEnd, int count, int problems, float rightPad)
+{
+	std::string countText = std::to_string(count), pillText = std::to_string(problems);
+	float right = ImGui::GetWindowContentRegionMax().x - rightPad;
+	float gap = S(6), countW = ImGui::CalcTextSize(countText.c_str()).x, pillW = problems ? PillWidth(pillText) : 0;
+	float start = labelEnd + S(10);
+	bool showPill = problems && start + pillW <= right;
+	bool showCount = start + countW + (showPill ? gap + pillW : 0) <= right;
+	float x = right - (showPill ? pillW : 0) - (showCount ? countW + (showPill ? gap : 0) : 0);
+	if (showCount)
+	{
+		ImGui::SameLine(x);
+		TextDim(countText);
+		x += countW + gap;
+	}
+	if (showPill)
+	{
+		ImGui::SameLine(x);
+		Pill(pillText, col::Fail);
+		Tooltip("이 폴더 아래의 문제 수 (이름 규칙, BP 복잡도, 미사용 에셋 등)");
+	}
+}
+
 static void DrawLocNode(LocNode& n, const std::string& id, int depth, std::string& sel, std::string* node, bool filtering)
 {
 	for (auto& [name, child] : n.dirs)
@@ -785,17 +810,10 @@ static void DrawLocNode(LocNode& n, const std::string& id, int depth, std::strin
 		ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
 		if (filtering || depth < 1) flags |= ImGuiTreeNodeFlags_DefaultOpen;
 		if (filtering) ImGui::SetNextItemOpen(true, ImGuiCond_Always);
-		bool open = ImGui::TreeNodeEx("dir", flags, "%s  %s", ICON_FOLDER, name.c_str());
-		float right = ImGui::GetWindowContentRegionMax().x;
-		std::string count = std::to_string(child.total);
-		ImGui::SameLine(right - ImGui::CalcTextSize(count.c_str()).x - (child.problems ? S(34) : 0));
-		TextDim(count);
-		if (child.problems)
-		{
-			ImGui::SameLine();
-			Pill(std::to_string(child.problems), col::Fail);
-			Tooltip("이 폴더 아래의 문제 수 (이름 규칙, BP 복잡도, 미사용 에셋 등)");
-		}
+		std::string label = std::string(ICON_FOLDER) + "  " + name;
+		bool open = ImGui::TreeNodeEx("dir", flags, "%s", label.c_str());
+		float labelEnd = ImGui::GetItemRectMin().x - ImGui::GetWindowPos().x + ImGui::GetTreeNodeToLabelSpacing() + ImGui::CalcTextSize(label.c_str()).x;
+		TreeRowBadges(labelEnd, child.total, child.problems, 0);
 		if (open)
 		{
 			DrawLocNode(child, cid, depth + 1, sel, node, filtering);
@@ -878,12 +896,10 @@ static void DrawLocationTree(App& app, const std::vector<LocItem>& items, std::s
 		ImGui::PushStyleColor(ImGuiCol_HeaderHovered, IM_COL32(255, 255, 255, 24));
 		ImGui::PushStyleColor(ImGuiCol_HeaderActive, IM_COL32(255, 255, 255, 30));
 		bool open = ImGui::TreeNodeEx("cat", flags, "%s", kCats[c]);
+		float labelEnd = ImGui::GetItemRectMin().x - ImGui::GetWindowPos().x + ImGui::GetTreeNodeToLabelSpacing() + ImGui::CalcTextSize(kCats[c]).x;
 		ImGui::PopStyleColor(3);
 		ImGui::PopFont();
-		std::string count = std::to_string(r.total);
-		ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - ImGui::CalcTextSize(count.c_str()).x - S(6) - (r.problems ? S(34) : 0));
-		TextDim(count);
-		if (r.problems) { ImGui::SameLine(); Pill(std::to_string(r.problems), col::Fail); }
+		TreeRowBadges(labelEnd, r.total, r.problems, S(6));
 		if (open)
 		{
 			DrawLocNode(r, kCats[c], 0, sel, node, filtering);

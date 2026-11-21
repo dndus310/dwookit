@@ -90,6 +90,148 @@ static bool g_paletteOpen = false;
 static char g_paletteQuery[256] = {};
 static int g_paletteIndex = 0;
 
+// ---------------------------------------------------------------- back / forward
+// A place in the window: the screen and what is selected on it. Moving between places is kept like a browser's
+// history; Alt+Left / Alt+Right, the mouse's back / forward buttons and the arrows in the menu bar walk it.
+struct NavPlace
+{
+	Activity activity = Activity::Count;
+	int launcherPage = 0, pcTab = 0, archMode = 0, testsTab = 0, perfTab = 0;
+	std::string archSel, featSel, problemSel, testSel, logSel, historySel;
+	auto Ints() const { return std::make_tuple((int)activity, launcherPage, pcTab, archMode, testsTab, perfTab); }
+	std::vector<const std::string*> Texts() const { return { &archSel, &featSel, &problemSel, &testSel, &logSel, &historySel }; }
+	bool operator==(const NavPlace& o) const
+	{
+		if (Ints() != o.Ints()) return false;
+		auto a = Texts(), b = o.Texts();
+		for (size_t i = 0; i < a.size(); ++i) if (*a[i] != *b[i]) return false;
+		return true;
+	}
+	// 'next' only fills in what this place left empty (a screen choosing its default selection): same place
+	bool RefinedBy(const NavPlace& next) const
+	{
+		if (Ints() != next.Ints()) return false;
+		auto a = Texts(), b = next.Texts();
+		for (size_t i = 0; i < a.size(); ++i) if (!a[i]->empty() && *a[i] != *b[i]) return false;
+		return true;
+	}
+};
+
+static struct
+{
+	std::vector<NavPlace> back, forward;
+	NavPlace current;
+	bool started = false;
+} g_nav;
+
+static NavPlace CaptureNav(App& app)
+{
+	NavPlace p;
+	p.activity = app.activity;
+	launcher::Ui& lu = launcher::State();
+	p.launcherPage = (int)lu.page;
+	p.pcTab = lu.pcTab;
+	p.archMode = ui.archMode;
+	p.testsTab = ui.testsTab;
+	p.perfTab = ui.perfTab;
+	p.archSel = ui.archSel;
+	p.featSel = ui.featSel;
+	p.problemSel = ui.problemSel;
+	p.testSel = ui.testSel;
+	p.logSel = ui.logSel;
+	p.historySel = ui.historySel;
+	return p;
+}
+
+static void ApplyNav(App& app, const NavPlace& p)
+{
+	if (app.activity != p.activity) ui.filter[0] = 0;
+	app.activity = p.activity;
+	launcher::Ui& lu = launcher::State();
+	lu.page = (launcher::Page)p.launcherPage;
+	lu.pcTab = p.pcTab;
+	ui.archMode = p.archMode;
+	ui.testsTab = p.testsTab;
+	ui.perfTab = p.perfTab;
+	ui.archSel = p.archSel;
+	ui.featSel = p.featSel;
+	ui.archNode.clear();
+	ui.problemSel = p.problemSel;
+	ui.testSel = p.testSel;
+	ui.logSel = p.logSel;
+	ui.historySel = p.historySel;
+}
+
+// Called once a frame after drawing: a new place goes on the history.
+static void NavTrack(App& app)
+{
+	NavPlace now = CaptureNav(app);
+	if (!g_nav.started) { g_nav.current = now; g_nav.started = true; return; }
+	if (now == g_nav.current) return;
+	if (!g_nav.current.RefinedBy(now))
+	{
+		g_nav.back.push_back(g_nav.current);
+		if (g_nav.back.size() > 100) g_nav.back.erase(g_nav.back.begin());
+		g_nav.forward.clear();
+	}
+	g_nav.current = now;
+}
+
+static void NavGo(App& app, int dir)
+{
+	auto& from = dir < 0 ? g_nav.back : g_nav.forward;
+	auto& to = dir < 0 ? g_nav.forward : g_nav.back;
+	if (from.empty()) return;
+	to.push_back(CaptureNav(app));
+	g_nav.current = from.back();
+	from.pop_back();
+	ApplyNav(app, g_nav.current);
+}
+
+// ---------------------------------------------------------------- shortcuts
+static bool g_shortcutsOpen = false;
+
+static void DrawShortcutsDialog()
+{
+	if (g_shortcutsOpen) { ImGui::OpenPopup("단축키###shortcuts"); g_shortcutsOpen = false; }
+	ImGui::SetNextWindowSize(ImVec2(S(460), 0), ImGuiCond_Appearing);
+	bool open = true;
+	if (!ImGui::BeginPopupModal("단축키###shortcuts", &open, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize)) return;
+	struct Row { const char* keys; const char* what; };
+	static const Row kRows[] = {
+		{ "Alt+←  ·  마우스 뒤로 버튼", "뒤로 (이전 화면·선택)" },
+		{ "Alt+→  ·  마우스 앞으로 버튼", "앞으로" },
+		{ "Ctrl+K  ·  Ctrl+Shift+P", "명령 검색" },
+		{ "Ctrl+F", "이 화면의 검색 칸으로" },
+		{ "Ctrl+1 … Ctrl+6, Ctrl+8", "DwoLens 화면 (대시보드 … 실행 기록)" },
+		{ "Ctrl+7  ·  Ctrl+0", "DwoStateMonitor  ·  DwoCanvas" },
+		{ "Ctrl+9", "홈 (런처)" },
+		{ "Ctrl+B", "사이드바 접기·펼치기" },
+		{ "Ctrl+O", "프로젝트 열기" },
+		{ "F5", "실행 결과 다시 읽기" },
+		{ "F (그래프 위에서)", "그래프 전체 보기" },
+		{ "Ctrl+`", "콘솔" },
+		{ "F1", "이 목록" },
+	};
+	if (ImGui::BeginTable("keys", 2, ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit))
+	{
+		ImGui::TableSetupColumn("키", ImGuiTableColumnFlags_WidthFixed, S(210));
+		ImGui::TableSetupColumn("동작", ImGuiTableColumnFlags_WidthStretch);
+		for (auto& r : kRows)
+		{
+			ImGui::TableNextRow();
+			ImGui::TableNextColumn();
+			TextBold(r.keys);
+			ImGui::TableNextColumn();
+			ImGui::TextUnformatted(r.what);
+		}
+		ImGui::EndTable();
+	}
+	ImGui::Spacing();
+	if (ImGui::Button("닫기", ImVec2(-FLT_MIN, 0)) || ImGui::IsKeyPressed(ImGuiKey_Escape)) ImGui::CloseCurrentPopup();
+	ImGui::EndPopup();
+}
+
 static std::vector<Command> BuildCommands(App& app)
 {
 	std::vector<Command> list;
@@ -130,7 +272,10 @@ static std::vector<Command> BuildCommands(App& app)
 	list.push_back({ "환경 점검", "doctor", [&app] { app.Run("doctor"); }, app.attached });
 	list.push_back({ "프로젝트 연결 해제...", "uninstall", [&app] { app.confirmDetach = true; }, app.attached });
 	list.push_back({ "실행 로그 보기", "Ctrl+`", [&app] { app.showConsole = true; } });
-	list.push_back({ "실행 취소", "Esc", [&app] { app.runner.Cancel(); }, (bool)app.runner.running });
+	list.push_back({ "실행 취소", "", [&app] { app.runner.Cancel(); }, (bool)app.runner.running });
+	list.push_back({ "뒤로", "Alt+←", [&app] { NavGo(app, -1); }, !g_nav.back.empty() });
+	list.push_back({ "앞으로", "Alt+→", [&app] { NavGo(app, +1); }, !g_nav.forward.empty() });
+	list.push_back({ "단축키 보기", "F1", [] { g_shortcutsOpen = true; } });
 	list.push_back({ "DwoStateMonitor 녹화 저장...", "JSONL", [&app] {
 		fs::path p;
 		if (PickSaveFile(g_hwnd, ToWide(app.projectName + "_state.jsonl"), L"JSON Lines", L"*.jsonl", L"jsonl", p)) app.store.Export(p);
@@ -222,7 +367,13 @@ static void DrawMenuBar(App& app, bool& quit)
 	ImGui::SameLine(0, S(4));
 	ImGui::TextUnformatted("dwo-Forge");
 	ImGui::PopFont();
-	ImGui::Dummy(ImVec2(S(8), 0));
+	ImGui::Dummy(ImVec2(S(4), 0));
+	ImGui::SameLine();
+	if (ToolButton(ICON_LEFT, "뒤로 (Alt+←)", false, !g_nav.back.empty())) NavGo(app, -1);
+	ImGui::SameLine(0, S(2));
+	if (ToolButton(ICON_RIGHT, "앞으로 (Alt+→)", false, !g_nav.forward.empty())) NavGo(app, +1);
+	ImGui::SameLine();
+	ImGui::Dummy(ImVec2(S(4), 0));
 	if (ImGui::BeginMenu("파일"))
 	{
 		if (ImGui::MenuItem("프로젝트 열기...", "Ctrl+O")) { fs::path p; if (PickOpen(g_hwnd, true, L".uproject가 있는 프로젝트 폴더 선택", p)) app.SetProject(p); }
@@ -251,7 +402,7 @@ static void DrawMenuBar(App& app, bool& quit)
 		if (ImGui::MenuItem("기본 검사 모두 실행", nullptr, false, app.attached)) app.RunAll();
 		if (ImGui::MenuItem("게임 실행", nullptr, false, app.attached)) app.Run("play");
 		ImGui::Separator();
-		if (ImGui::MenuItem("실행 취소", "Esc", false, app.runner.running)) app.runner.Cancel();
+		if (ImGui::MenuItem("실행 취소", nullptr, false, app.runner.running)) app.runner.Cancel();
 		if (ImGui::MenuItem("대기열 비우기", nullptr, false, !app.queue.empty())) app.queue.clear();
 		ImGui::EndMenu();
 	}
@@ -270,6 +421,9 @@ static void DrawMenuBar(App& app, bool& quit)
 		}
 		ImGui::Separator();
 		if (ImGui::MenuItem("명령 팔레트", "Ctrl+K")) g_paletteOpen = true;
+		if (ImGui::MenuItem("뒤로", "Alt+←", false, !g_nav.back.empty())) NavGo(app, -1);
+		if (ImGui::MenuItem("앞으로", "Alt+→", false, !g_nav.forward.empty())) NavGo(app, +1);
+		if (ImGui::MenuItem("사이드바 접기", "Ctrl+B", app.sidebarCollapsed)) { app.sidebarCollapsed = !app.sidebarCollapsed; app.SaveSettings(); }
 		if (ImGui::MenuItem("레이아웃 초기화")) app.message = "reset-layout";
 		ImGui::EndMenu();
 	}
@@ -309,6 +463,8 @@ static void DrawMenuBar(App& app, bool& quit)
 	}
 	if (ImGui::BeginMenu("도움말"))
 	{
+		if (ImGui::MenuItem("단축키", "F1")) g_shortcutsOpen = true;
+		ImGui::Separator();
 		if (ImGui::MenuItem("가이드 문서")) OpenWithShell(app.home / "docs" / "guide.html");
 		if (ImGui::MenuItem("README")) OpenWithShell(app.home / "README.md");
 		if (ImGui::MenuItem("DwoStateMonitor 사용법")) OpenWithShell(app.home / "plugin" / "DwoStateMonitor" / "README.md");
@@ -914,6 +1070,12 @@ static void DrawApp(App& app, bool& quit)
 	if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_O, false)) { fs::path p; if (PickOpen(g_hwnd, true, L".uproject가 있는 프로젝트 폴더 선택", p)) app.SetProject(p); }
 	if (ImGui::IsKeyPressed(ImGuiKey_F5, false)) { app.outputs.clear(); app.metrics.clear(); app.structureFor.clear(); app.Refresh(); }
 	if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_GraveAccent, false)) app.showConsole = true;
+	// back / forward: Alt+arrows (not while typing, where Alt+arrows edit text) and the mouse's side buttons
+	if ((io.KeyAlt && !io.KeyCtrl && !io.WantTextInput && ImGui::IsKeyPressed(ImGuiKey_LeftArrow, false)) || ImGui::IsMouseClicked(3)) NavGo(app, -1);
+	if ((io.KeyAlt && !io.KeyCtrl && !io.WantTextInput && ImGui::IsKeyPressed(ImGuiKey_RightArrow, false)) || ImGui::IsMouseClicked(4)) NavGo(app, +1);
+	if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_F, false)) g_focusSearch = true;
+	if (io.KeyCtrl && !io.WantTextInput && ImGui::IsKeyPressed(ImGuiKey_B, false)) { app.sidebarCollapsed = !app.sidebarCollapsed; app.SaveSettings(); }
+	if (ImGui::IsKeyPressed(ImGuiKey_F1, false)) g_shortcutsOpen = true;
 	if (io.KeyCtrl && !io.WantTextInput)
 		for (auto& a : kActivities)
 			if (a.hotkey != ImGuiKey_None && ImGui::IsKeyPressed(a.hotkey, false)) app.requestActivity = a.id;
@@ -981,6 +1143,9 @@ static void DrawApp(App& app, bool& quit)
 		DrawDetachModal(app);
 		DrawCommandPalette(app);
 		DrawToasts(g_statusHeight);
+		DrawShortcutsDialog();
+		NavTrack(app);
+		g_focusSearch = false;   // no search box on this screen took it
 		return;
 	}
 	ImGui::DockSpace(dockspace, ImVec2(0, 0), ImGuiDockNodeFlags_None);
@@ -1080,6 +1245,9 @@ static void DrawApp(App& app, bool& quit)
 	DrawDetachModal(app);
 	DrawCommandPalette(app);
 	DrawToasts(g_statusHeight);
+	DrawShortcutsDialog();
+	NavTrack(app);
+	g_focusSearch = false;   // no search box on this screen took it
 }
 
 // ============================================================================ D3D11 / Win32 boilerplate
@@ -1280,9 +1448,15 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 	if (!hoverArg.empty()) swscanf_s(hoverArg.c_str(), L"%f,%f", &hoverX, &hoverY);
 	double shotDelay = delayArg.empty() ? 0.8 : _wtof(delayArg.c_str());
 	if (modeArg == L"machine") ui.liveMode = 1;
-	if (modeArg == L"features") ui.archMode = 1;   // architecture: the 기능 view (screenshots)
+	// architecture view (screenshots): --mode features | calls | assets | modules | quality
+	if (modeArg == L"features") ui.archMode = 1;
+	if (modeArg == L"calls") ui.archMode = 2;
+	if (modeArg == L"assets") ui.archMode = 3;
+	if (modeArg == L"modules") ui.archMode = 4;
+	if (modeArg == L"quality") ui.archMode = 5;
 	bool openUninstall = ArgValue(argc, argv, L"--dialog") == L"uninstall";
 	if (ArgValue(argc, argv, L"--dialog") == L"palette") g_paletteOpen = true;   // screenshots of the command palette
+	if (ArgValue(argc, argv, L"--dialog") == L"shortcuts") g_shortcutsOpen = true;
 	LocalFree(argv);
 	if (homeArg.empty())
 	{

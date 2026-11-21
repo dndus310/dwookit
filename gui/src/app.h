@@ -244,7 +244,10 @@ static void LoadStructure(const fs::path& outDir, Structure& s)
 		else if (kind == "plugin") { loc.badge = badge; loc.cat = external ? 3 : 2; }
 		else loc = LocateSymbol(Str(sym, "file"), Str(sym, "package"), external, Str(sym, "module"), badge);
 		s.locByKey[key] = loc;
-		s.locByName[name] = loc;
+		// a plugin and its main module share a name (glTFRuntime): lists show that name once, at the module's place
+		// inside the plugin folder, so a plugin never replaces a module's location
+		if (kind == "plugin") s.locByName.emplace(name, loc);
+		else s.locByName[name] = loc;
 		if (kind != "class" && kind != "blueprint") continue;
 		ClassNode& n = s.classes[key];
 		n.name = name;

@@ -337,6 +337,12 @@ static void Pill(const std::string& text, ImU32 color, bool filled = false)
 	ImGui::Dummy(ImVec2(end.x - ImGui::GetCursorScreenPos().x, lineH));
 }
 
+static float PillWidth(const std::string& text)
+{
+	ImFont* f = g_fonts.bold;
+	return f->CalcTextSizeA(f->FontSize * 0.82f, FLT_MAX, 0, text.c_str()).x + S(12);
+}
+
 static void VerdictPill(const std::string& verdict)
 {
 	const char* label = VerdictLabel(verdict);
@@ -494,8 +500,11 @@ static bool ToolButton(const char* icon, const char* tip, bool active = false, b
 	return r;
 }
 
+static bool g_focusSearch = false;   // Ctrl+F: the first search box drawn this frame takes the keyboard
+
 static bool SearchBox(const char* id, char* buf, size_t size, const char* hint, float width)
 {
+	if (g_focusSearch) { ImGui::SetKeyboardFocusHere(); g_focusSearch = false; }
 	ImGui::SetNextItemWidth(width);
 	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, S(5));
 	bool changed = ImGui::InputTextWithHint(id, hint, buf, size);
