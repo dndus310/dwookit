@@ -19,6 +19,7 @@ FIXTURE = Path(__file__).resolve().parent / "fixtures" / "raw_temp_proj"
 sys.path.insert(0, str(TOOLS))
 
 import lens_analyze as analyze  # noqa: E402
+import lens_behaviors as behaviors  # noqa: E402
 import lens_features as features  # noqa: E402
 import lens_logs as logs  # noqa: E402
 import lens_quality as quality  # noqa: E402
@@ -410,6 +411,73 @@ class FeatureTests(TempDir):
         self.assertIn("<h2>기능</h2>", html_text)
         self.assertIn("Jump · Started", html_text)
         self.assertIn("C++ 소스 추정", html_text)
+
+
+def feat(fid, name, category, steps, owner="Hero"):
+    return {"id": fid, "name": name, "category": category, "trigger": name, "owner": owner, "source": "cpp", "where": "x", "steps": steps}
+
+
+def call(text, inner=None, **kw):
+    return {"kind": "call", "text": text, **({"inner": inner} if inner else {}), **kw}
+
+
+class BehaviorTests(unittest.TestCase):
+    """Entry points grouped into what the class does (Jump, Move, Open Door)."""
+
+    def jump_classes(self):
+        multi = [{"kind": "branch", "text": "조건: !GetCharacterMovement()->IsFalling()", "branches": [{"label": "참", "steps": [call("Jump")]}]},
+                 {"kind": "branch", "text": "조건: !bHasDoubleJumped", "branches": [{"label": "참", "steps": [
+                     call("Jump"), {"kind": "set", "text": "설정 bHasDoubleJumped"}]}]}]
+        start = [call("MultiJump", multi)]
+        hero = {"key": "uclass:/Script/G.Hero", "name": "Hero", "kind": "class", "features": [
+            feat("h#0", "Jump · Started", "input", [call("DoJumpStart", start)]),
+            feat("h#1", "Jump · Completed", "input", [call("DoJumpEnd", [call("StopJumping")])]),
+            feat("h#2", "타이머 → ResetWallJump", "timer", [call("ResetWallJump", [{"kind": "set", "text": "설정 bHasWallJumped"}])]),
+            feat("h#3", "Landed", "lifecycle", [{"kind": "set", "text": "설정 bHasDoubleJumped"}]),
+            feat("h#4", "Move · Triggered", "input", [call("DoMove", [call("AddMovementInput")])]),
+            feat("h#5", "EndPlay", "lifecycle", [call("ClearTimer")]),
+        ]}
+        bp = {"key": "bp:/Game/BP_Hero.BP_Hero_C", "name": "BP_Hero", "kind": "blueprint", "parent": "uclass:/Script/G.Hero", "features": [
+            feat("b#0", "Touch Jump Start 이벤트", "interface", [call("Hero.DoJumpStart", start, target="uclass:/Script/G.Hero")], "BP_Hero"),
+            feat("b#1", "ActorBeginOverlap 이벤트", "collision", [call("Open Door")], "BP_Hero"),
+            feat("b#2", "Open Door", "event", [{"kind": "timer", "text": "타임라인 Door"}], "BP_Hero"),
+        ]}
+        classes = {hero["key"]: hero, bp["key"]: bp}
+        behaviors.infer(classes)
+        return hero, bp
+
+    def test_entry_points_of_one_behavior_are_grouped(self):
+        hero, _ = self.jump_classes()
+        by_name = {b["nameEn"]: b for b in hero["behaviors"]}
+        jump = by_name["Jump"]
+        self.assertEqual(jump["name"], "점프")
+        self.assertEqual(set(jump["features"]), {"h#0", "h#1", "h#2", "h#3", "b#0"},
+                         "input pressed/released, the child BP's touch event, the timer and Landed (shared state) are one behavior")
+        self.assertTrue(jump["player"])
+        self.assertEqual(by_name["Move"]["features"], ["h#4"])
+        self.assertEqual(by_name["Lifecycle"]["features"], ["h#5"])
+        self.assertEqual(hero["behaviors"][-1]["nameEn"], "Lifecycle", "lifecycle comes last")
+
+    def test_core_function_and_its_cases(self):
+        hero, _ = self.jump_classes()
+        jump = next(b for b in hero["behaviors"] if b["nameEn"] == "Jump")
+        self.assertEqual(jump["primary"], "MultiJump", "followed through DoJumpStart to the function with the logic")
+        whens = [c["when"] for c in jump["cases"]]
+        self.assertIn("!bHasDoubleJumped", whens)
+        self.assertIn("bHasDoubleJumped", jump["writes"])
+        self.assertNotIn("GetCharacterMovement", " ".join(jump["states"]), "calls are not states")
+
+    def test_engine_event_is_named_by_what_it_calls(self):
+        _, bp = self.jump_classes()
+        door = next(b for b in bp["behaviors"] if b["nameEn"] == "Open Door")
+        self.assertEqual(door["name"], "문 열기", "Korean puts the verb last")
+        self.assertEqual(set(door["features"]), {"b#1", "b#2"})
+
+    def test_words(self):
+        self.assertEqual(behaviors.stem("DoJumpStart"), ("jump",))
+        self.assertEqual(behaviors.stem("ChargedAttackPressed"), ("charged", "attack"))
+        self.assertEqual(behaviors.stem("CloseButton.OnClicked"), (), "an event suffix alone names nothing")
+        self.assertEqual(behaviors.display(("toggle", "camera")), ("카메라 전환", "Toggle Camera"))
 
 
 class ClassModelTests(unittest.TestCase):

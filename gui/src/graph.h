@@ -81,6 +81,7 @@ public:
 	bool follow = false;     // keep the active node in view
 	float rowLimit = 8;
 	bool frameTop = false;   // tall flows: fit the width and start at the top instead of fitting everything
+	float minFrameZoom = 0;  // >0: framing never zooms out below this (the rest is reached by panning)
 
 	// Replaces the graph content while keeping positions of nodes that already existed.
 	void Set(std::vector<GraphNode> newNodes, std::vector<GraphLink> newLinks)
@@ -426,6 +427,15 @@ private:
 		ImVec2 center = (lo + hi) * 0.5f * zoom * g_scale;
 		pan = area * 0.5f - center;
 		if (frameTop && extent.y * zoom > area.y - S(60)) pan.y = S(30) - lo.y * zoom * g_scale;
+		if (minFrameZoom > 0 && zoom < minFrameZoom)
+		{
+			// too small to read when everything fits: stay readable and start at the left (or top) end
+			zoom = minFrameZoom;
+			ImVec2 c = (lo + hi) * 0.5f * zoom * g_scale;
+			pan = area * 0.5f - c;
+			if (extent.x * zoom > area.x - S(60)) pan.x = S(30) - lo.x * zoom * g_scale;
+			if (extent.y * zoom > area.y - S(60)) pan.y = S(30) - lo.y * zoom * g_scale;
+		}
 	}
 
 	static ImVec2 Bezier(ImVec2 a, ImVec2 b, ImVec2 c, ImVec2 d, float t)

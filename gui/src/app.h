@@ -83,10 +83,29 @@ struct Feature
 	std::vector<FlowStep> steps;
 };
 
+// A behavior: what the class does in the game's words (Jump, Move, Open Door), grouping the entry points that
+// serve it, with the function holding its logic and that function's cases (inferred from names and calls).
+struct BehaviorCase
+{
+	std::string when;
+	std::vector<std::string> does;
+};
+
+struct Behavior
+{
+	std::string id, name, nameEn, primary;
+	bool player = false;
+	std::vector<std::string> features;   // feature ids, possibly of parent or child classes
+	std::map<std::string, std::vector<std::string>> triggerHandlers;
+	std::vector<std::string> handlers, states, writes, reaches;
+	std::vector<BehaviorCase> cases;
+};
+
 struct ClassFeatures
 {
 	std::string key, name, kind, parent;
 	std::vector<Feature> features;
+	std::vector<Behavior> behaviors;
 };
 
 // Where a symbol lives, for the architecture view's location tree.
@@ -202,6 +221,30 @@ static void LoadFeatures(const fs::path& file, Structure& s)
 			ft.estimated = f.value("estimated", false);
 			for (auto& x : Arr(f, "steps")) ft.steps.push_back(ParseStep(x));
 			cf.features.push_back(std::move(ft));
+		}
+		auto strings = [](const json& a) {
+			std::vector<std::string> v;
+			for (auto& x : a) if (x.is_string()) v.push_back(x.get<std::string>());
+			return v;
+		};
+		for (auto& b : Arr(c, "behaviors"))
+		{
+			Behavior bh;
+			bh.id = Str(b, "id");
+			bh.name = Str(b, "name");
+			bh.nameEn = Str(b, "nameEn");
+			bh.primary = Str(b, "primary");
+			bh.player = b.value("player", false);
+			bh.features = strings(Arr(b, "features"));
+			bh.handlers = strings(Arr(b, "handlers"));
+			bh.states = strings(Arr(b, "states"));
+			bh.writes = strings(Arr(b, "writes"));
+			bh.reaches = strings(Arr(b, "reaches"));
+			const json& th = Obj(b, "triggerHandlers");
+			if (th.is_object())
+				for (auto it = th.begin(); it != th.end(); ++it) bh.triggerHandlers[it.key()] = strings(it.value());
+			for (auto& c2 : Arr(b, "cases")) bh.cases.push_back({ Str(c2, "when"), strings(Arr(c2, "does")) });
+			cf.behaviors.push_back(std::move(bh));
 		}
 		s.featureCount += (int)cf.features.size();
 		s.features[cf.key] = std::move(cf);

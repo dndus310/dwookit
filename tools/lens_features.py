@@ -17,6 +17,8 @@ import re
 from collections import defaultdict
 from pathlib import Path
 
+import lens_behaviors
+
 SCHEMA = "lens.features/1"
 CATEGORIES = [
     ("lifecycle", "생명주기"), ("input", "입력"), ("ui", "UI·컴포넌트 이벤트"), ("collision", "충돌·오버랩"),
@@ -479,6 +481,9 @@ def build_features(raw: dict, project_root: Path, symbols: list[dict]) -> dict:
         if not pref:
             continue
         cls = entry(class_key(path), c["name"], "class")
+        sup = normalize_class(c.get("super", ""))
+        if sup in prefixed_of:
+            cls["parent"] = class_key(sup)
         used = set()
         methods = index.methods_of(pref)
         for m in methods:
@@ -587,6 +592,7 @@ def build_features(raw: dict, project_root: Path, symbols: list[dict]) -> dict:
         cls["features"].sort(key=lambda f: (order.get(f["category"], 99), f["name"]))
         for i, f in enumerate(cls["features"]):
             f["id"] = f"{cls['key']}#{i}"
+    lens_behaviors.infer(classes)
     out = [c for c in classes.values() if c["features"]]
     return {"schema": SCHEMA, "categories": [{"id": c, "name": n} for c, n in CATEGORIES], "classes": sorted(out, key=lambda c: c["key"])}
 
@@ -602,6 +608,7 @@ REPORT_CSS = """
 ol.flow,ul.br{margin:4px 0 6px;padding-left:22px}ol.flow li{margin:1px 0}ul.br{list-style:none;padding-left:14px}
 .k{display:inline-block;min-width:5.2em;color:var(--ink3);font:12px Consolas,monospace}.lbl{color:var(--det);font-weight:600}
 .inner{border-left:2px dashed var(--rule);margin-left:4px}.est{color:var(--ink3);font-size:11px}
+.beh{margin:4px 0 4px 4px;border-top:1px dashed var(--rule)}.beh>summary b{color:var(--ink)}ul.cases{margin:4px 0;padding-left:18px}
 """
 
 
@@ -625,25 +632,44 @@ def render_html(doc: dict, max_classes: int = 400) -> str:
         return f"<ol class='{cls}'>{''.join(items)}</ol>"
 
     classes = doc.get("classes", [])
+    by_id = {f["id"]: f for c in classes for f in c["features"]}
+
+    def entry_html(f: dict) -> str:
+        est = " <span class='est'>C++ 소스 추정</span>" if f.get("estimated") else ""
+        flow = steps_html(f["steps"]) if f["steps"] else "<p class='meta'>단계 없음</p>"
+        return (f"<details class='feat'><summary><b>{esc(f['name'])}</b> <span class='meta'>{esc(cats.get(f['category'], f['category']))} · "
+                f"{esc(f['trigger'])} · {esc(f['where'])}</span>{est}</summary>{flow}</details>")
+
     parts = []
     for c in classes[:max_classes]:
-        groups = defaultdict(list)
-        for f in c["features"]:
-            groups[f["category"]].append(f)
         body = []
-        for cat, name in cats.items():
-            if cat not in groups:
+        behaviors = c.get("behaviors") or []
+        for group, title in ((True, "플레이어 기능"), (False, "엔진·내부 동작")):
+            items = [b for b in behaviors if b.get("player") == group]
+            if not items:
                 continue
-            body.append(f"<div class='feat-cat'>{esc(name)} · {len(groups[cat])}</div>")
-            for f in groups[cat]:
-                est = " <span class='est'>C++ 소스 추정</span>" if f.get("estimated") else ""
-                flow = steps_html(f["steps"]) if f["steps"] else "<p class='meta'>단계 없음</p>"
-                body.append(f"<details class='feat'><summary><b>{esc(f['name'])}</b> <span class='meta'>{esc(f['trigger'])} · "
-                            f"{esc(f['where'])}</span>{est}</summary>{flow}</details>")
+            body.append(f"<div class='feat-cat'>{title} · {len(items)}</div>")
+            for b in items:
+                inner = []
+                if b.get("primary"):
+                    inner.append(f"<p class='meta'>핵심 함수: <code>{esc(b['primary'])}</code></p>")
+                if b.get("cases"):
+                    inner.append("<ul class='cases'>" + "".join(
+                        f"<li><span class='lbl'>{esc(x['when'] or '항상')}</span> → {esc(', '.join(x['does']))}</li>" for x in b["cases"]) + "</ul>")
+                if b.get("states"):
+                    inner.append("<p class='meta'>상태: " + ", ".join(
+                        esc(x) + (" (바꿈)" if x in b.get("writes", []) else "") for x in b["states"]) + "</p>")
+                inner.append("<div class='feat-cat'>시작점</div>" + "".join(entry_html(by_id[x]) for x in b["features"] if x in by_id))
+                body.append(f"<details class='beh'><summary><b>{esc(b['name'])}</b> <span class='meta'>{esc(b['nameEn'])} · 시작점 {len(b['features'])}개</span>"
+                            f"</summary>{''.join(inner)}</details>")
+        if not behaviors:
+            body = [entry_html(f) for f in c["features"]]
         kind = "Blueprint" if c["kind"] == "blueprint" else "C++"
-        parts.append(f"<details class='feat-class'><summary><b>{esc(c['name'])}</b> <span class='meta'>{kind} · 기능 {len(c['features'])}개</span>"
-                     f"</summary>{''.join(body)}</details>")
+        parts.append(f"<details class='feat-class'><summary><b>{esc(c['name'])}</b> <span class='meta'>{kind} · 기능 {len(behaviors)}개 · "
+                     f"시작점 {len(c['features'])}개</span></summary>{''.join(body)}</details>")
     more = f"<p class='meta'>클래스 {len(classes)}개 중 {max_classes}개만 표시했습니다. 전체는 features.json에 있습니다.</p>" if len(classes) > max_classes else ""
     total = sum(len(c["features"]) for c in classes)
-    return (f"<section><h2>기능</h2><p class='meta'>클래스 {len(classes)}개 · 기능 {total}개. 진입점(이벤트, 입력, 오버라이드, 바인딩, 공개 함수)별로 "
-            f"나누고 각 기능이 실행하는 단계를 펼쳤습니다. C++ 단계는 소스 패턴으로 읽은 추정입니다.</p>{''.join(parts) or '<p class=meta>기능 없음</p>'}{more}</section>")
+    behaviors_total = sum(len(c.get("behaviors") or []) for c in classes)
+    return (f"<section><h2>기능</h2><p class='meta'>클래스 {len(classes)}개 · 기능 {behaviors_total}개 · 진입점 {total}개. 진입점(이벤트, 입력, 오버라이드, 바인딩, 공개 함수)을 "
+            f"묶은 기능(점프, 이동, 문 열기처럼 클래스가 하는 일) 아래에 그 기능을 시작하는 진입점과 각 진입점이 실행하는 단계를 펼쳤습니다. "
+            f"기능 이름과 묶음은 함수·이벤트 이름, 호출 관계, 함께 쓰는 상태로 추론했고, C++ 단계는 소스 패턴으로 읽은 추정입니다.</p>{''.join(parts) or '<p class=meta>기능 없음</p>'}{more}</section>")
