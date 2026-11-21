@@ -1441,6 +1441,18 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 	// --hover x,y (window pixels): park the mouse there, so --screenshot can capture hover states and tooltips.
 	std::wstring hoverArg = ArgValue(argc, argv, L"--hover");
 	std::wstring sizeArg = ArgValue(argc, argv, L"--size");
+	// --nav-steps architecture,problems,back,forward (QA): screens and back/forward steps, one every few frames
+	std::vector<std::string> navSteps;
+	{
+		std::string list = ToUtf8(ArgValue(argc, argv, L"--nav-steps"));
+		for (size_t a = 0; !list.empty() && a <= list.size();)
+		{
+			size_t b = list.find(',', a);
+			if (b == std::string::npos) b = list.size();
+			if (b > a) navSteps.push_back(list.substr(a, b - a));
+			a = b + 1;
+		}
+	}
 	if (!ArgValue(argc, argv, L"--graph-zoom").empty()) g_forceGraphZoom = (float)_wtof(ArgValue(argc, argv, L"--graph-zoom").c_str());   // WxH in logical pixels (screenshots of other window sizes)
 	int sizeW = 1500, sizeH = 920;
 	if (!sizeArg.empty()) swscanf_s(sizeArg.c_str(), L"%dx%d", &sizeW, &sizeH);
@@ -1588,12 +1600,21 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		ImGui::NewFrame();
 		bool quit = false;
 		DrawApp(app, quit);
+		if (!navSteps.empty() && frame % 6 == 5)
+		{
+			std::string step = navSteps.front();
+			navSteps.erase(navSteps.begin());
+			if (step == "back") NavGo(app, -1);
+			else if (step == "forward") NavGo(app, +1);
+			else for (auto& a : kActivities) if (step == a.key) app.requestActivity = a.id;
+		}
 		ImGui::Render();
 		const float clear[4] = { 0.118f, 0.122f, 0.133f, 1.0f };
 		g_context->OMSetRenderTargets(1, &g_rtv, nullptr);
 		g_context->ClearRenderTargetView(g_rtv, clear);
 		ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-		if (!shotArg.empty() && ++frame > 10 && ImGui::GetTime() > shotDelay)
+		++frame;
+		if (!shotArg.empty() && frame > 10 && navSteps.empty() && ImGui::GetTime() > shotDelay)
 		{
 			SaveBackBuffer(shotArg);
 			done = true;
