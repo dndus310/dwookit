@@ -1,6 +1,6 @@
 # 에이전트 컨텍스트 (설계)
 
-상태: 설계 초안 (2026-11-22). 일부 구현 (2026-11-24): 블루프린트 추적(`bp`), 큰 블루프린트 부분 분리, `context/AGENT.md`, 안내 파일(CLAUDE.local.md, Copilot 지침 두 개: dwo-Forge 안내 + 사용자 지침 빈 파일), `agent` 명령. 미구현: overview/features/problems 묶음, `ctx` 조회 명령, MCP.
+상태: 설계 초안 (2026-11-22). 일부 구현 (2026-11-24): 블루프린트 추적(`bp`), 큰 블루프린트 부분 분리, `context/AGENT.md`, 안내 파일(CLAUDE.local.md, Copilot 지침 두 개: dwo-Forge 안내 + 사용자 지침 빈 파일), `agent` 명령, 사람이 읽는 파일 분석(`lens_explain.py`, 창의 DwoLens › 파일 분석, HTML). 미구현: overview/features/problems 묶음, `ctx` 조회 명령, MCP.
 
 ## 1. 목적
 

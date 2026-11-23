@@ -305,6 +305,14 @@ function Get-PluginBuild($Engine, [string]$Name = 'DwoLensInspector', [string]$M
     $uplugin = Join-Path $srcCopy "$Name.uplugin"
     & cmd /c "`"$($Engine.RunUAT)`" BuildPlugin -Plugin=`"$uplugin`" -Package=`"$staging`" -HostPlatforms=Win64 -TargetPlatforms=Win64 > `"$log`" 2>&1"
     $code = $LASTEXITCODE
+    # Another UnrealBuildTool (an editor, another build) can hold its shared rules assembly for a moment: try once more.
+    if ($code -ne 0 -and (Test-Path $log) -and (Select-String -Path $log -Pattern 'being used by another process' -Quiet)) {
+        Say "The build tools are busy with another build; trying again in 30 seconds..."
+        Start-Sleep -Seconds 30
+        Remove-Item -Recurse -Force $staging -ErrorAction SilentlyContinue
+        & cmd /c "`"$($Engine.RunUAT)`" BuildPlugin -Plugin=`"$uplugin`" -Package=`"$staging`" -HostPlatforms=Win64 -TargetPlatforms=Win64 > `"$log`" 2>&1"
+        $code = $LASTEXITCODE
+    }
     Remove-Item -Recurse -Force $srcCopy -ErrorAction SilentlyContinue
     if ($code -ne 0 -or -not (Test-Path (Join-Path $staging "Binaries\Win64\UnrealEditor-$Module.dll"))) {
         if (Test-Path $log) { Select-String -Path $log -Pattern ': (fatal )?error ' | Select-Object -First 5 | ForEach-Object { Write-Host "    $($_.Line.Trim())" -ForegroundColor Red } }
@@ -1769,6 +1777,7 @@ function Invoke-Analyze {
     if (-not (Test-Path (Join-Path $PluginDest 'DwoLensInspector.uplugin'))) { Fail 'DwoLens is not installed in this project. Install it: __dwo-forge.bat tool install lens' }
     $uproject = Get-UProject
     $engine = Resolve-Engine $uproject.Json.EngineAssociation
+    Assert-ModulesBuilt $uproject
     $startedAt = Get-Date
     $runId = 'run-' + $startedAt.ToString('yyyyMMdd-HHmmss')
     $runDir = Join-Path $DataDir "runs\$runId"
@@ -1880,6 +1889,19 @@ function Test-BpEntryExists([string]$Entry) {
     return Test-Path (Join-Path $Project "$rel.uasset")
 }
 
+function Assert-ModulesBuilt($UProject) {
+    # The commandlet loads the project's own C++ modules; unbuilt ones make the editor stop with a dialog-less error.
+    if (-not $UProject.IsCode) { return }
+    $bin = Join-Path $Project 'Binaries\Win64'
+    $missing = @()
+    foreach ($m in @($UProject.Json.Modules)) {
+        if (-not $m -or -not $m.Name) { continue }
+        if ("$($m.Type)" -match 'Program|Server') { continue }
+        if (-not (Get-ChildItem $bin -Filter "UnrealEditor-$($m.Name)*.dll" -ErrorAction SilentlyContinue)) { $missing += $m.Name }
+    }
+    if ($missing.Count) { Fail "The project's C++ modules are not built for the editor ($($missing -join ', ')). Build them first: __dwo-forge.bat compile (editor closed)" }
+}
+
 function Invoke-BpMarkdown {
     if (-not (Test-Path (Join-Path $BpDir 'export.json'))) { return }
     & python (Join-Path $SystemDir 'tools\lens_bp.py') md --dir $BpDir --project $Project
@@ -1893,6 +1915,7 @@ function Invoke-BpExport {
     if (-not (Test-Path (Join-Path $PluginDest 'DwoLensInspector.uplugin'))) { Fail 'DwoLens is not installed in this project. Install it: __dwo-forge.bat tool install lens' }
     $uproject = Get-UProject
     $engine = Resolve-Engine $uproject.Json.EngineAssociation
+    Assert-ModulesBuilt $uproject
     $logDir = Join-Path $DataDir 'logs'
     New-Item -ItemType Directory -Force $logDir, $BpDir | Out-Null
     $log = Join-Path $logDir 'bp-export.log'

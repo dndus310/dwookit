@@ -142,7 +142,7 @@ KIND_WORDS = {"Actor": "월드에 놓이는 액터", "Character": "걸어 다니
               "BlueprintFunctionLibrary": "함수 모음 (라이브러리)", "DataAsset": "데이터 에셋", "PrimaryDataAsset": "데이터 에셋",
               "SaveGame": "저장 데이터", "WorldSubsystem": "월드 서브시스템", "GameInstanceSubsystem": "게임 인스턴스 서브시스템",
               "ModularGameplayActor": "월드에 놓이는 액터", "ModularCharacter": "걸어 다니는 캐릭터",
-              "CommonActivatableWidget": "UI 화면 (활성화되는 위젯)", "CommonUserWidget": "UI 위젯", "CommonButtonBase": "UI 버튼"}
+              "PackedLevelActor": "묶어 둔 레벨 조각 (Packed Level Actor)", "LevelInstance": "레벨 인스턴스", "CommonActivatableWidget": "UI 화면 (활성화되는 위젯)", "CommonUserWidget": "UI 위젯", "CommonButtonBase": "UI 버튼"}
 
 
 # ---------------------------------------------------------------------------------------------- small helpers
