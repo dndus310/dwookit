@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -20,6 +21,7 @@ sys.path.insert(0, str(TOOLS))
 
 import lens_analyze as analyze  # noqa: E402
 import lens_behaviors as behaviors  # noqa: E402
+import lens_bp  # noqa: E402
 import lens_features as features  # noqa: E402
 import lens_logs as logs  # noqa: E402
 import lens_quality as quality  # noqa: E402
@@ -791,6 +793,268 @@ class SmokeTests(TempDir):
         self.assertEqual(runtime.smoke_verdict({**base, "errors": 6}, 5, 10)[0], "fail")
         self.assertEqual(runtime.smoke_verdict({**base, "killed": False, "exitCode": 0}, 0, 10)[0], "warn")
         self.assertEqual(runtime.smoke_verdict({**base, "logFound": False}, 0, 10)[0], "fail")
+
+
+class BlueprintPseudocodeTests(TempDir):
+    """lens_bp.py on real exports (tests/fixtures/bp_export, from the QA project) and small built graphs."""
+
+    FIX = Path(__file__).resolve().parent / "fixtures" / "bp_export"
+
+    def bp(self, rel: str) -> dict:
+        name = rel.rsplit("/", 1)[-1]
+        return json.loads((self.FIX / rel / f"{name}.json").read_text(encoding="utf-8"))
+
+    def test_door_frame_reads_like_the_graph(self):
+        md = lens_bp.render(self.bp("Game/LevelPrototyping/Interactable/Door/BP_DoorFrame"))
+        for line in (
+            "on BeginPlay():",
+            "if isValid(Door):",                                  # validated get
+            "Closed Position = Door.RelativeLocation",
+            "Door Control.Play()",
+            "on Update:",
+            "Door Control.Reverse()  # outputs as at L1",          # second timeline input
+            "== 0)",                                             # empty int default shown as 0
+            "Lerp(A=Closed Position.X",                           # split struct pin
+            "LocationX=Door Size.X",                              # BreakVector(V).X -> V.X
+            "## timelines",
+            "Door Control [0.3s] tracks: float:NewTrack_0",
+            "## fn Set Mesh(NewMesh: StaticMesh, RelativeTransform: Transform, Material: MaterialInterface, NewMobility: EComponentMobility)",
+            "# Store Door Position",                              # comment box
+        ):
+            self.assertIn(line, md)
+        self.assertNotIn("BreakVector(", md)
+        self.assertNotIn("Get()", md)
+        # Every label is used, and labels are numbered from L1.
+        labels = re.findall(r"^\s*(L\d+):$", md, re.M)
+        for label in labels:
+            self.assertRegex(md, rf"(goto|at) {label}\b")
+        self.assertEqual(labels, [f"L{i + 1}" for i in range(len(labels))])
+
+    def test_pseudocode_is_far_smaller_than_the_export(self):
+        rel = "Game/LevelPrototyping/Interactable/Door/BP_DoorFrame"
+        size = (self.FIX / rel / "BP_DoorFrame.json").stat().st_size
+        self.assertLess(len(lens_bp.render(self.bp(rel)).encode("utf-8")), size / 10)
+
+    def test_jump_pad_cast_and_negated_branch(self):
+        md = lens_bp.render(self.bp("Game/LevelPrototyping/Interactable/JumpPad/BP_JumpPad"))
+        self.assertIn("if not OtherActor.ActorHasTag(Tag=Exclusion Tag):", md)
+        self.assertIn("asCharacter = OtherActor as Character", md)
+        self.assertIn("asCharacter.LaunchCharacter(LaunchVelocity=Velocity, bZOverride=true)", md)
+        self.assertIn("Velocity: Vector = (X=0,Y=0,Z=800)  [InstanceEditable", md)
+        self.assertIn("Cylinder: StaticMeshComponent < DefaultSceneRoot  {StaticMesh=SM_Cylinder", md)
+
+    def test_widget_tree(self):
+        md = lens_bp.render(self.bp("Game/AttributeSample/UI/WBP_AttributeAssetItem"))
+        self.assertIn("Background: Border (var)\n  Content: VerticalBox\n    ThumbnailBox: SizeBox\n      Thumbnail: Image (var)", md)
+
+    def test_folder_writes_md_index_and_prunes_untracked(self):
+        root = self.tmp / "blueprints"
+        shutil.copytree(self.FIX, root)
+        stale = root / "Game" / "Old" / "BP_Old"
+        write(stale / "BP_Old.json", json.dumps({"schema": lens_bp.SCHEMA, "name": "BP_Old"}))
+        write(stale / "BP_Old.md", "old")
+        mine = write(root / "Game" / "Notes" / "notes.json", "{}")       # not ours: kept
+        self.assertEqual(lens_bp.write_folder(root, None), 0)
+        self.assertFalse(stale.exists())
+        self.assertTrue(mine.exists())
+        index = (root / "index.md").read_text(encoding="utf-8")
+        self.assertEqual(index.count("| [BP_") + index.count("| [WBP_"), 3)
+        self.assertTrue((root / "Game/LevelPrototyping/Interactable/JumpPad/BP_JumpPad/BP_JumpPad.md").exists())
+
+    def test_changed_since_export(self):
+        bp = self.bp("Game/LevelPrototyping/Interactable/JumpPad/BP_JumpPad")
+        f = write(self.tmp / bp["source"]["file"], "x")
+        self.assertTrue(lens_bp.source_changed(bp, self.tmp))
+        f.unlink()
+        self.assertTrue(lens_bp.source_changed(bp, self.tmp))
+        self.assertIsNone(lens_bp.source_changed(bp, None))
+
+    def test_values(self):
+        v = lens_bp.format_value
+        self.assertEqual(v("/Script/Engine.StaticMesh'/Game/M/SM_Door.SM_Door'"), "SM_Door")
+        self.assertEqual(v("/Game/BP/BP_X.BP_X_C"), "BP_X")
+        self.assertEqual(v("(X=0.000000,Y=1.500000,Z=0.000000)"), "(X=0,Y=1.5,Z=0)")
+        self.assertEqual(v("", {"type": {"category": "int"}}), "0")
+        self.assertEqual(v("abc", {"type": {"category": "string"}}), '"abc"')
+
+    # -- built graphs for constructs the fixtures do not have
+    @staticmethod
+    def node(nid, kind, pins, **extra):
+        n = {"id": nid, "kind": kind, "class": extra.pop("cls", "K2Node"), "title": extra.pop("title", nid), "pos": [0, 0], "pins": []}
+        for name, direction, cat, links in pins:
+            p = {"name": name, "dir": direction, "type": {"category": cat, "text": cat}}
+            if links:
+                p["links"] = [{"node": a, "pin": b} for a, b in links]
+            n["pins"].append(p)
+        n.update(extra)
+        return n
+
+    def test_loop_sequence_latent_and_cycle(self):
+        N = self.node
+        graph = {"name": "EventGraph", "kind": "event", "nodes": [
+            N("E", "event", [("then", "out", "exec", [("S", "execute")])], title="Event Tick", member="ReceiveTick"),
+            N("S", "sequence", [("execute", "in", "exec", [("E", "then")]), ("then_0", "out", "exec", [("F", "execute")]),
+                                ("then_1", "out", "exec", [("D", "execute")])]),
+            N("G", "get", [("Items", "out", "object", [("F", "Array")])], member="Items", pure=True),
+            N("F", "macro", [("execute", "in", "exec", [("S", "then_0")]), ("Array", "in", "object", [("G", "Items")]),
+                             ("LoopBody", "out", "exec", [("P", "execute")]), ("Array Element", "out", "object", [("P", "self")]),
+                             ("Completed", "out", "exec", [])], member="ForEachLoop"),
+            N("P", "call", [("execute", "in", "exec", [("F", "LoopBody")]), ("self", "in", "object", [("F", "Array Element")]),
+                            ("then", "out", "exec", [])], member="K2_DestroyActor"),
+            N("D", "call", [("execute", "in", "exec", [("S", "then_1"), ("D", "then")]), ("then", "out", "exec", [("D", "execute")])],
+              member="Delay", latent=True),
+        ]}
+        w = lens_bp.Writer(lens_bp.Graph(graph), {})
+        text = "\n".join(w.write_event_graph())
+        self.assertIn("on Tick():", text)
+        self.assertIn("  for arrayElement in Items:\n    arrayElement.DestroyActor()", text)
+        self.assertIn("  L1:\n  await Delay()\n  goto L1", text)
+
+
+class BlueprintPartsTests(TempDir):
+    """Large Blueprints split into an overview and parts/<event|fn>.md that each read on their own."""
+
+    FIX = BlueprintPseudocodeTests.FIX
+    DOOR = "Game/LevelPrototyping/Interactable/Door/BP_DoorFrame"
+
+    def door(self) -> dict:
+        return json.loads((self.FIX / self.DOOR / "BP_DoorFrame.json").read_text(encoding="utf-8"))
+
+    def test_events_joined_by_goto_stay_together(self):
+        body = ["# about A", "on A():", "  L7:", "  X()", "on B():", "  goto L9", "on C():", "  X.Reverse()  # outputs as at L7",
+                "on D():", "  L9:", "  Y()"]
+        blocks = lens_bp.split_events(body)
+        self.assertEqual([b[0] for b in blocks], ["# about A", "on B():"])
+        self.assertEqual(blocks[0], ["# about A", "on A():", "  L1:", "  X()", "on C():", "  X.Reverse()  # outputs as at L1"])
+        self.assertEqual(blocks[1], ["on B():", "  goto L1", "on D():", "  L1:", "  Y()"])
+
+    def test_small_events_are_packed_with_distinct_labels(self):
+        parts = [{"kind": "event", "graph": "G", "name": n, "events": [n], "lines": lines} for n, lines in (
+            ("A", ["on A():", "  L1:", "  X()", "  goto L1"]), ("B", ["on B():", "  L1:", "  Y()", "  goto L1"]),
+            ("C", ["on C():"] + ["  Z()"] * 40))]
+        packed = lens_bp.pack_events(parts, limit=30)
+        self.assertEqual([p["events"] for p in packed], [["A", "B"], ["C"]])
+        self.assertEqual(packed[0]["lines"], ["on A():", "  L1:", "  X()", "  goto L1", "on B():", "  L2:", "  Y()", "  goto L2"])
+
+    def test_door_parts_and_overview(self):
+        overview, files = lens_bp.render_split(self.door(), pack_lines=0)
+        self.assertEqual(sorted(files), ["fn_Set_Mesh.md", "fn_UserConstructionScript.md", "on_ActorBeginOverlap.md",
+                                         "on_ActorEndOverlap.md", "on_BeginPlay.md", "on_Open_Door.md"])
+        self.assertIn("| [on Open Door, on Close Door](parts/on_Open_Door.md) |", overview)
+        self.assertIn("| [on BeginPlay](parts/on_BeginPlay.md) | 7 | Closed Position, Closed Position_0 | - |", overview)
+        self.assertIn("| Door, Door2 | Set Mesh |", overview)
+        self.assertIn("## vars", overview)
+        self.assertNotIn("on BeginPlay():", overview)                    # graphs live in the parts only
+        # Open Door and Close Door share the timeline (goto / 'outputs as at'), so one part holds both.
+        door = files["on_Open_Door.md"]
+        self.assertIn("on Close Door():\n  Door Control.Reverse()  # outputs as at L1", door)
+        self.assertIn("Door Size: Vector = (X=400,Y=100,Z=400)", door)        # the vars it uses, with types
+        # 'Open Door()' is a call, not a use of the variable 'Door'.
+        overlap = files["on_ActorBeginOverlap.md"]
+        self.assertNotIn("vars used", overlap)
+        self.assertIn("calls own: Open Door", overlap)
+        self.assertIn("components used: Box: BoxComponent", files["on_ActorEndOverlap.md"])
+        self.assertTrue(files["fn_Set_Mesh.md"].startswith("# BP_DoorFrame > fn Set Mesh\n"))
+        # Together the parts hold every line of the whole document's graphs.
+        whole = lens_bp.render(self.door())
+        for text in files.values():
+            for line in text.split("\n## ", 1)[1].splitlines()[1:]:
+                if line and not line.startswith("<!--") and not re.search(r"\bL\d+\b", line):
+                    self.assertIn(line, whole)
+
+    def test_folder_splits_over_the_threshold_only(self):
+        root = self.tmp / "blueprints"
+        shutil.copytree(self.FIX, root)
+        door = root / self.DOOR
+        self.assertEqual(lens_bp.write_folder(root, None, split_lines=50), 0)
+        # The four events (23 lines together) share one part; the two functions have one each.
+        self.assertEqual(sorted(p.name for p in (door / "parts").glob("*.md")),
+                         ["fn_Set_Mesh.md", "fn_UserConstructionScript.md", "on_BeginPlay.md"])
+        self.assertIn("## parts", (door / "BP_DoorFrame.md").read_text(encoding="utf-8"))
+        self.assertFalse((root / "Game/LevelPrototyping/Interactable/JumpPad/BP_JumpPad/parts").exists())
+        self.assertRegex((root / "index.md").read_text(encoding="utf-8"), r"\[BP_DoorFrame\].*\| 87 \| 3 \|")
+        # Under the threshold again: one whole file, the parts folder goes away.
+        self.assertEqual(lens_bp.write_folder(root, None), 0)
+        self.assertFalse((door / "parts").exists())
+        self.assertIn("on BeginPlay():", (door / "BP_DoorFrame.md").read_text(encoding="utf-8"))
+
+
+class AgentContextTests(TempDir):
+    """lens_agent.py: AGENT.md, the user's instructions shell and the pointer files for Claude Code and Copilot."""
+
+    def setUp(self):
+        super().setUp()
+        self.project = self.tmp / "Proj"
+        self.forge = self.project / "__dwo-forge"
+        self.forge.mkdir(parents=True)
+        subprocess.run(["git", "init", "-q", str(self.project)], check=True)
+
+    def run_agent(self, *args):
+        import lens_agent
+        return lens_agent.main([*args, "--project", str(self.project)])
+
+    def test_agent_md_instructions_and_pointers(self):
+        shutil.copytree(BlueprintPseudocodeTests.FIX, self.forge / "blueprints")
+        lens_bp.write_folder(self.forge / "blueprints", self.project)
+        self.assertEqual(self.run_agent("write"), 0)
+        agent = (self.forge / "context" / "AGENT.md").read_text(encoding="utf-8")
+        for text in ("3 tracked Blueprint(s)", "__dwo-forge/blueprints/index.md", "parts/", "Haiku",
+                     "UFUNCTION(BlueprintCallable)", "| # | Blueprint | graph / function | change |",
+                     "No explanations", "never open them", "(empty so far)"):
+            self.assertIn(text, agent)
+        self.assertLess(len(agent.split()), 900)                         # read on every task: keep it short
+        user = self.project / ".github/instructions/project.instructions.md"
+        self.assertTrue(user.read_text(encoding="utf-8").startswith('---\napplyTo: "**"\n---\n<!-- dwo-forge'))
+        claude = (self.project / "CLAUDE.local.md").read_text(encoding="utf-8")
+        self.assertIn("@__dwo-forge/context/AGENT.md\n@.github/instructions/project.instructions.md", claude)
+        copilot = (self.project / ".github/instructions/dwo-forge.instructions.md").read_text(encoding="utf-8")
+        self.assertTrue(copilot.startswith('---\napplyTo: "**"\n---\n'))
+        # The user's file is never overwritten, and it is announced as winning once it says something.
+        mine = user.read_text(encoding="utf-8") + "- Tick 금지\n"
+        user.write_text(mine, encoding="utf-8")
+        self.run_agent("write")
+        self.assertEqual(user.read_text(encoding="utf-8"), mine)
+        self.assertIn("it wins over this file", (self.forge / "context" / "AGENT.md").read_text(encoding="utf-8"))
+        # 'agent off' keeps it; uninstall backs it up, then removes everything and the empty .github folders.
+        self.run_agent("off")
+        self.assertEqual(user.read_text(encoding="utf-8"), mine)
+        backup = self.tmp / "backup"
+        self.run_agent("remove", "--backup", str(backup))
+        self.assertEqual((backup / "project.instructions.md").read_text(encoding="utf-8"), mine)
+        self.assertFalse((self.project / "CLAUDE.local.md").exists())
+        self.assertFalse((self.project / ".github").exists())
+
+    def test_existing_files_keep_their_bytes(self):
+        claude = self.project / "CLAUDE.local.md"
+        original = b"\xef\xbb\xbfmy notes\r\nline 2\r\n"
+        claude.write_bytes(original)
+        self.run_agent("write")
+        self.run_agent("write")                                         # a second write replaces, never duplicates
+        data = claude.read_bytes()
+        self.assertTrue(data.startswith(original))
+        self.assertEqual(data.count(b">>> dwo-forge managed"), 1)
+        self.assertNotIn(b"\n<", data.replace(b"\r\n", b""))             # CRLF kept throughout
+        self.run_agent("remove")
+        self.assertEqual(claude.read_bytes(), original)
+
+    def test_committed_and_foreign_files_are_left_alone(self):
+        claude = write(self.project / "CLAUDE.local.md", "team file\n")
+        subprocess.run(["git", "-C", str(self.project), "add", "CLAUDE.local.md"], check=True)
+        foreign = write(self.project / ".github/instructions/dwo-forge.instructions.md", "someone else's\n")
+        self.run_agent("write")
+        self.run_agent("remove")
+        self.assertEqual(claude.read_text(encoding="utf-8"), "team file\n")
+        self.assertEqual(foreign.read_text(encoding="utf-8"), "someone else's\n")
+
+    def test_off_removes_pointers_and_keeps_them_off(self):
+        self.run_agent("write")
+        self.run_agent("off")
+        self.assertFalse((self.project / "CLAUDE.local.md").exists())
+        self.run_agent("write")                                         # e.g. after the next bp export
+        self.assertFalse((self.project / "CLAUDE.local.md").exists())
+        self.assertTrue((self.forge / "context" / "AGENT.md").exists())
+        self.run_agent("on")
+        self.assertTrue((self.project / "CLAUDE.local.md").exists())
 
 
 class CatalogAndConfigTests(unittest.TestCase):

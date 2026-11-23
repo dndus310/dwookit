@@ -23,6 +23,26 @@
       "output": "raw/blueprints.json"
     },
     {
+      "id": "blueprint-track-export",
+      "tool": "lens",
+      "station": "ST-1",
+      "kind": "build",
+      "status": "ready",
+      "command": "bp",
+      "invocation": "UnrealEditor-Cmd <uproject> -run=DwoLensInspector -LensBpList=<bp-track.txt> -LensBpOut=<dir>, then lens_bp.py md (also inside analyze when Blueprints are tracked)",
+      "output": "__dwo-forge/blueprints/<path>/<Name>.md (pseudocode; overview + parts/ when long), <Name>.json (lens.bp/1), index.md"
+    },
+    {
+      "id": "agent-context",
+      "tool": "lens",
+      "station": "ST-1",
+      "kind": "build",
+      "status": "ready",
+      "command": "agent",
+      "invocation": "lens_agent.py write (on connect, update, analyze, bp export)",
+      "output": "__dwo-forge/context/AGENT.md, CLAUDE.local.md block, .github/instructions/dwo-forge.instructions.md, .github/instructions/project.instructions.md (user's, empty shell)"
+    },
+    {
       "id": "asset-reference-scan",
       "tool": "lens",
       "station": "ST-1",

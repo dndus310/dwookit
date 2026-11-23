@@ -1,4 +1,5 @@
 #include "DwoLensInspectorCommandlet.h"
+#include "DwoLensBlueprintExport.h"
 
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetRegistry/IAssetRegistry.h"
@@ -444,12 +445,28 @@ int32 UDwoLensInspectorCommandlet::Main(const FString& Params)
 {
 	using namespace DwoLensInspector;
 
+	// Tracked Blueprints: -LensBpList=<file> -LensBpOut=<dir>. Alone, or together with the full -LensOut dump
+	// so one editor start serves both.
+	FString BpList;
+	FString BpOut;
+	const bool bBpExport = FParse::Value(*Params, TEXT("LensBpList="), BpList) && !BpList.IsEmpty();
+	if (bBpExport && (!FParse::Value(*Params, TEXT("LensBpOut="), BpOut) || BpOut.IsEmpty()))
+	{
+		UE_LOG(LogDwoLens, Error, TEXT("-LensBpList needs -LensBpOut=<dir>"));
+		return 1;
+	}
+
 	FString OutDir;
 	if (!FParse::Value(*Params, TEXT("LensOut="), OutDir) || OutDir.IsEmpty())
 	{
-		UE_LOG(LogDwoLens, Error, TEXT("Missing -LensOut=<dir>"));
+		if (bBpExport)
+		{
+			return ExportTrackedBlueprints(BpList, BpOut) == 0 ? 0 : 1;
+		}
+		UE_LOG(LogDwoLens, Error, TEXT("Missing -LensOut=<dir> (or -LensBpList=<file> -LensBpOut=<dir>)"));
 		return 1;
 	}
+	const int32 BpFailures = bBpExport ? ExportTrackedBlueprints(BpList, BpOut) : 0;
 	OutDir = FPaths::ConvertRelativePathToFull(OutDir);
 	IFileManager::Get().MakeDirectory(*OutDir, true);
 
@@ -566,5 +583,5 @@ int32 UDwoLensInspectorCommandlet::Main(const FString& Params)
 	UE_LOG(LogDwoLens, Display, TEXT("DwoLens: %d native classes, %d blueprints, %d assets -> %s"),
 		NativeClasses.Num(), Blueprints.Num(), Assets.Num(), *OutDir);
 
-	return bWritten ? 0 : 1;
+	return bWritten && BpFailures == 0 ? 0 : 1;
 }

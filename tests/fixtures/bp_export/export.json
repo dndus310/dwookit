@@ -1,0 +1,35 @@
+{
+ "schema": "lens.bpexport/1",
+ "engineVersion": "5.7.4-51494982+++UE5+Release-5.7",
+ "exportedAtUtc": "2026-11-23T13:38:17.578Z",
+ "requested": [
+  "/Game/LevelPrototyping/Interactable/JumpPad/BP_JumpPad",
+  "/Game/LevelPrototyping/Interactable/Door/",
+  "/Game/ThirdPerson/Blueprints/BP_ThirdPersonCharacter",
+  "/Game/Variant_Combat/Blueprints/Interactables/BP_CombatLavaFloor",
+  "/Game/AttributeSample/UI/WBP_AttributeAssetItem",
+  "/Game/Variant_Combat/Blueprints/AI/BP_CombatEnemySpawner",
+  "/Game/NoSuch/BP_Nope"
+ ],
+ "exported": [
+  {
+   "package": "/Game/LevelPrototyping/Interactable/JumpPad/BP_JumpPad",
+   "name": "BP_JumpPad",
+   "dir": "Game/LevelPrototyping/Interactable/JumpPad/BP_JumpPad"
+  },
+  {
+   "package": "/Game/LevelPrototyping/Interactable/Door/BP_DoorFrame",
+   "name": "BP_DoorFrame",
+   "dir": "Game/LevelPrototyping/Interactable/Door/BP_DoorFrame"
+  },
+  {
+   "package": "/Game/AttributeSample/UI/WBP_AttributeAssetItem",
+   "name": "WBP_AttributeAssetItem",
+   "dir": "Game/AttributeSample/UI/WBP_AttributeAssetItem"
+  }
+ ],
+ "missing": [
+  "/Game/NoSuch/BP_Nope"
+ ],
+ "failed": []
+}

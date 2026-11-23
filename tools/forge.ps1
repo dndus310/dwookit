@@ -13,7 +13,7 @@ param(
     [Parameter(Mandatory = $true)]
     [ValidateSet('connect', 'tool', 'attach', 'update', 'status', 'analyze', 'verify', 'logs', 'smoke', 'perf', 'sizes', 'trace', 'play', 'tools', 'gui',
                  'sm-install', 'sm-remove', 'canvas-install', 'canvas-remove', 'canvas-import', 'canvas-validate',
-                 'doctor', 'uninstall', 'detach', 'compile', 'package',
+                 'doctor', 'uninstall', 'detach', 'compile', 'package', 'bp', 'agent',
                  'ci-job', 'ci-trigger', 'ci-hook', 'ci-hooks', 'ci-status', 'ci-install', 'ci-start', 'ci-stop', 'ci-remove', 'ci-bundle')]
     [string]$Command,
     [Parameter(Mandatory = $true)]
@@ -40,8 +40,12 @@ $CanvasDest  = Join-Path $Project 'Plugins\__DwoCanvas'
 $CanvasOldDest = Join-Path $Project 'Plugins\DwoCanvas'           # 2.0.0 installed it here, visible to git
 $CanvasOldMarker = '.dwo-forge-installed'                        # ... with this marker
 # Legacy names stay listed so leftovers of a migration in progress never show up in git.
+# CLAUDE.local.md and the Copilot instructions files point coding agents at __dwo-forge\context\AGENT.md and the
+# user's own project.instructions.md (tools\lens_agent.py). A file committed to git is never changed or removed.
 $ManagedPaths = @('__dwo-forge/', '__dwo-forge.bat', 'Plugins/__DwoLensInspector/', 'Plugins/__DwoStateMonitor/',
-                  'Plugins/__DwoCanvas/', '__dwo-lens/', '__dwo-lens.bat', 'Plugins/__StateMonitor/')
+                  'Plugins/__DwoCanvas/', '__dwo-lens/', '__dwo-lens.bat', 'Plugins/__StateMonitor/',
+                  'CLAUDE.local.md', '.github/instructions/dwo-forge.instructions.md',
+                  '.github/instructions/project.instructions.md')
 $LauncherPath = Join-Path $Project '__dwo-forge.bat'
 $LedgerPath  = Join-Path $ForgeDir 'created-files.txt'   # files dwo-Forge caused outside __dwo-forge (removed by uninstall)
 $AppDataDir  = Join-Path $env:LOCALAPPDATA 'dwo-Forge'
@@ -898,6 +902,7 @@ function Invoke-Attach([string]$Mode) {
         tools                 = [pscustomobject]$records
     }
     Write-Json $StatePath $state
+    Update-AgentContext
     Say "$(if ($Mode -eq 'update') { 'Connection refreshed' } else { 'Connected' }): $($uproject.Name) / UE $($engine.Version) / dwo-Forge $($state.systemCommit)"
     if ($Mode -eq 'attach') { Install-Lens $engine }
     elseif ($Mode -eq 'update') { Update-AllTools }
@@ -1773,8 +1778,14 @@ function Invoke-Analyze {
 
     Say "[$runId] ST-1 collect: running DwoLensInspector commandlet"
     $log = Join-Path $runDir 'commandlet.log'
+    # Tracked Blueprints are refreshed in the same editor start.
+    $bpArgs = ''
+    if (@(Get-BpTracked).Count) {
+        New-Item -ItemType Directory -Force $BpDir | Out-Null
+        $bpArgs = " -LensBpList=`"$BpTrackPath`" -LensBpOut=`"$BpDir`""
+    }
     $sw = [Diagnostics.Stopwatch]::StartNew()
-    & cmd /c "`"$($engine.Cmd)`" `"$($uproject.Path)`" -run=DwoLensInspector -EnablePlugins=DwoLensInspector -LensOut=`"$rawDir`" -ABSLOG=`"$(Join-Path $runDir 'editor.log')`" -unattended -nullrhi -nosplash -nopause -NoSound -stdout -FullStdOutLogOutput > `"$log`" 2>&1"
+    & cmd /c "`"$($engine.Cmd)`" `"$($uproject.Path)`" -run=DwoLensInspector -EnablePlugins=DwoLensInspector -LensOut=`"$rawDir`"$bpArgs -ABSLOG=`"$(Join-Path $runDir 'editor.log')`" -unattended -nullrhi -nosplash -nopause -NoSound -stdout -FullStdOutLogOutput > `"$log`" 2>&1"
     $code = $LASTEXITCODE
     $sw.Stop()
     $collected = Test-Path (Join-Path $rawDir 'meta.json')
@@ -1801,11 +1812,169 @@ function Invoke-Analyze {
     }
     Write-Json (Join-Path $runDir 'run.json') $run
     Complete-RunOutputs $runDir
+    if ($bpArgs) { Invoke-BpMarkdown }
+    Update-AgentContext
     Say "[$runId] verdict: $verdict"
     $report = Join-Path $outDir 'report.html'
     if (Test-Path $report) { Say "Report: $report" }
     else { Say "No report: the analyzer stopped (exit code $pyCode) before writing one. The error is printed above." }
     if ($verdict -eq 'fail') { exit 2 }
+}
+
+# ---------------------------------------------------------------- tracked Blueprints (bp)
+# The user picks Blueprints (files or folders) to follow. 'bp export' runs the DwoLensInspector commandlet for
+# them only and writes one folder per Blueprint under __dwo-forge\blueprints: <Name>.json (every graph, node, pin
+# and link) and <Name>.md (compressed pseudocode for agents), plus index.md. 'analyze' refreshes them too.
+$BpTrackPath = Join-Path $ForgeDir 'bp-track.txt'
+$BpDir       = Join-Path $ForgeDir 'blueprints'
+
+function Get-BpTracked {
+    if (-not (Test-Path $BpTrackPath)) { return @() }
+    return @(Get-Content -Encoding UTF8 $BpTrackPath | ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith('#') })
+}
+
+function Set-BpTracked([string[]]$Entries) {
+    $lines = @('# Blueprints followed by dwo-Forge (bp add / bp remove). One package path or folder (ending with /) per line.') +
+             @($Entries | Sort-Object -Unique)
+    [IO.File]::WriteAllText($BpTrackPath, (($lines -join "`n") + "`n"), $Utf8)
+}
+
+function ConvertTo-BpEntry([string]$Arg) {
+    # Accepts /Game/A/BP_X, /Game/A/BP_X.BP_X, /Game/A/ (folder), Content\A\BP_X.uasset, a folder on disk,
+    # or a plugin's Content path. Returns the package path ('/Game/A/BP_X') or folder ('/Game/A/').
+    $a = $Arg.Trim().Trim('"')
+    if (-not $a) { return $null }
+    if ($a.StartsWith('/')) {
+        $a = $a -replace '\\', '/'
+        if ($a.EndsWith('/')) { return $a }
+        $leaf = $a.Substring($a.LastIndexOf('/') + 1)
+        if ($leaf.Contains('.')) { $a = $a.Substring(0, $a.LastIndexOf('/') + 1) + $leaf.Substring(0, $leaf.IndexOf('.')) }
+        return $a
+    }
+    $full = $null
+    foreach ($candidate in @($a, (Join-Path $Project $a))) {
+        if (Test-Path $candidate) { $full = (Resolve-Path $candidate).Path.TrimEnd('\'); break }
+    }
+    if (-not $full) { Fail "Not found: $Arg (give /Game/... or a path to a .uasset or folder in this project)" }
+    if (-not $full.StartsWith($Project + '\', [StringComparison]::OrdinalIgnoreCase)) { Fail "$Arg is outside the project." }
+    $rel = $full.Substring($Project.Length + 1) -replace '\\', '/'
+    $isDir = (Get-Item $full).PSIsContainer
+    if ($rel -match '^Content(/|$)(.*)$') { $mount = '/Game'; $inner = $Matches[2] }
+    elseif ($rel -match '^(Plugins/(?:.+/)?)([^/]+)/Content(/|$)(.*)$') {
+        $pluginDir = Join-Path $Project (($Matches[1] + $Matches[2]) -replace '/', '\')
+        $uplugin = @(Get-ChildItem $pluginDir -Filter '*.uplugin' -File -ErrorAction SilentlyContinue | Select-Object -First 1)
+        $mount = '/' + $(if ($uplugin.Count) { $uplugin[0].BaseName } else { $Matches[2] }); $inner = $Matches[4]
+    }
+    else { Fail "$Arg is not under Content\ or a plugin's Content\ folder." }
+    if ($isDir) { return ($mount + '/' + $inner).TrimEnd('/') + '/' }
+    if ($inner -notmatch '\.uasset$') { Fail "$Arg is not a .uasset file." }
+    return $mount + '/' + ($inner -replace '\.uasset$', '')
+}
+
+function Test-BpEntryExists([string]$Entry) {
+    # Only /Game paths can be checked on disk; plugin mounts are checked by the export.
+    if (-not $Entry.StartsWith('/Game/')) { return $true }
+    $rel = 'Content\' + ($Entry.Substring(6).TrimEnd('/') -replace '/', '\')
+    if ($Entry.EndsWith('/')) { return Test-Path (Join-Path $Project $rel) -PathType Container }
+    return Test-Path (Join-Path $Project "$rel.uasset")
+}
+
+function Invoke-BpMarkdown {
+    if (-not (Test-Path (Join-Path $BpDir 'export.json'))) { return }
+    & python (Join-Path $SystemDir 'tools\lens_bp.py') md --dir $BpDir --project $Project
+    if ($LASTEXITCODE -ne 0) { Say 'bp: writing the pseudocode (.md) failed; the .json files are there.' }
+}
+
+function Invoke-BpExport {
+    $tracked = @(Get-BpTracked)
+    if ($tracked.Count -eq 0) { Fail 'No Blueprint is tracked. Add some first: __dwo-forge.bat bp add <Content\...\BP_X.uasset | /Game/... | folder>' }
+    if (-not (Read-State)) { Fail 'Not connected. Connect the project first: __dwo-forge.bat connect' }
+    if (-not (Test-Path (Join-Path $PluginDest 'DwoLensInspector.uplugin'))) { Fail 'DwoLens is not installed in this project. Install it: __dwo-forge.bat tool install lens' }
+    $uproject = Get-UProject
+    $engine = Resolve-Engine $uproject.Json.EngineAssociation
+    $logDir = Join-Path $DataDir 'logs'
+    New-Item -ItemType Directory -Force $logDir, $BpDir | Out-Null
+    $log = Join-Path $logDir 'bp-export.log'
+    Say "bp export: $($tracked.Count) entr$(if ($tracked.Count -eq 1) { 'y' } else { 'ies' }) -> $BpDir"
+    & cmd /c "`"$($engine.Cmd)`" `"$($uproject.Path)`" -run=DwoLensInspector -EnablePlugins=DwoLensInspector -LensBpList=`"$BpTrackPath`" -LensBpOut=`"$BpDir`" -ABSLOG=`"$(Join-Path $logDir 'bp-export-editor.log')`" -unattended -nullrhi -nosplash -nopause -NoSound -stdout -FullStdOutLogOutput > `"$log`" 2>&1"
+    $code = $LASTEXITCODE
+    if (-not (Test-Path (Join-Path $BpDir 'export.json'))) { Fail "The commandlet exported nothing (exit code $code). See $log" }
+    Invoke-BpMarkdown
+    Update-AgentContext
+    $manifest = Get-Content -Raw -Encoding UTF8 (Join-Path $BpDir 'export.json') | ConvertFrom-Json
+    foreach ($m in @($manifest.missing)) { if ($m) { Say "bp: no Blueprint found at $m" } }
+    foreach ($f in @($manifest.failed)) { if ($f) { Say "bp: could not export $f (see $log)" } }
+    Say "bp export: $(@($manifest.exported).Count) Blueprint(s). Start here: $(Join-Path $BpDir 'index.md')"
+    if ($code -ne 0) { exit 2 }
+}
+
+function Invoke-Bp {
+    $action = if ($Rest.Count) { $Rest[0] } else { 'list' }
+    $args_ = @($Rest | Select-Object -Skip 1 | Where-Object { $_ })
+    if (-not (Read-State)) { Fail 'Not connected. Connect the project first: __dwo-forge.bat connect' }
+    switch ($action) {
+        'add' {
+            if (-not $args_.Count) { Fail 'Usage: bp add <Content\...\BP_X.uasset | /Game/.../BP_X | folder> [...]' }
+            $tracked = @(Get-BpTracked)
+            foreach ($a in $args_) {
+                $e = ConvertTo-BpEntry $a
+                if (-not (Test-BpEntryExists $e)) { Fail "No asset at $e" }
+                if ($tracked -contains $e) { Say "already tracked: $e" } else { $tracked += $e; Say "tracking: $e" }
+            }
+            Set-BpTracked $tracked
+            Say 'Run __dwo-forge.bat bp export (editor closed) to write the files.'
+        }
+        'remove' {
+            if (-not $args_.Count) { Fail 'Usage: bp remove <path> [...]' }
+            $tracked = @(Get-BpTracked)
+            foreach ($a in $args_) {
+                $e = if ($a.Trim().StartsWith('/')) { ConvertTo-BpEntry $a } else { try { ConvertTo-BpEntry $a } catch { $a } }
+                if ($tracked -contains $e) { $tracked = @($tracked | Where-Object { $_ -ne $e }); Say "no longer tracked: $e" }
+                else { Say "not tracked: $e" }
+            }
+            Set-BpTracked $tracked
+            Say 'Its files are removed at the next bp export.'
+        }
+        'list' {
+            $tracked = @(Get-BpTracked)
+            if (-not $tracked.Count) { Say 'No Blueprint is tracked. Add: __dwo-forge.bat bp add <path>'; return }
+            Say "tracked ($($tracked.Count)):"
+            $tracked | ForEach-Object { Write-Host "  $_" }
+            if (Test-Path (Join-Path $BpDir 'export.json')) {
+                & python (Join-Path $SystemDir 'tools\lens_bp.py') status --dir $BpDir --project $Project
+            } else {
+                Say 'Not exported yet: __dwo-forge.bat bp export'
+            }
+        }
+        'export' { Invoke-BpExport }
+        default { Fail "Unknown bp action '$action'. Use: bp add | remove | list | export" }
+    }
+}
+
+# ---------------------------------------------------------------- agent context (agent)
+# __dwo-forge\context\AGENT.md tells coding agents what dwo-Forge knows and how to work here (read the tracked
+# Blueprints' pseudocode cheaply, deliver C++ or an editor checklist, short output).
+# .github\instructions\project.instructions.md is the user's own (created as an empty shell, never overwritten).
+# CLAUDE.local.md (a managed block) and .github\instructions\dwo-forge.instructions.md make Claude Code and VS
+# Code Copilot read both. Uninstall backs the user's file up before removing it. Rewritten on connect, update, analyze and bp export.
+function Update-AgentContext {
+    if (-not (Read-State)) { return }
+    $null = Set-ExcludeBlock          # older connections lack the pointer files in the exclude block
+    & python (Join-Path $SystemDir 'tools\lens_agent.py') write --project $Project
+    if ($LASTEXITCODE -ne 0) { Say 'agent: writing the agent context failed (see above).' }
+}
+
+function Invoke-Agent {
+    $action = if ($Rest.Count) { $Rest[0] } else { 'refresh' }
+    if (-not (Read-State)) { Fail 'Not connected. Connect the project first: __dwo-forge.bat connect' }
+    $script = Join-Path $SystemDir 'tools\lens_agent.py'
+    switch ($action) {
+        'refresh' { Update-AgentContext; Say "agent: $(Join-Path $ForgeDir 'context\AGENT.md') (your instructions: $(Join-Path $Project '.github\instructions\project.instructions.md'))" }
+        'status'  { & python $script status --project $Project }
+        'on'      { $null = Set-ExcludeBlock; & python $script on --project $Project }
+        'off'     { & python $script off --project $Project; Say 'agent: pointer files removed; AGENT.md stays in __dwo-forge\context.' }
+        default   { Fail "Unknown agent action '$action'. Use: agent [refresh] | status | on | off" }
+    }
 }
 
 # ---------------------------------------------------------------- uninstall
@@ -1941,6 +2110,18 @@ function Get-FolderBytes([string]$Path) {
     return [long](Get-ChildItem $Path -Recurse -File -Force -ErrorAction SilentlyContinue | Measure-Object Length -Sum).Sum
 }
 
+function Get-AgentPointers {
+    # Agent pointer files written by lens_agent.py (only dwo-Forge's: a block or the managed marker inside).
+    $found = @()
+    $claude = Join-Path $Project 'CLAUDE.local.md'
+    if ((Test-Path $claude) -and ([IO.File]::ReadAllText($claude) -like '*>>> dwo-forge managed (removed by*')) { $found += 'CLAUDE.local.md (block)' }
+    $copilot = Join-Path $Project '.github\instructions\dwo-forge.instructions.md'
+    if ((Test-Path $copilot) -and ([IO.File]::ReadAllText($copilot) -like '*dwo-forge managed: removed by*')) { $found += '.github\instructions\dwo-forge.instructions.md' }
+    $user = Join-Path $Project '.github\instructions\project.instructions.md'
+    if ((Test-Path $user) -and ([IO.File]::ReadAllText($user) -like '*<!-- dwo-forge: project instructions*')) { $found += '.github\instructions\project.instructions.md (yours: backed up, then removed)' }
+    return $found
+}
+
 function Get-UninstallScan {
     $skip = @(Get-ForeignNames)
     $plugins = @($OurPlugins | Where-Object { $skip -notcontains $_ })
@@ -1971,6 +2152,7 @@ function Get-UninstallScan {
         Configs     = @($OurConfigs | Where-Object { Test-Path (Join-Path $Project $_) })
         EditorIni   = @(Find-EditorIniLines)
         CodeUses    = @(Find-CodeUses $skip)
+        Agent       = @(Get-AgentPointers)
         SkipNames   = $skip
     }
 }
@@ -1981,6 +2163,7 @@ function Write-UninstallScan($Scan) {
     Write-Host "    plugins          : $(if ($Scan.Plugins.Count) { $Scan.Plugins -join ', ' } else { 'none' })"
     Write-Host "    launcher, state  : $((@($Scan.Launchers) + @('__dwo-forge\')) -join ', ')"
     Write-Host "    git exclude      : $(if ($Scan.Exclude) { "dwo-forge block in $($Scan.Exclude)" } else { 'none' })"
+    Write-Host "    agent pointers   : $(if ($Scan.Agent.Count) { $Scan.Agent -join ', ' } else { 'none' })"
     Write-Host "    test leftovers   : $(@($Scan.Artifacts | Where-Object { $_ -like 'Content\*' -or $_ -like '*Tests' }) -join ', ')"
     Write-Host "  project files that name dwo-Forge plugins (backed up, then cleaned)"
     Write-Host "    .uproject        : $(if ($Scan.Uproject.Count) { $Scan.Uproject -join ', ' } else { 'none' })"
@@ -2103,7 +2286,8 @@ function Remove-LegacyLeftovers {
 
 function Test-AnythingLeft($Scan) {
     return ($Scan.Plugins.Count + $Scan.Launchers.Count + $Scan.Artifacts.Count + $Scan.Records.Count + $Scan.Generated.Count +
-            $Scan.Uproject.Count + $Scan.BuildCs.Count + $Scan.Configs.Count + $Scan.EditorIni.Count + $Scan.Runs + $Scan.Created.Count) -gt 0 -or
+            $Scan.Uproject.Count + $Scan.BuildCs.Count + $Scan.Configs.Count + $Scan.EditorIni.Count + $Scan.Runs + $Scan.Created.Count +
+            $Scan.Agent.Count) -gt 0 -or
            $Scan.Exclude -or (Test-Path $ForgeDir) -or (Test-Path $LegacyDir)
 }
 
@@ -2197,7 +2381,8 @@ function Invoke-Uninstall {
     if ($keepData) { Say "Run history and reports kept at $keepDir" } elseif ($hasHistory) { Say 'Run history and reports deleted.' }
     if ($cleanRefs -and (Test-Path $backupDir)) { Say "Backup of edited project files: $backupDir" }
 
-    # 5. Attach state, launcher, exclude block.
+    # 5. Agent pointer files, attach state, launcher, exclude block.
+    if ($scan.Agent.Count) { & python (Join-Path $SystemDir 'tools\lens_agent.py') remove --project $Project --backup (Join-Path $keepDir 'instructions') }
     $cleared = Clear-ExcludeBlock
     Set-Location $Project
     if (Test-Path $ForgeDir) {
@@ -2218,6 +2403,7 @@ function Invoke-Uninstall {
     $left += $after.Plugins
     $left += @($after.Launchers | Where-Object { -not ($_ -eq '__dwo-forge.bat' -and $env:DWO_FORGE_FROM_BAT -eq '1') -and -not ($_ -eq '__dwo-lens.bat' -and $FromLegacyBat) })
     if ($after.Exclude) { $left += "exclude block in $($after.Exclude)" }
+    $left += @($after.Agent)
     if (Test-Path $ForgeDir) { $left += '__dwo-forge' }
     $left += @($after.Artifacts)
     if ($cleanRefs) { $left += @($after.Uproject | ForEach-Object { ".uproject entry $_" }) + @($after.BuildCs | ForEach-Object { "$($_.Module) in $($_.File)" }) + @($after.Configs) }
@@ -2250,6 +2436,8 @@ switch ($Command) {
     'status'  { Invoke-Status }
     'doctor'  { if (-not (Invoke-Doctor)) { exit 1 } }
     'analyze' { Invoke-Analyze }
+    'bp'      { Invoke-Bp }
+    'agent'   { Invoke-Agent }
     'compile' { Invoke-Compile }
     'package' { Invoke-Package }
     { $_ -like 'ci-*' } {

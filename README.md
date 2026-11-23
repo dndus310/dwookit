@@ -69,6 +69,11 @@ __dwo-forge.bat perf [맵]           :: CSV 프로파일러로 프레임 캡처,
 __dwo-forge.bat sizes               :: Content 용량, 하드 참조로 함께 로드되는 용량 (엔진 불필요)
 __dwo-forge.bat trace [맵]          :: Unreal Insights 트레이스(.utrace) 기록
 __dwo-forge.bat play [맵]           :: 게임 창 실행 (DwoStateMonitor 연결용)
+__dwo-forge.bat bp add <경로> [...]  :: 블루프린트 추적 시작 (Content\...\BP_X.uasset, /Game/.../BP_X, 폴더)
+__dwo-forge.bat bp remove <경로>     :: 추적 중지 (파일은 다음 export 때 지워짐)
+__dwo-forge.bat bp list              :: 추적 목록, export 뒤 바뀐 블루프린트
+__dwo-forge.bat bp export            :: 추적 중인 블루프린트만 내보내기: 의사코드 .md + 전체 .json (에디터 닫고)
+__dwo-forge.bat agent [status|on|off] :: 에이전트 안내(AGENT.md) 다시 쓰기, 상태, 안내 파일 켜기·끄기
 
 :: DwoStateMonitor
 __dwo-forge.bat sm-install [--runtime] | sm-remove [--force]   :: tool install|remove statemonitor와 같음
@@ -255,9 +260,17 @@ A/
 │  ├─ ci.json                     # (DwoBuilder 설치 시) Jenkins 작업, 훅, 설치 버전
 │  ├─ data/runs/<id>/             # DwoLens 실행별 raw · out · run.json · 로그
 │  ├─ data/canvas/                # canvas-import 엔진 로그, 마지막 가져오기 (last.json)
+│  ├─ bp-track.txt                # (bp add) 추적 중인 블루프린트 목록
+│  ├─ blueprints/                 # (bp export) 블루프린트별 폴더: <이름>.md 의사코드, <이름>.json 전체, 큰 것은 parts/
+│  ├─ context/AGENT.md            # 에이전트 안내 (읽는 순서, 결과물 형식, 명령). 매번 다시 씀
+│  ├─ agent.json                  # (agent off) 안내 파일을 쓰지 않음
 │  ├─ created-files.txt           # dwo-Forge 실행이 프로젝트에 남긴 파일 (제거 때 처리)
 │  ├─ config.json                 # (선택) 프로젝트별 규칙 덮어쓰기
 │  └─ gui.json                    # 화면 설정 (무시한 문제)
+├─ CLAUDE.local.md                # Claude Code 안내: 관리 블록 하나 (AGENT.md와 사용자 지침 import)
+├─ .github/instructions/
+│  ├─ dwo-forge.instructions.md   # Copilot 안내: AGENT.md를 먼저 읽으라는 짧은 지침
+│  └─ project.instructions.md     # 사용자 지침 (빈 파일로 만들어 둠, 다시 쓰지 않음, 제거 때 백업 후 삭제)
 ├─ Plugins/__DwoLensInspector/    # (DwoLens) 미리 빌드된 에디터 전용 플러그인 (Source 없음, 기본 비활성)
 ├─ Plugins/__DwoStateMonitor/     # (DwoStateMonitor) 숨김
 └─ Plugins/__DwoCanvas/           # (DwoCanvas) 숨김
@@ -290,6 +303,39 @@ A/
 모든 검사는 끝날 때 `out/junit.xml`(JUnit)과 `out/results.sarif`(SARIF 2.1.0)도 만듭니다. SARIF의 각 문제에는 이전 실행과 비교한 `baselineState`(new / unchanged)가 들어가므로, Jenkins·GitHub Actions·GitLab·TeamCity에서 **새 문제만** 품질 게이트로 쓸 수 있습니다. 환경 변수 `DWO_FORGE_CI_OUT`이 있으면 두 파일과 리포트를 그 폴더의 `<실행 ID>/`로 복사합니다(CI 작업이 결과를 모을 때 사용).
 
 실행 기록은 `retention`에 따라 검사마다 최근 30개(패키지는 3개)만 남기고 오래된 것부터 지웁니다. 패키지 빌드 전에 디스크 여유 공간이 `retention.minFreeDiskGB`보다 적으면 오래된 패키지부터 지웁니다.
+
+### 블루프린트 추적 (`bp`)
+
+`analyze`의 `raw/blueprints.json`은 프로젝트의 모든 블루프린트를 파일 하나에 담아 분석용으로 씁니다. 에이전트(Claude Code, Copilot 등)나 사람이 특정 블루프린트의 로직을 읽고 추론하려면, 추적할 블루프린트를 골라 **블루프린트마다 폴더**로 내보냅니다.
+
+```
+__dwo-forge/blueprints/
+├─ index.md                                    # 추적 중인 블루프린트 표 (부모, 변수·함수·노드 수, export 뒤 바뀜 표시)
+├─ export.json                                 # 마지막 export: 요청·내보냄·없음·실패
+└─ Game/ThirdPerson/Blueprints/BP_Player/
+   ├─ BP_Player.md                             # 압축 의사코드. 먼저 읽는 파일
+   └─ BP_Player.json                           # 전체 스크립트 (lens.bp/1)
+```
+
+- **`.md` (의사코드)**: 작은 모델도 적은 토큰으로 읽도록 줄였습니다. 이벤트는 `on BeginPlay():`, 함수는 `## fn 이름(인자: 타입) -> 반환`, 분기·반복·형변환은 `if`/`for`/`as`, 지연 노드는 `await`, 합쳐지는 실행선은 `goto Ln`입니다. 순수 노드는 식으로 펼치고(`(Health > 0)`, `Door Size.X`), 작성자가 바꾼 인수만 적습니다. 변수(기본값·플래그), 컴포넌트(부모·바꾼 속성), 상속 컴포넌트에서 바꾼 값, 클래스 기본값, 타임라인, 위젯 트리·바인딩, 주석 박스(`# ...`)도 들어갑니다. 예시 BP_DoorFrame: JSON 267KB → MD 6KB.
+- **`.json` (전체)**: 모든 그래프의 모든 노드(클래스, 제목, 위치, 주석, 비활성 여부)와 모든 핀(타입, 기본값, 숨김, 분할, 연결), 함수 시그니처·플래그·지역 변수, 변수, 컴포넌트, 디스패처, 인터페이스 그래프, 타임라인, 위젯 트리. 의사코드에서 줄인 세부가 필요할 때 봅니다.
+- `bp add`는 `Content\...\BP_X.uasset`, `/Game/.../BP_X`(오브젝트 경로도 됨), 폴더(`Content\UI` 또는 `/Game/UI/`: 그 아래 블루프린트 전부), 플러그인 `Content` 경로를 받습니다. 목록은 `__dwo-forge/bp-track.txt`입니다.
+- `bp export`는 추적 대상만 로드하므로 빠릅니다(에디터 시작 포함 10~30초). `analyze`도 추적 목록이 있으면 같은 에디터 실행에서 함께 갱신합니다. 추적을 그만둔 블루프린트의 폴더는 다음 export 때 지웁니다.
+- `bp list`는 `.uasset`이 export 뒤 바뀐 블루프린트를 표시합니다.
+- **큰 블루프린트는 나눕니다.** 의사코드가 150줄을 넘으면 `<이름>.md`는 개요(변수, 컴포넌트, 기본값, 위젯)와 **부분 표**만 담고, 이벤트·함수는 `parts/on_X.md`, `parts/fn_X.md`로 나뉩니다. 표에는 부분마다 줄 수, 쓰는 변수, 호출하는 자체 함수·이벤트가 있어 필요한 부분만 고를 수 있습니다. 부분 파일은 그것만 읽어도 되도록 쓰는 변수·컴포넌트를 타입과 함께 적습니다. `goto`로 이어진 이벤트(같은 타임라인을 여닫는 Open/Close 등)는 한 부분에 두고, 몇 줄짜리 이벤트들은 30줄까지 한 부분으로 묶습니다.
+
+### 에이전트 안내 (`agent`)
+
+연결하면 Claude Code와 GitHub Copilot이 dwo-Forge가 만든 자료를 알고 시작하도록 안내 파일을 둡니다. 모두 git exclude에 들어가 `git status`에 보이지 않고, `uninstall`이 지웁니다.
+
+| 파일 | 누가 읽나 | 내용 |
+|---|---|---|
+| `__dwo-forge/context/AGENT.md` | 둘 다 | 추적 블루프린트 현황(바뀐 것 표시), 읽는 순서(index → 개요 → parts → json), 큰 작업은 싼 서브에이전트(Haiku 등)에 부분별 요약을 맡기고 그 요약으로 설계할 것, 결과물은 C++(BlueprintCallable 등) 또는 정해진 형식의 에디터 체크리스트, "설명 없이 변경 목록만", 확인 명령. 연결·update·analyze·bp export 때 다시 씀 |
+| `CLAUDE.local.md` | Claude Code | 관리 블록 하나: `@__dwo-forge/context/AGENT.md`, `@.github/instructions/project.instructions.md`. 이미 있는 파일은 블록만 넣고 빼며(인코딩·줄바꿈 유지), git에 커밋된 파일은 건드리지 않음 |
+| `.github/instructions/dwo-forge.instructions.md` | Copilot (VS Code) | `applyTo: "**"`, AGENT.md를 먼저 읽으라는 안내 |
+| `.github/instructions/project.instructions.md` | 둘 다 | **사용자 지침**. 빈 파일(머리말만)로 만들어 두고 다시 쓰지 않습니다. 네이밍, 폴더 구조, "Tick 금지" 같은 규칙을 적으면 AGENT.md보다 우선합니다. `uninstall`은 내용이 있으면 `%LOCALAPPDATA%\dwo-Forge\uninstalled\<프로젝트-시각>\instructions\`에 백업한 뒤 지웁니다. 팀과 공유하려면 `git add -f`로 커밋하세요(커밋된 파일은 지우지 않음) |
+
+`agent off`는 안내 파일을 지우고 이후에도 쓰지 않습니다(사용자 지침은 남김). `agent on`으로 되돌립니다. `agent status`는 파일별 상태를 보여 줍니다.
 
 전체 목록과 계획 중인 도구(Insights 내보내기, PerfReportTool 리포트, 정적 분석 등)는 `tools/catalog.json` 또는 `__dwo-forge.bat tools`로 확인합니다. 카탈로그 항목은 `tool` 값(lens, statemonitor, canvas, forge)으로 묶입니다.
 

@@ -16,7 +16,9 @@ public class DwoLensInspector : ModuleRules
 			"Kismet",
 			"AssetRegistry",
 			"Projects",
-			"Json"
+			"Json",
+			"UMG",
+			"UMGEditor"
 		});
 	}
 }
