@@ -327,6 +327,24 @@ namespace DwoLensInspector::BpExport
 		{
 			if (K2->IsNodePure()) { Out->SetBoolField(TEXT("pure"), true); }
 		}
+		// Property Access (anim graphs): the path it reads, through reflection so no editor plugin module is needed.
+		// Titles are localized in a non-English editor, so the path is the only readable name of the node.
+		if (Node->GetClass()->GetName() == TEXT("K2Node_PropertyAccess"))
+		{
+			if (const FArrayProperty* PathProperty = FindFProperty<FArrayProperty>(Node->GetClass(), TEXT("Path")))
+			{
+				if (CastField<FStrProperty>(PathProperty->Inner))
+				{
+					FScriptArrayHelper Array(PathProperty, PathProperty->ContainerPtrToValuePtr<void>(Node));
+					FJsonValues Segments;
+					for (int32 Index = 0; Index < Array.Num(); ++Index)
+					{
+						Segments.Add(MakeShared<FJsonValueString>(*reinterpret_cast<const FString*>(Array.GetRawPtr(Index))));
+					}
+					if (Segments.Num() > 0) { Out->SetArrayField(TEXT("path"), Segments); }
+				}
+			}
+		}
 	}
 
 	static FJsonRef DescribeVariable(const FBPVariableDescription& Variable, const UClass* GeneratedClass)
@@ -440,6 +458,13 @@ namespace DwoLensInspector::BpExport
 		}
 		Out->SetStringField(TEXT("kind"), Kind);
 		if (const UEdGraph* Parent = Cast<UEdGraph>(Graph->GetOuter())) { Out->SetStringField(TEXT("parentGraph"), Parent->GetName()); }
+		// A graph owned by a node (anim state, state machine, transition 'Idle -> Start', collapsed node): the
+		// node's title says what the graph is; transition graphs are all named 'Transition'.
+		if (const UEdGraphNode* OwnerNode = Cast<UEdGraphNode>(Graph->GetOuter()))
+		{
+			Out->SetStringField(TEXT("owner"), OwnerNode->GetNodeTitle(ENodeTitleType::ListView).ToString());
+			if (const UEdGraph* OwnerGraph = OwnerNode->GetGraph()) { Out->SetStringField(TEXT("parentGraph"), OwnerGraph->GetName()); }
+		}
 
 		FJsonValues Nodes;
 		for (const UEdGraphNode* Node : Graph->Nodes)

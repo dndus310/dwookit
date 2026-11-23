@@ -33,6 +33,16 @@
       "output": "__dwo-forge/blueprints/<path>/<Name>.md (pseudocode; overview + parts/ when long), <Name>.json (lens.bp/1), index.md"
     },
     {
+      "id": "blueprint-explain",
+      "tool": "lens",
+      "station": "ST-1",
+      "kind": "build",
+      "status": "ready",
+      "command": "bp",
+      "invocation": "lens_explain.py (after lens_bp.py md, in bp export and analyze); window: DwoLens > 파일 분석",
+      "output": "__dwo-forge/blueprints/<path>/<Name>.explain.json (lens.explain/1), <Name>.html, <Name>.explain-prompt.md, index.html"
+    },
+    {
       "id": "agent-context",
       "tool": "lens",
       "station": "ST-1",

@@ -800,7 +800,8 @@ function Move-LegacyAppData {
 function Test-OurLauncher([string]$Path) {
     if (-not (Test-Path $Path)) { return $false }
     $text = [IO.File]::ReadAllText($Path)
-    return ($text -match 'dwo-Lens project launcher' -or $text -match 'dwo-Forge legacy launcher')
+    # 'dwo-Lens bootstrap': the 1.x file users copied into the project themselves (it cloned the system into __dwo-lens)
+    return ($text -match 'dwo-Lens project launcher' -or $text -match 'dwo-Forge legacy launcher' -or $text -match 'dwo-Lens bootstrap')
 }
 
 function Invoke-Migration {

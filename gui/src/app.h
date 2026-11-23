@@ -396,6 +396,7 @@ enum class Activity
 	History,
 	Launcher,   // the launcher home: projects, their tools, PC components (not a tool)
 	Ci,
+	Files,      // DwoLens: tracked Blueprints explained (composition, behaviors, flow, logic)
 	Count
 };
 

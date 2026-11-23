@@ -171,7 +171,9 @@ __dwo-forge.bat play [맵]              :: 게임 창을 띄움 (DwoStateMonitor
 1. 런처의 도구 목록에서 설치합니다(`tool install statemonitor`, 예전 명령 `sm-install`도 동작). `.uproject`는 수정하지 않으며 `Plugins/__DwoStateMonitor`는 git에서 숨겨집니다.
 2. dwo-Forge 창을 열고 **DwoStateMonitor** 화면(Ctrl+7)으로 갑니다. 창은 `127.0.0.1:47731`에서 기다립니다.
 3. 에디터에서 **Play(PIE)** 하거나, `게임 실행` 버튼(`play`)으로 게임을 띄웁니다. 게임이 시작되면 자동으로 연결됩니다(PIE 클라이언트가 여럿이면 각각 세션으로 표시).
-4. GameMode, GameState, PlayerController, PlayerState, Pawn과 컴포넌트가 노드로 나타나고, 값이 바뀌면 깜빡입니다. 기본은 프로젝트(BP·C++)가 선언한 프로퍼티만 보내며, `엔진 프로퍼티 포함`을 켜면 전체를 보냅니다.
+4. GameInstance, GameMode, GameState, PlayerController, PlayerState, Pawn과 컴포넌트, HUD가 노드로 나타나고, 값이 바뀌면 깜빡입니다. 기본은 프로젝트(BP·C++)가 선언한 프로퍼티만 보내며, `엔진 프로퍼티 포함`을 켜면 전체를 보냅니다.
+5. 그 밖에 볼 객체는 왼쪽 **관찰할 클래스 › 목록에서 고르기**로 고릅니다. 프로젝트의 블루프린트·위젯·C++ 클래스가 폴더 트리로 나오고, 체크한 클래스의 객체(액터, 컴포넌트, 위젯, 런타임에 만든 UObject)를 최대 16개씩 관찰합니다. 목록은 프로젝트의 `__dwo-forge/sm-watch.txt`에 저장되고, 게임이 시작할 때 플러그인이 직접 읽으므로 창을 나중에 열어도, 게임 화면의 모니터만 켜도 적용됩니다.
+6. **참조 깊이**(0~4, 기본 1): 관찰한 객체가 프로퍼티로 가리키는 런타임 객체(무기, 타깃, 인벤토리 항목, 위젯 ...)를 그 깊이만큼 따라가 함께 관찰합니다. 에셋·클래스는 따라가지 않습니다. 소스 이름은 `PC0.Pawn.CurrentWeapon`처럼 따라간 경로입니다.
 
 ### 보는 방법
 
@@ -183,7 +185,7 @@ __dwo-forge.bat play [맵]              :: 게임 창을 띄움 (DwoStateMonitor
 | 타임라인 (하단) | 소스별 변경 표시, 선택한 상태 필드의 값 구간. 재생 위치를 끌면 그 시점의 값으로 모든 보기가 바뀜. 이전·다음 변경으로 이동 |
 | 이벤트 (하단) | 모든 변경을 시간 역순으로. 클릭하면 그 시점으로 이동 |
 
-- **대상 추가**: 왼쪽 `관찰할 클래스`에 `BP_Enemy_C` 같은 클래스 이름을 넣으면 그 액터들을 함께 관찰합니다. Blueprint에서 `Watch State Object`(객체) 또는 `Submit State Snapshot`(구조체) 노드로 직접 추가할 수도 있습니다.
+- **대상 추가**: 목록에서 고르는 것 외에, Blueprint에서 `Watch State Object`(객체) 또는 `Submit State Snapshot`(구조체) 노드로 직접 추가할 수도 있습니다. `sm-watch.txt`는 한 줄에 `클래스 이름 [최대 개수]`입니다(예: `BP_Enemy_C 4`).
 - **녹화**: 받은 메시지를 JSON Lines로 저장하고 나중에 다시 열어 같은 화면으로 볼 수 있습니다.
 - **명령줄 스위치(게임)**: `-StateMonitorPort=N` 다른 포트, `-StateMonitorLive=0` 연결 끔, Shipping 빌드는 `-StateMonitorLive=1`일 때만 연결.
 - 자세한 API와 프로토콜은 [plugin/DwoStateMonitor/README.md](plugin/DwoStateMonitor/README.md)에 있습니다.
@@ -261,9 +263,11 @@ A/
 │  ├─ data/runs/<id>/             # DwoLens 실행별 raw · out · run.json · 로그
 │  ├─ data/canvas/                # canvas-import 엔진 로그, 마지막 가져오기 (last.json)
 │  ├─ bp-track.txt                # (bp add) 추적 중인 블루프린트 목록
-│  ├─ blueprints/                 # (bp export) 블루프린트별 폴더: <이름>.md 의사코드, <이름>.json 전체, 큰 것은 parts/
+│  ├─ blueprints/                 # (bp export) 블루프린트별 폴더: <이름>.md 의사코드, <이름>.json 전체, 큰 것은 parts/,
+│  │                              #   <이름>.html·.explain.json 사람이 읽는 설명, index.html
 │  ├─ context/AGENT.md            # 에이전트 안내 (읽는 순서, 결과물 형식, 명령). 매번 다시 씀
 │  ├─ agent.json                  # (agent off) 안내 파일을 쓰지 않음
+│  ├─ sm-watch.txt                # DwoStateMonitor가 관찰할 클래스 (창에서 고름, 게임이 시작할 때 읽음)
 │  ├─ created-files.txt           # dwo-Forge 실행이 프로젝트에 남긴 파일 (제거 때 처리)
 │  ├─ config.json                 # (선택) 프로젝트별 규칙 덮어쓰기
 │  └─ gui.json                    # 화면 설정 (무시한 문제)
@@ -323,6 +327,24 @@ __dwo-forge/blueprints/
 - `bp export`는 추적 대상만 로드하므로 빠릅니다(에디터 시작 포함 10~30초). `analyze`도 추적 목록이 있으면 같은 에디터 실행에서 함께 갱신합니다. 추적을 그만둔 블루프린트의 폴더는 다음 export 때 지웁니다.
 - `bp list`는 `.uasset`이 export 뒤 바뀐 블루프린트를 표시합니다.
 - **큰 블루프린트는 나눕니다.** 의사코드가 150줄을 넘으면 `<이름>.md`는 개요(변수, 컴포넌트, 기본값, 위젯)와 **부분 표**만 담고, 이벤트·함수는 `parts/on_X.md`, `parts/fn_X.md`로 나뉩니다. 표에는 부분마다 줄 수, 쓰는 변수, 호출하는 자체 함수·이벤트가 있어 필요한 부분만 고를 수 있습니다. 부분 파일은 그것만 읽어도 되도록 쓰는 변수·컴포넌트를 타입과 함께 적습니다. `goto`로 이어진 이벤트(같은 타임라인을 여닫는 Open/Close 등)는 한 부분에 두고, 몇 줄짜리 이벤트들은 30줄까지 한 부분으로 묶습니다.
+
+### 파일 분석 (사람이 읽는 설명)
+
+추적 중인 블루프린트마다 **구성 → 행동 → 흐름 → 논리** 순서로 읽는 설명을 만듭니다. dwo-Forge 창의 **DwoLens › 파일 분석** 화면과 HTML(`__dwo-forge/blueprints/index.html`, 블루프린트마다 `<이름>.html`)로 봅니다. `bp export`와 `analyze`가 함께 만듭니다.
+
+| 단계 | 내용 |
+|---|---|
+| 요약 | 한 문장: 무엇을 바탕으로 한 무엇인지(컴포넌트 역할로), 주요 행동 몇 가지 |
+| 구성 | 컴포넌트(역할: 감지·충돌 영역, 보이는 모양, 카메라 ...), 설정값(에디터에서 바꾸는 값), 상태(실행 중 바뀌는 값과 그것을 바꾸는 행동), 신호, 타임라인, 위젯, 바꾼 기본값 |
+| 행동 | 진입점마다 하나: 언제 실행되는지("다른 액터가 겹치기 시작하면", "C++ ACombatDamageableBox::HandleDeath에서 부르면"), 작성자 주석, 바꾸는 값, 이어서 실행하는 것, 부르는 곳 |
+| 흐름 | 단계 트리("Door2이(가) 있으면 → Door2 위치 옮기기"). 자체 함수·커스텀 이벤트, 추적 중인 다른 블루프린트로 이어지는 호출은 그 안으로 펼치고, 프로젝트 C++ 함수는 `Source/`의 본문 코드를 보여 줍니다. 이 행동을 부르는 C++ 함수의 코드도 볼 수 있습니다 |
+| 논리 | 단계마다 그 단계가 나온 의사코드 줄(마우스를 올리거나 `단계마다 의사코드 보기`) |
+
+애님 블루프린트는 포즈 트리(`pose = ControlRig(... ApplyAdditive(...))`), 상태 머신의 상태·전이(`transition Idle -> Start`), 전이 조건(`can enter = HasAcceleration ...`)으로 나옵니다.
+
+설명은 규칙 기반입니다(LLM·네트워크 없음). 더 자연스러운 문장이 필요하면 화면 오른쪽 **요청 문장 복사**를 Claude Code나 Copilot에 붙여 넣으세요. 에이전트가 `<이름>.explain-prompt.md`대로 `<이름>.agent.json`을 쓰면, 그 설명이 화면과 HTML에 함께 표시됩니다.
+
+추적 대상은 **파일 분석 › 목록에서 고르기**에서 프로젝트 블루프린트 트리로 고릅니다(명령줄의 `bp add`와 같은 `bp-track.txt`를 씁니다). 후보 목록은 에디터 없이 `.uasset` 헤더에서 읽습니다(`tools/lens_targets.py`, Lyra 506개 약 2초).
 
 ### 에이전트 안내 (`agent`)
 

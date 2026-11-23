@@ -123,6 +123,9 @@ open its files by path.
    the variables it writes and the own functions it calls. Decide from the table which parts matter.
 3. `parts/<on_X|fn_X>.md`: one event or function, readable on its own (it lists the vars and components it uses).
 4. `<Name>.json`: every node, pin, default and link. Open it only for one exact detail, never to read it all.
+5. `<Name>.explain.json`: the same Blueprint in plain words (composition, behaviors, flows that go into own
+   functions, other tracked Blueprints and C++ bodies). When the user asks to explain a file for a person, follow
+   `<Name>.explain-prompt.md` (it writes `<Name>.agent.json`, which the dwo-Forge window shows).
 Pseudocode: `on X():` event, `fn` function, `await` latent call, `goto Ln` exec wires that join, `# ...` author
 comment, `X as T` cast, arguments only where the author changed the default.
 

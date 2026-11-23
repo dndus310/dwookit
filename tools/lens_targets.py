@@ -21,11 +21,12 @@ import re
 import sys
 from pathlib import Path
 
-HEAD_BYTES = 1 << 20          # the name table sits in the package header; 1 MB covers it for real assets
+HEAD_BYTES = 256 << 10        # the name table sits in the package header; most fit in the first 256 KB
+MAX_HEAD_BYTES = 4 << 20      # rigs and large Blueprints: read on while the own class is there but no Blueprint marker yet
 SKIP_PLUGINS = {"__DwoLensInspector", "__DwoStateMonitor", "__DwoCanvas", "__StateMonitor"}
 MARKERS = [(b"ControlRigBlueprintGeneratedClass", "rig"), (b"WidgetBlueprintGeneratedClass", "widget"), (b"AnimBlueprintGeneratedClass", "anim"),
            (b"BlueprintGeneratedClass", "blueprint")]
-UCLASS_RE = re.compile(r"UCLASS\s*\((?P<spec>[^)]*)\)\s*class\s+(?:\w+_API\s+)?(?P<name>[AU]\w+)\s*(?:final\s*)?:\s*public\s+(?P<parent>\w+)")
+UCLASS_RE = re.compile(r"UCLASS\s*\((?P<spec>(?:[^()]|\((?:[^()]|\([^()]*\))*\))*)\)\s*class\s+(?:\w+_API\s+)?(?P<name>[AU]\w+)\s*(?:final\s*)?:\s*public\s+(?P<parent>\w+)")
 
 
 def content_roots(project: Path) -> list[tuple[Path, str]]:
@@ -46,13 +47,19 @@ def blueprint_kind(path: Path) -> str | None:
     levels that only reference a Blueprint class hold some other '<X>_C' and are skipped."""
     if any(part.startswith("__External") for part in path.parts):
         return None
+    own = f"{path.stem}_C".encode("utf-8") + bytes(1)
     try:
         with path.open("rb") as f:
             head = f.read(HEAD_BYTES)
+            # the own class name comes early; with big name tables (rigs) the Blueprint marker can come later
+            while own in head and b"BlueprintGeneratedClass" not in head and len(head) < MAX_HEAD_BYTES:
+                more = f.read(len(head))
+                if not more:
+                    break
+                head += more
     except OSError:
         return None
-    own = f"{path.stem}_C".encode("utf-8")
-    if own + bytes(1) not in head:
+    if own not in head:
         return None
     for marker, kind in MARKERS:
         if marker in head:
@@ -72,10 +79,13 @@ def tracked_by(package: str, entries: list[str]) -> bool:
 
 
 def scan_blueprints(project: Path, tracked: list[str]) -> list[dict]:
+    from concurrent.futures import ThreadPoolExecutor
     out = []
     for root, mount in content_roots(project):
-        for f in sorted(root.rglob("*.uasset")):
-            kind = blueprint_kind(f)
+        files = sorted(root.rglob("*.uasset"))
+        with ThreadPoolExecutor(max_workers=16) as pool:          # cold disks: many small reads at once
+            kinds = list(pool.map(blueprint_kind, files))
+        for f, kind in zip(files, kinds):
             if not kind:
                 continue
             rel = f.relative_to(root).with_suffix("").as_posix()

@@ -1093,6 +1093,97 @@ class TargetListTests(TempDir):
         self.assertTrue(classes["UBaseThing"]["abstract"])
 
 
+class ExplainTests(TempDir):
+    """lens_explain.py: a tracked Blueprint as a person reads it (composition, behaviors, flow, logic)."""
+
+    FIX = BlueprintPseudocodeTests.FIX
+
+    def bp(self, rel: str) -> dict:
+        name = rel.rsplit("/", 1)[-1]
+        return json.loads((self.FIX / rel / f"{name}.json").read_text(encoding="utf-8"))
+
+    @staticmethod
+    def texts(steps):
+        for s in steps:
+            yield s["text"]
+            yield from ExplainTests.texts(s.get("children", []))
+
+    def test_door_behaviors_in_plain_words(self):
+        import lens_explain
+        d = lens_explain.explain(self.bp("Game/LevelPrototyping/Interactable/Door/BP_DoorFrame"))
+        names = [b["name"] for b in d["behaviors"]]
+        # engine events first, events others call next, functions, Construction Script last
+        self.assertEqual(names[:3], ["BeginPlay", "ActorBeginOverlap", "ActorEndOverlap"])
+        self.assertEqual(names[-1], "UserConstructionScript")
+        by = {b["name"]: b for b in d["behaviors"]}
+        self.assertEqual(by["ActorBeginOverlap"]["trigger"], "다른 액터가 겹치기 시작하면")
+        overlap = list(self.texts(by["ActorBeginOverlap"]["steps"]))
+        self.assertIn("'Open Door' 실행", overlap)
+        self.assertIn("Door Control 재생", overlap)                  # the custom event is expanded in place
+        self.assertIn("Door2이(가) 있으면", overlap)
+        end = list(self.texts(by["ActorEndOverlap"]["steps"]))
+        self.assertIn("Box에 겹친 Character 목록의 개수 = 0이면", end)
+        self.assertIn("ActorBeginOverlap", by["Open Door"]["calledBy"])
+        self.assertEqual(by["BeginPlay"]["writes"], ["Closed Position", "Closed Position_0"])
+        # Set Mesh is called five times: expanded once, then referred to
+        ucs = list(self.texts(by["UserConstructionScript"]["steps"]))
+        self.assertEqual(sum(1 for t in ucs if t == "컴포넌트 추가 — RelativeTransform"), 1)
+        self.assertIn("'Set Mesh' 실행 (위에서 펼친 것과 같은 흐름)", ucs)
+        comp = d["composition"]
+        self.assertEqual([c["role"] for c in comp["components"]][:2], ["기준점 (위치만)", "감지·충돌 영역"])
+        self.assertIn("Door Size", [s["name"] for s in comp["settings"]])
+        self.assertIn("Closed Position", [s["name"] for s in comp["state"]])
+        self.assertIn("BeginPlay".replace("BeginPlay", "Begin Play"), [b["title"] for b in d["behaviors"]])
+        # every step keeps the pseudocode line it comes from (the logic level)
+        self.assertTrue(any(s.get("detail", "").startswith("Door Control.Play") for s in lens_explain.Explainer.flatten(by["Open Door"]["steps"])))
+
+    def test_jump_pad_negation_cast_and_summary(self):
+        import lens_explain
+        d = lens_explain.explain(self.bp("Game/LevelPrototyping/Interactable/JumpPad/BP_JumpPad"))
+        steps = list(self.texts(d["behaviors"][0]["steps"]))
+        self.assertIn("OtherActor에 태그 Exclusion Tag이(가) 붙어 있지 않으면", steps)
+        self.assertIn("Character이(가) 맞으면", steps)
+        self.assertIn("그 Character을(를) 튕겨 보내기 — Launch Velocity: Velocity, ZOverride: true", steps)
+        self.assertIn("다른 액터가 겹치기 시작하면 그 Character을(를) 튕겨 보내기", d["summary"])
+        self.assertIn("감지·충돌 영역", d["summary"])
+
+    def test_cpp_bodies_and_callers(self):
+        import lens_explain
+        p = self.tmp / "Proj"
+        write(p / "Source/Game/Hero.h", "UCLASS()\nclass GAME_API AHero : public ACharacter\n{\n};\n")
+        write(p / "Source/Game/Hero.cpp", "#include \"Hero.h\"\n\nvoid AHero::DoMove(float Right, float Forward)\n{\n"
+                                          "\tAddMovementInput(GetActorRightVector(), Right);\n}\n\n"
+                                          "void AHero::TakeHit(float Damage)\n{\n\tHealth -= Damage;\n\tOnHurt();\n}\n")
+        cpp = lens_explain.CppIndex(p)
+        hit = cpp.find(["Hero"], "DoMove")
+        self.assertEqual(hit["file"], "Source/Game/Hero.cpp")
+        self.assertEqual(hit["line"], 3)
+        self.assertEqual(hit["body"], ["\tAddMovementInput(GetActorRightVector(), Right);"])
+        self.assertEqual(cpp.callers("OnHurt"), ["AHero::TakeHit"])
+        self.assertEqual(cpp.parents["Hero"], "Character")
+        bp = {"name": "BP_Hero", "parent": "/Script/Game.Hero", "parentChain": ["/Script/Game.Hero"], "graphs": []}
+        self.assertEqual(lens_explain.kind_words(bp, cpp), "걸어 다니는 캐릭터")
+
+    def test_folder_writes_html_json_and_prompt(self):
+        import lens_explain
+        root = self.tmp / "blueprints"
+        shutil.copytree(self.FIX, root)
+        lens_bp.write_folder(root, None)
+        self.assertEqual(lens_explain.write_all(root, None), 0)
+        door = root / "Game/LevelPrototyping/Interactable/Door/BP_DoorFrame"
+        doc = json.loads((door / "BP_DoorFrame.explain.json").read_text(encoding="utf-8"))
+        self.assertEqual(doc["schema"], "lens.explain/1")
+        page = (door / "BP_DoorFrame.html").read_text(encoding="utf-8")
+        for text in ("<h2>구성</h2>", "<h2>행동과 흐름</h2>", "다른 액터가 겹치기 시작하면", "class='pc'"):
+            self.assertIn(text, page)
+        self.assertIn("BP_DoorFrame.agent.json", (door / "BP_DoorFrame.explain-prompt.md").read_text(encoding="utf-8"))
+        self.assertIn("BP_DoorFrame.html", (root / "index.html").read_text(encoding="utf-8"))
+        # an agent's wording is shown next to the rule-based text
+        write(door / "BP_DoorFrame.agent.json", json.dumps({"summary": "캐릭터가 다가오면 열리는 문", "behaviors": {"b1": "문이 열린다"}}, ensure_ascii=False))
+        lens_explain.write_all(root, None)
+        self.assertIn("캐릭터가 다가오면 열리는 문", (door / "BP_DoorFrame.html").read_text(encoding="utf-8"))
+
+
 class CatalogAndConfigTests(unittest.TestCase):
     def test_catalog_is_consistent(self):
         catalog = json.loads((TOOLS / "catalog.json").read_text(encoding="utf-8"))

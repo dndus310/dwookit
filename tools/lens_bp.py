@@ -64,6 +64,16 @@ def ident(text: str) -> str:
     return out if not out[0].isdigit() else "_" + out
 
 
+def node_name(node: dict) -> str:
+    """A readable name for a node without a function: its title when that is English, else its class.
+    A non-English editor localizes titles ('프로퍼티 액세스'), which says nothing in pseudocode."""
+    title = (node.get("title") or "").split("\n")[0]
+    if title and title.isascii() and re.search(r"[A-Za-z]", title):
+        return ident(title)
+    cls = node.get("class", "")
+    return re.sub(r"^(K2Node_|AnimGraphNode_|EdGraphNode_|MaterialGraphNode_)", "", cls) or ident(title)
+
+
 def lower_first(text: str) -> str:
     return text[:1].lower() + text[1:] if text else text
 
@@ -258,7 +268,7 @@ class Writer:
         elif kind == "timeline":
             base = ident(pin["name"])
         elif pin["name"] == "ReturnValue":
-            base = lower_first(clean_func(node.get("member") or ident(node.get("title", "")))) or "result"
+            base = lower_first(clean_func(node.get("member") or node_name(node))) or "result"
         else:
             base = lower_first(ident(pin.get("label") or pin["name"]))
         name, i = base, 2
@@ -330,7 +340,7 @@ class Writer:
     def call_text(self, node: dict, depth: int, out_pin: dict | None = None) -> str:
         member = clean_func(node.get("member") or "")
         if not member:
-            member = ident(node.get("title", "").split("\n")[0])
+            member = node_name(node)
         for prefix, op in BINARY_OPS:
             if member.startswith(prefix):
                 ins = [p for p in self.g.pins(node, "in", exec_=False) if not p.get("hidden") and p["name"] != "self"]
@@ -380,6 +390,11 @@ class Writer:
             return f"{self.expr(ins[0], depth)}[{self.expr(ins[1], depth)}]"
         if cls == "K2Node_Select":
             return f"select({', '.join(self.args(node, depth))})"
+        if cls == "K2Node_PropertyAccess":
+            return ".".join(node.get("path") or []) or "PropertyAccess()"
+        if cls in ("K2Node_EnumEquality", "K2Node_EnumInequality") and len(ins) >= 2:
+            op = "==" if cls == "K2Node_EnumEquality" else "!="
+            return f"({self.expr(ins[0], depth)} {op} {self.expr(ins[1], depth)})"
         if kind == "call":
             text = self.call_text(node, depth, out)
             if text.endswith(f".{out['name']}") and node.get('member', '').startswith('Break'):
@@ -388,9 +403,8 @@ class Writer:
             if len(outs) > 1 and out["name"] != "ReturnValue":
                 return f"{text}.{out['name']}"
             return text
-        title = node.get("title", "").split("\n")[0]
         args = self.args(node, depth)
-        return f"{ident(title)}({', '.join(args)})" + (f".{out['name']}" if len(self.g.pins(node, 'out', exec_=False)) > 1 else "")
+        return f"{node_name(node)}({', '.join(args)})" + (f".{out['name']}" if len(self.g.pins(node, 'out', exec_=False)) > 1 else "")
 
     # -- statements
     def emit(self, text: str, indent: int):
@@ -653,8 +667,10 @@ class Writer:
             return node.get("member") or title
         if kind == "event":
             name = re.sub(r"^Event\s+", "", title).strip()
+            if not name.isascii() and node.get("member"):          # localized editor: '이벤트 BeginPlay'
+                return re.sub(r"^Receive(?=[A-Z])", "", node["member"])
             return ident(name) if name else (node.get("member") or "")
-        return ident(title)
+        return node_name(node)
 
     def params(self, node: dict) -> list[dict]:
         return [p for p in self.g.pins(node, "out", exec_=False) if not p.get("hidden") and p["name"] != "OutputDelegate"]
@@ -690,7 +706,7 @@ class Writer:
             if kind in ("event", "customEvent", "boundEvent"):
                 head = f"on {self.event_name(node)}({params}):{tag}"
             else:
-                head = f"on {ident((node.get('title') or '').splitlines()[0])}({params}):"
+                head = f"on {node_name(node)}({params}):"
             if node.get("comment"):
                 head += f"  # {node['comment']}"
             self.emit(head, 0)
@@ -709,7 +725,7 @@ class Writer:
         if entry is None:
             entry = next((n for n in self.g.nodes.values() if n.get("kind") == "entry"), None)
         if entry is None:
-            return self.lines
+            return self.write_data_graph()
         self.emitted.add(entry["id"])
         for p in self.params(entry):
             self.name_for(entry, p)
@@ -719,6 +735,32 @@ class Writer:
         result = next((n for n in self.g.nodes.values() if n.get("kind") == "result"), None)
         if result and result["id"] not in self.emitted and not self.g.exec_outs(entry):
             self.statement(result, {}, 1)
+        return self.finish()
+
+    # Graphs without exec wires (anim graph, states, transitions): what flows into the result node.
+    DATA_RESULTS = ("AnimGraphNode_Root", "AnimGraphNode_StateResult", "AnimGraphNode_TransitionResult",
+                    "AnimGraphNode_CustomTransitionResult", "AnimGraphNode_LinkedAnimGraph")
+
+    def write_data_graph(self) -> list[str]:
+        results = [n for n in self.g.nodes.values() if n.get("class") in self.DATA_RESULTS[:4]]
+        # a state machine: its states and the transitions between them ('Idle -> Start')
+        for node in self.g.nodes.values():
+            cls = node.get("class", "")
+            if cls == "AnimStateEntryNode":
+                for p in self.g.pins(node, "out"):
+                    for target, _ in self.g.targets(p):
+                        self.emit(f"start -> {(target.get('title') or '').splitlines()[0]}", 1)
+            elif cls == "AnimStateTransitionNode":
+                self.emit(f"transition {(node.get('title') or '').splitlines()[0]}", 1)
+        for node in results:
+            self.emitted.add(node["id"])
+            for pin in self.g.pins(node, "in", exec_=False):
+                if pin.get("hidden"):
+                    continue
+                if not self.g.source(pin) and literal(pin) is None:
+                    continue
+                what = "can enter" if node.get("class", "").endswith("TransitionResult") else "pose"
+                self.emit(f"{what} = {self.expr(pin, 0)}", 1)
         return self.finish()
 
     def unused(self) -> list[str]:
@@ -950,6 +992,9 @@ def graph_parts(bp: dict) -> tuple[list[dict], list[str]]:
     for g in graphs:
         if g.kind not in ("function", "interface", "macro", "sub"):
             continue
+        owner = (g.data.get("owner") or "").splitlines()[0] if g.data.get("owner") else ""
+        if owner and owner != g.name:
+            g.name = f"{g.name} {owner}" if g.name in ("Transition", "EventGraph") else g.name
         sig, locals_, entry = signature(g)
         w = Writer(g, bp)
         body = w.write_function() or ["  pass"]
@@ -1037,6 +1082,8 @@ def part_file_name(part: dict, taken: set[str]) -> str:
 def part_title(part: dict) -> str:
     if part["kind"] == "event":
         return ", ".join(f"on {e}" for e in part["events"]) or part["name"]
+    if part.get("members"):
+        return f"{part['kind']} " + ", ".join(part["members"])
     return part["head"][0][3:].strip()
 
 
@@ -1078,7 +1125,19 @@ def pack_events(parts: list[dict], limit: int = PACK_LINES) -> list[dict]:
     out: list[dict] = []
     for part in parts:
         prev = out[-1] if out else None
-        if (prev and part["kind"] == "event" and prev["kind"] == "event" and prev["graph"] == part["graph"]
+        tiny = lambda x: x["kind"] == "fn" and len(x["lines"]) <= 3 and (not x.get("members") or len(x["lines"]) <= limit)
+        if (prev and prev["kind"] == part["kind"] and len(prev["lines"]) + len(part["lines"]) + len(part.get("head", [])) <= limit
+                and (part["kind"] in ("collapsed", "macro") or (tiny(part) and (tiny(prev) or prev.get("members"))))):
+            # small state / transition / collapsed graphs: one file with each graph's own heading
+            merged = dict(prev)
+            if not prev.get("members"):
+                merged["lines"] = prev["head"] + prev["lines"]
+                merged["members"] = [prev["name"]]
+                merged["head"] = []
+            merged["members"] = merged["members"] + [part["name"]]
+            merged["lines"] = merged["lines"] + part["head"] + part["lines"]
+            out[-1] = merged
+        elif (prev and part["kind"] == "event" and prev["kind"] == "event" and prev["graph"] == part["graph"]
                 and len(prev["lines"]) + len(part["lines"]) <= limit):
             used = len({m.group(1) for l in prev["lines"] for m in [LABEL_LINE.match(l)] if m})
             merged = dict(prev)
@@ -1245,7 +1304,11 @@ def main(argv=None) -> int:
     c.add_argument("--project", type=Path)
     args = ap.parse_args(argv)
     if args.cmd == "md":
-        return write_folder(args.dir, args.project, args.split_lines)
+        code = write_folder(args.dir, args.project, args.split_lines)
+        if code == 0:
+            import lens_explain                       # the same Blueprints explained for people (HTML, window)
+            code = lens_explain.write_all(args.dir, args.project)
+        return code
     if args.cmd == "status":
         return print_status(args.dir, args.project)
     bp = load(args.json)

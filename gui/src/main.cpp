@@ -12,6 +12,7 @@
 
 #include "views_canvas.h"
 #include "views_launcher.h"
+#include "views_files.h"
 
 #include "backends/imgui_impl_dx11.h"
 #include "backends/imgui_impl_win32.h"
@@ -39,6 +40,7 @@ static const ActivityDef kActivities[] = {
 	{ Activity::Launcher, ICON_HOME, "런처", "launcher", "Ctrl+9", ImGuiKey_9, "Forge" },
 	{ Activity::Overview, ICON_DASHBOARD, "대시보드", "overview", "Ctrl+1", ImGuiKey_1, "DwoLens" },
 	{ Activity::Architecture, ICON_LAYERS, "아키텍처", "architecture", "Ctrl+2", ImGuiKey_2, "DwoLens" },
+	{ Activity::Files, ICON_PAGE, "파일 분석", "files", "", ImGuiKey_None, "DwoLens" },
 	{ Activity::Problems, ICON_WARNING, "문제", "problems", "Ctrl+3", ImGuiKey_3, "DwoLens" },
 	{ Activity::Tests, ICON_CHECKLIST, "검증", "tests", "Ctrl+4", ImGuiKey_4, "DwoLens" },
 	{ Activity::Logs, ICON_LIST, "로그", "logs", "Ctrl+5", ImGuiKey_5, "DwoLens" },
@@ -1162,6 +1164,7 @@ static void DrawApp(App& app, bool& quit)
 		{
 		case Activity::Overview: DrawOverviewNav(app); break;
 		case Activity::Architecture: DrawArchitectureNav(app); break;
+		case Activity::Files: DrawFilesNav(app); break;
 		case Activity::Problems: DrawProblemsNav(app); break;
 		case Activity::Tests: DrawTestsNav(app); break;
 		case Activity::Logs: DrawLogsNav(app); break;
@@ -1183,6 +1186,7 @@ static void DrawApp(App& app, bool& quit)
 		{
 		case Activity::Overview: DrawOverviewMain(app); break;
 		case Activity::Architecture: DrawArchitectureMain(app); break;
+		case Activity::Files: DrawFilesMain(app); break;
 		case Activity::Problems: DrawProblemsMain(app); break;
 		case Activity::Tests: DrawTestsMain(app); break;
 		case Activity::Logs: DrawLogsMain(app); break;
@@ -1203,6 +1207,7 @@ static void DrawApp(App& app, bool& quit)
 		{
 		case Activity::Overview: DrawOverviewInspector(app); break;
 		case Activity::Architecture: DrawArchitectureInspector(app); break;
+		case Activity::Files: DrawFilesInspector(app); break;
 		case Activity::Problems: DrawProblemsInspector(app); break;
 		case Activity::Tests: DrawTestsInspector(app); break;
 		case Activity::Logs: DrawLogsInspector(app); break;
@@ -1553,6 +1558,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		g_launcherPageRequest = viewArg == L"jenkins" ? 1 : viewArg == L"engines" ? 2 : 3;
 	}
 	if (!selectArg.empty() && app.activity == Activity::Architecture) ui.archSel = ToUtf8(selectArg);
+	if (!selectArg.empty() && app.activity == Activity::Files) g_files.sel = ToUtf8(selectArg);
 	else if (!selectArg.empty() && app.activity == Activity::Live) ui.liveSource = ToUtf8(selectArg);
 	else if (!selectArg.empty())
 	{

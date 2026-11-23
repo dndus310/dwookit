@@ -40,7 +40,7 @@ static const char* ToolOfActivity(Activity a)
 	switch (a)
 	{
 	case Activity::Overview: case Activity::Architecture: case Activity::Problems: case Activity::Tests:
-	case Activity::Logs: case Activity::Performance: case Activity::History: return "lens";
+	case Activity::Logs: case Activity::Performance: case Activity::History: case Activity::Files: return "lens";
 	case Activity::Live: return "statemonitor";
 	case Activity::Canvas: return "canvas";
 	case Activity::Ci: return "ci";

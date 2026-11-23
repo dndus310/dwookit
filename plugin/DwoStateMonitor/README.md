@@ -20,10 +20,14 @@ UStateMonitorSubsystem::Get(this)->ShowMonitor();
 
 | Source ID | 대상 |
 |---|---|
+| `GameInstance` | 게임 인스턴스 (표시할 프로퍼티가 있을 때) |
 | `GameMode`, `GameState` | 현재 월드의 GameMode(서버만), GameState |
 | `PC0`, `PC0.PlayerState`, `PC0.Pawn` | 로컬 PlayerController와 그 PlayerState, Pawn (`PC1`… 순서) |
-| `PC0.Pawn.<컴포넌트>` | Pawn 컴포넌트 중 표시할 프로퍼티가 하나 이상 있는 것 |
-| `<액터 이름>`, `<액터>.<컴포넌트>` | 뷰어가 `watch`로 지정한 클래스의 액터(최대 개수까지)와 Watch State Object로 넣은 객체 |
+| `PC0.Pawn.<컴포넌트>`, `PC0.HUD` | Pawn 컴포넌트 중 표시할 프로퍼티가 하나 이상 있는 것, HUD |
+| `<객체 이름>`, `<액터>.<컴포넌트>` | 관찰 목록의 클래스(뷰어의 `watch` 또는 `__dwo-forge/sm-watch.txt`)의 런타임 객체(액터·컴포넌트·위젯·UObject, 최대 개수까지)와 Watch State Object로 넣은 객체 |
+| `<소스>.<프로퍼티>`, `<소스>.<프로퍼티>[i]` | 위 소스가 프로퍼티로 가리키는 런타임 객체 (참조 깊이만큼, 기본 1단계. 에셋·클래스 제외) |
+
+관찰 목록 파일 `<프로젝트>/__dwo-forge/sm-watch.txt`는 한 줄에 `클래스 이름 [최대 개수]`(`#` 주석)입니다. 게임 인스턴스가 시작할 때 읽으며, 뷰어 없이 게임 화면의 모니터만 켜도 이 목록의 객체를 관찰합니다. C++: `LoadWatchListFile(Path)`, `SetReferenceDepth(0~4)`.
 
 - 기본으로 **프로젝트 코드가 선언한 프로퍼티만** 담습니다. Blueprint 클래스의 변수와 엔진 폴더 밖 C++ 모듈의 `UPROPERTY`가 해당하며, 엔진 클래스(`AActor`, `APawn` 등)의 프로퍼티는 뷰어에서 `engine`을 켤 때만 담습니다. 그래서 엔진 기본 GameMode처럼 프로젝트 프로퍼티가 없는 객체는 빈 값(`{}`)으로 보입니다.
 - Deprecated, 에디터 전용, 델리게이트, Blueprint 실행 프레임은 항상 뺍니다. 엔진 쪽 Transient는 빼고 프로젝트 쪽 Transient는 남깁니다.
@@ -61,8 +65,8 @@ UTF-8 JSON Lines(한 줄에 JSON 하나, `\n`으로 구분)입니다. 게임이 
 
 | 메시지 | 동작 |
 |---|---|
-| `{"t":"auto","on":true,"interval":0.25,"engine":false}` | 자동 관찰 켜기/끄기, 주기(초), 엔진 프로퍼티 포함 여부. 접속마다 꺼진 상태로 시작합니다 |
-| `{"t":"watch","class":"BP_Enemy_C","max":16}` / `{"t":"unwatch","class":"..."}` | 클래스(부모 클래스 이름도 일치)의 액터를 최대 `max`개 관찰 |
+| `{"t":"auto","on":true,"interval":0.25,"engine":false,"depth":1}` | 자동 관찰 켜기/끄기, 주기(초), 엔진 프로퍼티 포함 여부, 참조를 따라갈 깊이(0~4). 접속마다 꺼진 상태로 시작합니다 |
+| `{"t":"watch","class":"BP_Enemy_C","max":16}` / `{"t":"unwatch","class":"..."}` | 클래스(파생 클래스 포함)의 런타임 객체를 최대 `max`개 관찰. 클래스가 아직 로드되지 않았으면 클래스·부모 이름이 같은 액터 |
 | `{"t":"pause","on":true}` | 송신 정지. 다시 풀면 현재 상태를 모두 보냅니다 |
 | `{"t":"resync"}` | 모든 소스를 지금 다시 보냅니다 |
 
