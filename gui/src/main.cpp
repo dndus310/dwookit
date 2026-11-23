@@ -1141,6 +1141,7 @@ static void DrawApp(App& app, bool& quit)
 		}
 		ImGui::End();
 		DrawDetachModal(app);
+		DrawTargetPicker(app);
 		DrawCommandPalette(app);
 		DrawToasts(g_statusHeight);
 		DrawShortcutsDialog();
@@ -1243,6 +1244,7 @@ static void DrawApp(App& app, bool& quit)
 	}
 
 	DrawDetachModal(app);
+	DrawTargetPicker(app);
 	DrawCommandPalette(app);
 	DrawToasts(g_statusHeight);
 	DrawShortcutsDialog();
@@ -1467,6 +1469,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 	if (modeArg == L"modules") ui.archMode = 4;
 	if (modeArg == L"quality") ui.archMode = 5;
 	bool openUninstall = ArgValue(argc, argv, L"--dialog") == L"uninstall";
+	int openPicker = ArgValue(argc, argv, L"--dialog") == L"pick-bp" ? 0 : ArgValue(argc, argv, L"--dialog") == L"pick-watch" ? 1 : -1;   // screenshots of the target picker
 	if (ArgValue(argc, argv, L"--dialog") == L"palette") g_paletteOpen = true;   // screenshots of the command palette
 	if (ArgValue(argc, argv, L"--dialog") == L"shortcuts") g_shortcutsOpen = true;
 	LocalFree(argv);
@@ -1560,6 +1563,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 	if (!canvasFileArg.empty()) app.canvasFile = canvasFileArg;   // not added to the recent list (tests, screenshots)
 	if (!runArg.empty() && app.hasUProject) app.Run(ToUtf8(runArg));
 	if (openUninstall && app.attached) app.confirmDetach = true;
+	if (openPicker >= 0) OpenTargetPicker(app, openPicker);
 
 	bool done = false;
 	int frame = 0;

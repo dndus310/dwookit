@@ -118,29 +118,24 @@ static void DrawLiveNav(App& app)
 	ImGui::SetNextItemWidth(S(120));
 	if (ImGui::SliderFloat("주기", &app.liveSettings.interval, 0.05f, 2.0f, "%.2f초")) changed = true;
 	if (changed && !ImGui::IsItemActive()) app.BroadcastLiveSettings();
-	ImGui::SetNextItemWidth(-S(40));
-	bool add = ImGui::InputTextWithHint("##watch", "관찰할 클래스 (예: BP_Enemy_C)", ui.watchInput, sizeof(ui.watchInput), ImGuiInputTextFlags_EnterReturnsTrue);
-	ImGui::SameLine();
-	add |= ImGui::Button(ICON_ADD);
-	if (add && ui.watchInput[0])
-	{
-		std::string c = ui.watchInput;
-		if (std::find(app.liveSettings.watch.begin(), app.liveSettings.watch.end(), c) == app.liveSettings.watch.end())
-		{
-			app.liveSettings.watch.push_back(c);
-			app.live.Broadcast({ { "t", "watch" }, { "class", c }, { "max", 16 } });
-			app.SaveSettings();
-		}
-		ui.watchInput[0] = 0;
-	}
+	ImGui::SetNextItemWidth(S(120));
+	if (ImGui::SliderInt("참조 깊이", &app.liveSettings.refDepth, 0, 4)) changed = true;
+	Tooltip("관찰한 객체가 프로퍼티로 가리키는 런타임 객체(무기, 타깃, 인벤토리 항목, 위젯 ...)를 몇 단계까지 따라가 함께 관찰할지. 0이면 따라가지 않습니다.");
+	if (changed && !ImGui::IsItemActive()) app.BroadcastLiveSettings();
+
+	SectionHeader("관찰할 클래스", std::to_string(app.liveSettings.watch.size()).c_str());
+	if (ImGui::Button((std::string(ICON_LIST) + "  목록에서 고르기").c_str(), ImVec2(-FLT_MIN, 0)))
+		OpenTargetPicker(app, 1);
+	Tooltip("프로젝트의 블루프린트·위젯·C++ 클래스를 트리에서 골라 실행 중인 게임에서 관찰합니다. 목록은 프로젝트의 __dwo-forge/sm-watch.txt에 저장되고, 게임이 시작할 때도 읽습니다.");
+	if (app.liveSettings.watch.empty()) TextDim("GameMode·플레이어·Pawn 외에 볼 객체를 고르세요.");
 	for (size_t i = 0; i < app.liveSettings.watch.size(); ++i)
 	{
 		ImGui::PushID((int)i);
 		if (ImGui::SmallButton(ICON_CLOSE))
 		{
-			app.live.Broadcast({ { "t", "unwatch" }, { "class", app.liveSettings.watch[i] } });
-			app.liveSettings.watch.erase(app.liveSettings.watch.begin() + i);
-			app.SaveSettings();
+			std::vector<std::string> next = app.liveSettings.watch;
+			next.erase(next.begin() + i);
+			SetSmWatch(app, next);
 			ImGui::PopID();
 			break;
 		}

@@ -220,6 +220,12 @@ bool ParseCommand(const FString& Line, FStateMonitorLiveCommand& OutCommand)
 			OutCommand.bIncludeEngineProperties = bEngine;
 			OutCommand.bHasEngine = true;
 		}
+		double Depth = 0.0;
+		if (Object->TryGetNumberField(TEXT("depth"), Depth) && FMath::IsFinite(Depth))
+		{
+			OutCommand.RefDepth = FMath::Clamp(FMath::RoundToInt32(Depth), 0, 4);
+			OutCommand.bHasDepth = true;
+		}
 		return true;
 	}
 	if (Type == TEXT("watch") || Type == TEXT("unwatch"))

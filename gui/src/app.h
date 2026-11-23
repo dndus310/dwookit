@@ -500,6 +500,7 @@ struct LiveSettings
 	bool engineProps = false;
 	float interval = 0.25f;
 	std::vector<std::string> watch;
+	int refDepth = 1;              // object references DwoStateMonitor follows from each observed object
 };
 
 struct App
@@ -568,6 +569,7 @@ struct App
 			liveSettings.autoObserve = l.value("auto", true);
 			liveSettings.engineProps = l.value("engine", false);
 			liveSettings.interval = l.value("interval", 0.25f);
+			liveSettings.refDepth = l.value("depth", 1);
 			for (auto& w : Arr(l, "watch")) if (w.is_string()) liveSettings.watch.push_back(w.get<std::string>());
 		}
 	}
@@ -579,7 +581,7 @@ struct App
 		s["canvasRecent"] = canvasRecent;
 		s["sidebarCollapsed"] = sidebarCollapsed;
 		s["live"] = { { "port", liveSettings.port }, { "auto", liveSettings.autoObserve }, { "engine", liveSettings.engineProps },
-		              { "interval", liveSettings.interval }, { "watch", liveSettings.watch } };
+		              { "interval", liveSettings.interval }, { "watch", liveSettings.watch }, { "depth", liveSettings.refDepth } };
 		std::error_code ec;
 		fs::create_directories(settingsDir, ec);
 		std::ofstream(settingsDir / "gui.json", std::ios::binary) << s.dump(1);
@@ -601,6 +603,20 @@ struct App
 		mutes.clear();
 		if (auto s = ReadJson(ProjectSettingsFile()))
 			for (auto& m : Arr(*s, "mutes")) if (m.is_string()) mutes.insert(m.get<std::string>());
+		// DwoStateMonitor's watch list belongs to the project (__dwo-forge/sm-watch.txt; the plugin reads it too).
+		std::ifstream in(ForgeDir() / "sm-watch.txt", std::ios::binary);
+		if (in)
+		{
+			liveSettings.watch.clear();
+			std::string line;
+			while (std::getline(in, line))
+			{
+				size_t a = line.find_first_not_of(" \t\r");
+				if (a == std::string::npos || line[a] == '#' || (unsigned char)line[a] == 0xEF) continue;
+				size_t b = line.find_first_of(" \t\r", a);
+				liveSettings.watch.push_back(line.substr(a, b == std::string::npos ? std::string::npos : b - a));
+			}
+		}
 	}
 
 	void SaveProjectSettings()
@@ -1158,14 +1174,16 @@ struct App
 
 	void SendLiveSettings(int client)
 	{
-		json autoMsg = { { "t", "auto" }, { "on", liveSettings.autoObserve }, { "interval", liveSettings.interval }, { "engine", liveSettings.engineProps } };
+		json autoMsg = { { "t", "auto" }, { "on", liveSettings.autoObserve }, { "interval", liveSettings.interval }, { "engine", liveSettings.engineProps },
+		                 { "depth", liveSettings.refDepth } };
 		live.Send(client, autoMsg);
 		for (auto& w : liveSettings.watch) live.Send(client, { { "t", "watch" }, { "class", w }, { "max", 16 } });
 	}
 
 	void BroadcastLiveSettings()
 	{
-		live.Broadcast({ { "t", "auto" }, { "on", liveSettings.autoObserve }, { "interval", liveSettings.interval }, { "engine", liveSettings.engineProps } });
+		live.Broadcast({ { "t", "auto" }, { "on", liveSettings.autoObserve }, { "interval", liveSettings.interval }, { "engine", liveSettings.engineProps },
+		                 { "depth", liveSettings.refDepth } });
 		SaveSettings();
 	}
 

@@ -13,7 +13,9 @@ class SWidget;
  * 어느 코드에서든 Get(WorldContext)로 찾아 스냅샷을 제출하고, ShowMonitor로 뷰포트에 띄운다.
  * 레벨이 바뀌어도 모델과 이력은 유지된다. 모든 함수는 게임 스레드에서만 호출한다.
  * 비 Shipping 빌드에서는 dwo-Forge 창(127.0.0.1:47731)에 Live로 붙어 소스를 스트리밍하고, 뷰어가 켜면
- * GameMode, GameState, 로컬 PlayerController/PlayerState/Pawn을 코드 없이 자동 관찰한다.
+ * GameInstance, GameMode, GameState, 로컬 PlayerController/PlayerState/Pawn/HUD를 코드 없이 자동 관찰한다.
+ * 관찰할 클래스는 뷰어에서 고르거나 프로젝트의 __dwo-forge/sm-watch.txt(한 줄에 클래스 하나)에 둔다. 관찰한 객체가
+ * 프로퍼티로 가리키는 런타임 객체(액터, 컴포넌트, 런타임에 만든 UObject)는 참조 깊이만큼 따라가 함께 관찰한다.
  */
 UCLASS()
 class DWOSTATEMONITOR_API UStateMonitorSubsystem : public UGameInstanceSubsystem
@@ -101,6 +103,20 @@ public:
 
 	void UnwatchActorClass(const FString& ClassName);
 
+	/** @brief 관찰한 객체의 오브젝트 프로퍼티를 몇 단계까지 따라갈지 (0~4, 기본 1). */
+	void SetReferenceDepth(int32 Depth);
+
+	int32 GetReferenceDepth() const { return RefDepth; }
+
+	/**
+	 * @brief 관찰 목록 파일을 읽어 WatchActorClass로 넣는다. 한 줄에 "클래스 이름 [최대 개수]", '#'로 시작하는 줄과
+	 * 빈 줄은 건너뛴다. 넣은 클래스 수를 반환한다 (파일이 없으면 0).
+	 */
+	int32 LoadWatchListFile(const FString& Path);
+
+	/** @brief <프로젝트>/__dwo-forge/sm-watch.txt (dwo-Forge 창이 쓰는 관찰 목록). */
+	static FString GetProjectWatchListPath();
+
 private:
 	TSharedRef<SWidget> CreateOverlay();
 
@@ -118,6 +134,9 @@ private:
 
 	void CaptureAutoComponents(const FString& Prefix, const class AActor* Actor, TSet<FName>& Desired);
 
+	/** @brief 이번 관찰에서 찍은 객체들의 참조를 RefDepth 단계까지 따라가 찍는다. */
+	void CaptureReferences(TSet<FName>& Desired);
+
 private:
 	TSharedPtr<FStateMonitorModel> Model;
 	TSharedPtr<SWidget> Overlay;
@@ -126,6 +145,10 @@ private:
 	TArray<TWeakObjectPtr<UObject>> WatchedObjects;
 	TMap<FString, int32> WatchedClasses;
 	TSet<FName> AutoSourceIds;
+	/** 이번 UpdateAutoSources에서 찍은 소스 (참조를 따라갈 출발점)와 이미 찍은 객체. */
+	TArray<TPair<FString, TWeakObjectPtr<const UObject>>> CapturedThisPass;
+	TSet<const UObject*> CapturedObjects;
+	int32 RefDepth;
 	TMap<FName, uint64> SentSequences;
 	FString LiveWorldName;
 	double AutoInterval;

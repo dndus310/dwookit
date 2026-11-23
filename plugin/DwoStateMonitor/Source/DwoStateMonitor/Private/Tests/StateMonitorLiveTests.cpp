@@ -11,7 +11,10 @@
 #include "Engine/Engine.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
+#include "HAL/FileManager.h"
 #include "Misc/AutomationTest.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
 #include "Misc/ScopeExit.h"
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
@@ -191,6 +194,10 @@ bool FStateMonitorLiveCommandTest::RunTest(const FString& Parameters)
 	             Command.Max == 16);
 	TestFalse(TEXT("watch requires a class"), StateMonitorLive::ParseCommand(TEXT("{\"t\":\"watch\"}"), Command));
 
+	TestTrue(TEXT("auto depth parses and is clamped"),
+	         StateMonitorLive::ParseCommand(TEXT("{\"t\":\"auto\",\"on\":true,\"depth\":9}"), Command) &&
+	             Command.bHasDepth && Command.RefDepth == 4);
+
 	TestTrue(TEXT("unwatch parses"),
 	         StateMonitorLive::ParseCommand(TEXT("{\"t\":\"unwatch\",\"class\":\"BP_Enemy_C\"}"), Command) &&
 	             Command.Type == EStateMonitorLiveCommand::Unwatch);
@@ -265,6 +272,34 @@ bool FStateMonitorLiveWatchTest::RunTest(const FString& Parameters)
 
 	Monitor->UpdateAutoSources(false);
 	TestTrue(TEXT("Stopping auto observation keeps manual sources"), Model->FindSource(TEXT("Collide")).IsValid());
+
+	// References: a watched object's object property is followed (depth 1), assets and classes are not.
+	UStateMonitorTestComponent* Owner = NewObject<UStateMonitorTestComponent>(World, TEXT("RefOwner"));
+	UStateMonitorTestComponent* Child = NewObject<UStateMonitorTestComponent>(World, TEXT("RefChild"));
+	UStateMonitorTestComponent* Grandchild = NewObject<UStateMonitorTestComponent>(World, TEXT("RefGrandchild"));
+	Owner->Target = Child;
+	Child->Target = Grandchild;
+	Grandchild->Target = UStateMonitorTestComponent::StaticClass();
+	Monitor->WatchObject(Owner);
+	Monitor->SetReferenceDepth(1);
+	Monitor->UpdateAutoSources(true);
+	TestTrue(TEXT("A referenced runtime object is observed"), Model->FindSource(TEXT("RefOwner.Target")).IsValid());
+	TestFalse(TEXT("Depth 1 stops after one step"), Model->FindSource(TEXT("RefOwner.Target.Target")).IsValid());
+	Monitor->SetReferenceDepth(3);
+	Monitor->UpdateAutoSources(true);
+	TestTrue(TEXT("Depth 2 follows the next reference"), Model->FindSource(TEXT("RefOwner.Target.Target")).IsValid());
+	TestFalse(TEXT("Classes are not observed"), Model->FindSource(TEXT("RefOwner.Target.Target.Target")).IsValid());
+	Monitor->SetReferenceDepth(0);
+	Monitor->UpdateAutoSources(true);
+	TestFalse(TEXT("Depth 0 removes the followed sources"), Model->FindSource(TEXT("RefOwner.Target")).IsValid());
+	Monitor->UnwatchObject(Owner);
+
+	// The watch list file: one class per line, optional max, comments and blank lines skipped.
+	const FString ListPath = FPaths::Combine(FPaths::ProjectIntermediateDir(), TEXT("StateMonitorTests"), TEXT("sm-watch.txt"));
+	FFileHelper::SaveStringToFile(TEXT("# watched\nBP_Enemy_C 4\n\n  BP_Door_C  \n"), *ListPath);
+	TestEqual(TEXT("The watch list file adds its classes"), Monitor->LoadWatchListFile(ListPath), 2);
+	TestEqual(TEXT("A missing file adds nothing"), Monitor->LoadWatchListFile(ListPath + TEXT(".missing")), 0);
+	IFileManager::Get().Delete(*ListPath);
 	return true;
 }
 

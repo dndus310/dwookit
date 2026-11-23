@@ -4,6 +4,7 @@
 #pragma once
 
 #include "app.h"
+#include "views_targets.h"
 
 struct UiState
 {

@@ -1057,6 +1057,42 @@ class AgentContextTests(TempDir):
         self.assertTrue((self.project / "CLAUDE.local.md").exists())
 
 
+class TargetListTests(TempDir):
+    """lens_targets.py: Blueprints and C++ classes the user can pick, read from the project files."""
+
+    def test_blueprints_classes_and_lists(self):
+        import lens_targets
+        p = self.tmp / "Proj"
+        def asset(rel, *names):
+            f = p / rel
+            f.parent.mkdir(parents=True, exist_ok=True)
+            f.write_bytes(b"PKG" + b"".join(n.encode() + bytes(1) for n in names))
+        asset("Content/Chars/BP_Hero.uasset", "Blueprint", "BlueprintGeneratedClass", "BP_Hero_C")
+        asset("Content/UI/WBP_Hud.uasset", "WidgetBlueprint", "WidgetBlueprintGeneratedClass", "WBP_Hud_C")
+        asset("Content/Data/DA_Item.uasset", "PrimaryDataAsset", "BlueprintGeneratedClass", "BP_Hero_C")   # only refers to one
+        asset("Content/__ExternalActors__/L/0/AB12.uasset", "BlueprintGeneratedClass", "AB12_C")
+        asset("Plugins/Feature/Content/BP_Gadget.uasset", "BlueprintGeneratedClass", "BP_Gadget_C")
+        write(p / "Plugins/Feature/Feature.uplugin", "{}")
+        asset("Plugins/__DwoCanvas/Content/BP_Ours.uasset", "BlueprintGeneratedClass", "BP_Ours_C")
+        write(p / "Plugins/__DwoCanvas/DwoCanvas.uplugin", "{}")
+        write(p / "Source/Game/Public/Enemy.h", "UCLASS(Blueprintable)\nclass GAME_API AEnemy : public ACharacter\n{};\n"
+                                                "UCLASS(Abstract)\nclass UBaseThing final : public UObject {};\n")
+        write(p / "__dwo-forge/bp-track.txt", "# list\n/Game/UI/\n")
+        write(p / "__dwo-forge/sm-watch.txt", "BP_Hero_C 4\n")
+        d = lens_targets.collect(p)
+        bps = {b["package"]: b for b in d["blueprints"]}
+        self.assertEqual(sorted(bps), ["/Feature/BP_Gadget", "/Game/Chars/BP_Hero", "/Game/UI/WBP_Hud"])
+        self.assertEqual(bps["/Game/UI/WBP_Hud"]["kind"], "widget")
+        self.assertTrue(bps["/Game/UI/WBP_Hud"]["tracked"])               # folder entry covers it
+        self.assertFalse(bps["/Game/Chars/BP_Hero"]["tracked"])
+        self.assertTrue(bps["/Game/Chars/BP_Hero"]["watched"])
+        classes = {c["name"]: c for c in d["classes"]}
+        self.assertEqual(classes["AEnemy"]["runtimeClass"], "Enemy")
+        self.assertEqual(classes["AEnemy"]["parent"], "ACharacter")
+        self.assertTrue(classes["AEnemy"]["actor"])
+        self.assertTrue(classes["UBaseThing"]["abstract"])
+
+
 class CatalogAndConfigTests(unittest.TestCase):
     def test_catalog_is_consistent(self):
         catalog = json.loads((TOOLS / "catalog.json").read_text(encoding="utf-8"))

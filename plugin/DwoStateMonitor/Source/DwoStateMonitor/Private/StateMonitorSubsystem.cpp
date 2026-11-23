@@ -10,6 +10,7 @@
 #include "GameFramework/Actor.h"
 #include "GameFramework/GameModeBase.h"
 #include "GameFramework/GameStateBase.h"
+#include "GameFramework/HUD.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/PlayerState.h"
@@ -17,6 +18,10 @@
 #include "HAL/PlatformTime.h"
 #include "Misc/App.h"
 #include "Misc/EngineVersion.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "UObject/UObjectHash.h"
+#include "UObject/UnrealType.h"
 #include "Stats/Stats.h"
 #include "SStateMonitor.h"
 #include "StateMonitorLiveLink.h"
@@ -33,6 +38,8 @@ constexpr int32 ReservedManualSources = 16;
 constexpr double SendInterval = 0.1;
 /** 송신 버퍼가 이보다 크면 새 스냅샷을 만들지 않고 비워지기를 기다린다. */
 constexpr int32 MaxPendingBytes = 512 * 1024;
+/** 참조 배열에서 따라갈 최대 원소 수. */
+constexpr int32 MaxReferenceArrayItems = 8;
 
 FString NetModeName(const UWorld* World)
 {
@@ -61,6 +68,16 @@ bool ClassMatches(const UClass* Class, const FString& ClassName)
 	return false;
 }
 
+/** @brief 게임이 돌면서 만든 객체인지 (에셋, 클래스, CDO가 아님): 월드 안이거나 게임 인스턴스 아래. */
+bool IsRuntimeObject(const UObject* Object, const UGameInstance* GameInstance)
+{
+	if (!IsValid(Object) || Object->IsA<UClass>() || Object->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject))
+	{
+		return false;
+	}
+	return Object->GetTypedOuter<UWorld>() != nullptr || Object->IsA<AActor>() || (GameInstance && Object->IsIn(GameInstance));
+}
+
 FString WatchedSourceId(const UObject* Object)
 {
 	if (const UActorComponent* Component = Cast<UActorComponent>(Object))
@@ -76,7 +93,7 @@ FString WatchedSourceId(const UObject* Object)
 
 UStateMonitorSubsystem::UStateMonitorSubsystem()
     : Model(), Overlay(), LiveLink(), LiveTickerHandle(), AutoInterval(0.25), NextAutoTime(0.0), NextSendTime(0.0),
-      bAutoObserve(false), bAutoEngineProperties(false), bLivePaused(false), bResendAll(false)
+      bAutoObserve(false), bAutoEngineProperties(false), bLivePaused(false), bResendAll(false), RefDepth(1)
 {
 }
 
@@ -91,6 +108,10 @@ void UStateMonitorSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	if (!IsRunningCommandlet() && FStateMonitorLiveLink::IsEnabledByCommandLine())
 	{
 		LiveLink = MakeShared<FStateMonitorLiveLink>(FStateMonitorLiveLink::GetPortFromCommandLine());
+	}
+	if (!IsRunningCommandlet())
+	{
+		LoadWatchListFile(GetProjectWatchListPath());
 	}
 	LiveTickerHandle = FTSTicker::GetCoreTicker().AddTicker(
 	    FTickerDelegate::CreateUObject(this, &UStateMonitorSubsystem::TickLive), 0.0f);
@@ -178,6 +199,101 @@ void UStateMonitorSubsystem::UnwatchActorClass(const FString& ClassName)
 	NextAutoTime = 0.0;
 }
 
+void UStateMonitorSubsystem::SetReferenceDepth(int32 Depth)
+{
+	RefDepth = FMath::Clamp(Depth, 0, 4);
+	NextAutoTime = 0.0;
+}
+
+FString UStateMonitorSubsystem::GetProjectWatchListPath()
+{
+	return FPaths::Combine(FPaths::ProjectDir(), TEXT("__dwo-forge"), TEXT("sm-watch.txt"));
+}
+
+int32 UStateMonitorSubsystem::LoadWatchListFile(const FString& Path)
+{
+	TArray<FString> Lines;
+	if (!FFileHelper::LoadFileToStringArray(Lines, *Path))
+	{
+		return 0;
+	}
+	int32 Added = 0;
+	for (FString Line : Lines)
+	{
+		Line.TrimStartAndEndInline();
+		if (Line.IsEmpty() || Line.StartsWith(TEXT("#")))
+		{
+			continue;
+		}
+		TArray<FString> Parts;
+		Line.ParseIntoArrayWS(Parts);
+		const int32 Max = Parts.Num() > 1 && Parts[1].IsNumeric() ? FCString::Atoi(*Parts[1]) : 16;
+		WatchActorClass(Parts[0], Max);
+		++Added;
+	}
+	return Added;
+}
+
+void UStateMonitorSubsystem::CaptureReferences(TSet<FName>& Desired)
+{
+	const UGameInstance* GameInstance = GetGameInstance();
+	TArray<TPair<FString, TWeakObjectPtr<const UObject>>> Frontier = CapturedThisPass;
+	for (int32 Level = 0; Level < RefDepth && Frontier.Num() > 0; ++Level)
+	{
+		TArray<TPair<FString, TWeakObjectPtr<const UObject>>> Next;
+		for (const TPair<FString, TWeakObjectPtr<const UObject>>& Entry : Frontier)
+		{
+			const UObject* Owner = Entry.Value.Get();
+			if (!IsValid(Owner))
+			{
+				continue;
+			}
+			auto Visit = [&](const UObject* Ref, const FString& Id)
+			{
+				if (!StateMonitorSubsystem::IsRuntimeObject(Ref, GameInstance) || CapturedObjects.Contains(Ref) ||
+				    FStateMonitorModel::CountIncludedProperties(Ref->GetClass(), bAutoEngineProperties) == 0)
+				{
+					return;
+				}
+				if (CaptureAutoSource(FName(*Id), Ref, Desired))
+				{
+					Next.Emplace(Id, Ref);
+				}
+			};
+			for (TFieldIterator<FProperty> It(Owner->GetClass()); It; ++It)
+			{
+				const FProperty* Property = *It;
+				if (!FStateMonitorModel::IsObjectPropertyIncluded(Property, bAutoEngineProperties))
+				{
+					continue;
+				}
+				const FString Id = Entry.Key + TEXT(".") + Property->GetName();
+				if (const FObjectPropertyBase* ObjectProperty = CastField<FObjectPropertyBase>(Property))
+				{
+					if (!Property->IsA<FSoftObjectProperty>())
+					{
+						Visit(ObjectProperty->GetObjectPropertyValue_InContainer(Owner), Id);
+					}
+				}
+				else if (const FArrayProperty* ArrayProperty = CastField<FArrayProperty>(Property))
+				{
+					const FObjectPropertyBase* Inner = CastField<FObjectPropertyBase>(ArrayProperty->Inner);
+					if (Inner && !Inner->IsA<FSoftObjectProperty>())
+					{
+						FScriptArrayHelper Array(ArrayProperty, ArrayProperty->ContainerPtrToValuePtr<void>(Owner));
+						const int32 Count = FMath::Min(Array.Num(), StateMonitorSubsystem::MaxReferenceArrayItems);
+						for (int32 Index = 0; Index < Count; ++Index)
+						{
+							Visit(Inner->GetObjectPropertyValue(Array.GetRawPtr(Index)), FString::Printf(TEXT("%s[%d]"), *Id, Index));
+						}
+					}
+				}
+			}
+		}
+		Frontier = MoveTemp(Next);
+	}
+}
+
 bool UStateMonitorSubsystem::CaptureAutoSource(FName SourceId, const UObject* Object, TSet<FName>& Desired)
 {
 	if (!Model.IsValid() || !IsValid(Object) || Desired.Contains(SourceId))
@@ -204,6 +320,8 @@ bool UStateMonitorSubsystem::CaptureAutoSource(FName SourceId, const UObject* Ob
 	}
 	AutoSourceIds.Add(SourceId);
 	Desired.Add(SourceId);
+	CapturedThisPass.Emplace(SourceId.ToString(), Object);
+	CapturedObjects.Add(Object);
 	return true;
 }
 
@@ -232,10 +350,16 @@ void UStateMonitorSubsystem::UpdateAutoSources(bool bObserveWorld)
 	}
 
 	TSet<FName> Desired;
+	CapturedThisPass.Reset();
+	CapturedObjects.Reset();
 	UGameInstance* GameInstance = GetGameInstance();
 	UWorld* World = GameInstance ? GameInstance->GetWorld() : nullptr;
 	if (bObserveWorld && World)
 	{
+		if (FStateMonitorModel::CountIncludedProperties(GameInstance->GetClass(), bAutoEngineProperties) > 0)
+		{
+			CaptureAutoSource(TEXT("GameInstance"), GameInstance, Desired);
+		}
 		CaptureAutoSource(TEXT("GameMode"), World->GetAuthGameMode(), Desired);
 		CaptureAutoSource(TEXT("GameState"), World->GetGameState(), Desired);
 
@@ -256,11 +380,46 @@ void UStateMonitorSubsystem::UpdateAutoSources(bool bObserveWorld)
 				CaptureAutoSource(FName(*PawnPrefix), Pawn, Desired);
 				CaptureAutoComponents(PawnPrefix, Pawn, Desired);
 			}
+			if (const AHUD* Hud = Controller->GetHUD())
+			{
+				if (FStateMonitorModel::CountIncludedProperties(Hud->GetClass(), bAutoEngineProperties) > 0)
+				{
+					CaptureAutoSource(FName(*(Prefix + TEXT(".HUD"))), Hud, Desired);
+				}
+			}
 		}
 
 		for (const TPair<FString, int32>& Watched : WatchedClasses)
 		{
+			// Any runtime object of the class (actors, components, widgets, plain UObjects) when the class is
+			// loaded; otherwise actors whose class or a parent has that name.
 			int32 Count = 0;
+			const UClass* Class = FindFirstObject<UClass>(*Watched.Key, EFindFirstObjectOptions::None);
+			if (Class)
+			{
+				TArray<UObject*> Objects;
+				GetObjectsOfClass(Class, Objects, true, RF_ClassDefaultObject | RF_ArchetypeObject, EInternalObjectFlags::Garbage);
+				for (const UObject* Object : Objects)
+				{
+					if (Count >= Watched.Value)
+					{
+						break;
+					}
+					if (!IsValid(Object) || Object->GetWorld() != World ||
+					    !StateMonitorSubsystem::IsRuntimeObject(Object, GameInstance))
+					{
+						continue;
+					}
+					++Count;
+					const FString Id = StateMonitorSubsystem::WatchedSourceId(Object);
+					CaptureAutoSource(FName(*Id), Object, Desired);
+					if (const AActor* Actor = Cast<AActor>(Object))
+					{
+						CaptureAutoComponents(Id, Actor, Desired);
+					}
+				}
+				continue;
+			}
 			for (TActorIterator<AActor> It(World); It && Count < Watched.Value; ++It)
 			{
 				const AActor* Actor = *It;
@@ -288,6 +447,10 @@ void UStateMonitorSubsystem::UpdateAutoSources(bool bObserveWorld)
 			{
 				CaptureAutoSource(FName(*StateMonitorSubsystem::WatchedSourceId(Object)), Object, Desired);
 			}
+		}
+		if (RefDepth > 0)
+		{
+			CaptureReferences(Desired);
 		}
 	}
 
@@ -346,6 +509,10 @@ void UStateMonitorSubsystem::HandleLiveCommand(const FString& Line)
 		if (Command.bHasEngine)
 		{
 			bAutoEngineProperties = Command.bIncludeEngineProperties;
+		}
+		if (Command.bHasDepth)
+		{
+			RefDepth = Command.RefDepth;
 		}
 		NextAutoTime = 0.0;
 		break;
@@ -441,7 +608,8 @@ bool UStateMonitorSubsystem::TickLive(float DeltaTime)
 		}
 	}
 
-	const bool bObserveWorld = bConnected && bAutoObserve;
+	// 뷰어가 없어도 화면 모니터가 보이고 관찰 목록(sm-watch.txt)이 있으면 월드를 관찰한다.
+	const bool bObserveWorld = (bConnected && bAutoObserve) || (IsMonitorVisible() && !WatchedClasses.IsEmpty());
 	const bool bWatchActive = bObserveWorld || (IsMonitorVisible() && !WatchedObjects.IsEmpty());
 	if (Now >= NextAutoTime && (bWatchActive || !AutoSourceIds.IsEmpty()))
 	{

@@ -40,6 +40,9 @@ struct DWOSTATEMONITOR_API FStateMonitorLiveCommand
 	bool bIncludeEngineProperties = false;
 	bool bHasInterval = false;
 	bool bHasEngine = false;
+	/** @brief auto: 관찰한 객체의 오브젝트 프로퍼티를 몇 단계까지 따라가 함께 관찰할지 (0 = 따라가지 않음). */
+	int32 RefDepth = 1;
+	bool bHasDepth = false;
 };
 
 /**
