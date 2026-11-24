@@ -187,6 +187,62 @@ def unwrap(expr: str) -> str:
     return expr
 
 
+# ---------------------------------------------------------------------------------------------- Korean particles
+# Templates write 을(를), 이(가), (으)로 after names that can be Korean or English; pick the one that fits the
+# word before it so the text reads "Position을 계산값으로 바꾸기", not "Position을(를) 계산한 값(으)로 바꾸기".
+_SKIP = "'\"‘’“”)]}> "
+_DIGIT_FINAL = {"0": "ㅇ", "1": "ㄹ", "3": "ㅁ", "6": "ㄱ", "7": "ㄹ", "8": "ㄹ"}
+
+
+def final_consonant(word: str) -> str:
+    """The final consonant of how the word ends when read in Korean: '' (none), 'ㄹ', or another one ('x')."""
+    w = word.rstrip(_SKIP)
+    if not w:
+        return ""
+    ch = w[-1]
+    if "가" <= ch <= "힣":
+        jong = (ord(ch) - 0xAC00) % 28
+        return "" if jong == 0 else ("ㄹ" if jong == 8 else "x")
+    if ch.isdigit():
+        return _DIGIT_FINAL.get(ch, "")
+    low = w.lower()
+    if low[-1] in "kpt" and len(low) > 1 and low[-2] not in "aeiouyc":    # Component 컴포넌트, Jump 점프: no final
+        return ""
+    if low[-1] in "klmnpt" or low.endswith("ng") or low.endswith("ck") or (low[-1] == "c" and len(low) > 1):
+        return "ㄹ" if low[-1] == "l" else "x"
+    if low.endswith(("ne", "me")):                         # Engine, Game, Time
+        return "x"
+    if low.endswith("le"):                                 # Scale, Toggle
+        return "ㄹ"
+    return ""
+
+
+def particles(text: str) -> str:
+    def pick(m):
+        before = text[:m.start()]
+        fin = final_consonant(before)
+        tag = m.group(0)
+        if tag == "을(를)":
+            return "을" if fin else "를"
+        if tag == "이(가)":
+            return "이" if fin else "가"
+        return "으로" if fin and fin != "ㄹ" else "로"
+    return re.sub(r"을\(를\)|이\(가\)|\(으\)로", pick, text)
+
+
+def fix_particles(value, key: str = ""):
+    """Apply particles() to every display string of an explanation (not to pseudocode or C++ bodies)."""
+    if key in ("pseudocode", "code", "signature"):
+        return value
+    if isinstance(value, str):
+        return particles(value)
+    if isinstance(value, list):
+        return [fix_particles(v, key) for v in value]
+    if isinstance(value, dict):
+        return {k: fix_particles(v, k) for k, v in value.items()}
+    return value
+
+
 def human_expr(expr: str, depth: int = 0) -> str:
     """A pure expression in words where a pattern is known; otherwise the expression itself."""
     expr = unwrap(expr)
@@ -194,7 +250,7 @@ def human_expr(expr: str, depth: int = 0) -> str:
         return expr
     m = re.fullmatch(r"as(\w+)", expr)
     if m:
-        return f"그 {m.group(1)}"
+        return f"변환한 {m.group(1)}"
     m = re.fullmatch(r"(?:Array_)?Length\((?:TargetArray=)?(.+)\)", expr)
     if m:
         return f"{human_expr(m.group(1), depth + 1)}의 개수"
@@ -450,7 +506,7 @@ class Explainer:
             out = []
             for n in nodes:
                 if budget[0] <= 0:
-                    out.append({"text": "… (단계가 많아 줄였습니다)", "kind": "more", "detail": "", "children": []})
+                    out.append({"text": "… 이후 단계 생략 (표시 한도)", "kind": "more", "detail": "", "children": []})
                     break
                 out.append(self.step(n, depth, seen, budget))
             return out
@@ -533,7 +589,7 @@ class Explainer:
             if name in self.vars or "." in name or not looks_call:
                 shown = self.condition(value)
                 if len(shown) > 40 or shown.count("(") > 1:
-                    shown = "계산한 값"
+                    shown = "계산값"
                 s.update(text=f"{name}을(를) {shown}(으)로 바꾸기", kind="set")
                 return s
         m = re.match(r"^(.+?) (\+|-)= (.+)$", line)
@@ -573,7 +629,7 @@ class Explainer:
             s["text"] = f"'{fn}' 실행"
             s["kind"] = "own"
             if fn in self.expanded:
-                s["text"] += " (위에서 펼친 것과 같은 흐름)"
+                s["text"] += " (위와 같은 흐름, 다시 펼치지 않음)"
             elif depth < MAX_EXPAND_DEPTH and fn not in seen:
                 self.expanded.add(fn)
                 lines = self.own_fns[fn]["lines"] if fn in self.own_fns else self.events[fn][1:]
@@ -581,13 +637,13 @@ class Explainer:
                 s["children"] = inner
                 s["expanded"] = "function" if fn in self.own_fns else "event"
             elif fn in seen:
-                s["text"] += " (위에서 펼친 흐름이 다시 실행됨)"
+                s["text"] += " (재귀 호출: 위 흐름 반복)"
             s["children"] += sub(kids)
             return s
         # another tracked Blueprint, reached through a variable or cast of that type
         other = self.tracked_target(target)
         if other and depth < MAX_EXPAND_DEPTH and (fn in other.own_fns or fn in other.events):
-            s["text"] = f"{target}의 '{fn}' 실행  ({other.bp.get('name')})"
+            s["text"] = f"{target}의 '{fn}' 실행 ({other.bp.get('name')})"
             s["kind"] = "other"
             lines = other.own_fns[fn]["lines"] if fn in other.own_fns else other.events[fn][1:]
             s["children"] = [other.step(n, depth + 1, seen | {f"{other.bp.get('name')}.{fn}"}, budget) for n in parse_tree(lines)]
@@ -598,6 +654,7 @@ class Explainer:
         for pat, text in VERBS:
             if re.search(pat, fn.replace(" ", "")):
                 phrase = text.format(t=self.target_words(target), fn=split_words(fn))
+                phrase = re.sub(r"^자기 자신 (?=[^을이에의])", "", phrase)      # "화면에서 내리기", not "자기 자신 화면에서 내리기"
                 break
         if phrase is None:
             phrase = (f"{target}의 " if target else "") + f"'{split_words(fn)}' 실행"
@@ -608,7 +665,7 @@ class Explainer:
             arg_text = ""
         elif latent:
             phrase += " (끝날 때까지 기다림)"
-        s["text"] = phrase + (f" — {arg_text}" if arg_text else "") + (" " + tail.strip() if tail.strip().startswith("#") else "")
+        s["text"] = phrase + (f" ({arg_text})" if arg_text else "") + (" " + tail.strip() if tail.strip().startswith("#") else "")
         # C++ of the project: show its body as the next level
         cpp = None
         if not target or target in ("self",):
@@ -696,7 +753,7 @@ class Explainer:
             effects = []
             for st in self.flatten(steps):
                 if st["kind"] in ("call", "own", "other", "cpp", "set"):
-                    e = st["text"].split(" — ")[0].split(" (")[0]
+                    e = st["text"].split(" (")[0]
                     if e not in effects:
                         effects.append(e)
             effects = effects[:4]
@@ -709,7 +766,7 @@ class Explainer:
             elif cpp_callers:
                 trig = f"C++ {', '.join(cpp_callers)}에서 '{name}'을(를) 부르면"
             if name in bound and kind == "event":
-                trig = f"{bound[name]} 신호가 오면 (연결해 둔 이벤트)"
+                trig = f"{bound[name]} 신호가 오면 (바인딩된 이벤트)"
             out.append({
                 "id": f"b{i}", "kind": "event" if kind == "event" else kind, "name": name,
                 "title": self.title(name, kind),
@@ -786,18 +843,19 @@ class Explainer:
         for c in comp["components"]:
             if c["role"] and c["role"] not in roles and not c["role"].startswith("기준점") and "에디터용" not in c["role"]:
                 roles.append(c["role"])
-        made = f"{', '.join(roles[:4])}(으)로 이루어진 " if roles else ""
+
         acts = [b for b in behaviors if b["kind"] == "event" and b["name"] != "UserConstructionScript"]
         acts = [b for b in acts if not b["calledBy"]] or acts
         does = "; ".join(f"{b['trigger']} {', '.join(b['summary'].split(' → ', 1)[1].split(', ')[:3])}" for b in acts[:3])
-        text = f"{self.bp.get('name')}: {parent}을(를) 바탕으로 한 {made}{what}."
+        text = f"{what}, 부모 클래스 {parent}."
+        if roles:
+            text += f" 구성: {', '.join(roles[:4])}."
         if does:
-            text += f" {does}" + (f" (그 밖에 {len(acts) - 3}가지)" if len(acts) > 3 else "") + "."
+            text += f" 주요 동작: {does}" + (f" 외 {len(acts) - 3}개" if len(acts) > 3 else "") + "."
         elif not behaviors:
-            text += " 그래프에 로직이 없고 설정값만 바꿉니다"
             changed = comp["defaults"] + [f"{c['name']}: {', '.join(c['changed'][:2])}" for c in comp["components"] if c["changed"]]
-            text += (f" ({'; '.join(shorten(x, 60) for x in changed[:3])})" if changed else "") + "."
-        return text
+            text += " 그래프 로직 없음" + (f", 바꾼 기본값: {'; '.join(shorten(x, 60) for x in changed[:3])}" if changed else "") + "."
+        return particles(text)
 
 
 def explain(bp: dict, others: dict[str, Explainer] | None = None, cpp: CppIndex | None = None) -> dict:
@@ -805,9 +863,9 @@ def explain(bp: dict, others: dict[str, Explainer] | None = None, cpp: CppIndex 
     ex = Explainer(bp, parts, others or {}, cpp or CppIndex(None))
     behaviors = ex.behaviors()
     comp = ex.composition(behaviors)
-    return {"schema": SCHEMA, "name": bp.get("name"), "package": bp.get("package"), "assetClass": bp.get("assetClass"),
+    return fix_particles({"schema": SCHEMA, "name": bp.get("name"), "package": bp.get("package"), "assetClass": bp.get("assetClass"),
             "parent": lens_bp.short(bp.get("parent")), "parentChain": [lens_bp.short(c) for c in bp.get("parentChain", [])],
-            "kind": kind_words(bp), "summary": ex.summary(comp, behaviors), "composition": comp, "behaviors": behaviors}
+            "kind": kind_words(bp), "summary": ex.summary(comp, behaviors), "composition": comp, "behaviors": behaviors})
 
 
 # ---------------------------------------------------------------------------------------------- outputs
@@ -863,7 +921,7 @@ table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid var(--li
 .steps{list-style:none;padding-left:18px;margin:4px 0}.steps li{margin:2px 0}.steps summary{cursor:pointer}
 .pc{display:none;color:var(--dim);font-size:12px;margin-left:6px}body.logic .pc{display:inline}
 li.note{color:var(--warn)}li.if>details>summary,li.else>details>summary{color:var(--acc)}
-li.own>details>summary::after,li.other>details>summary::after{content:' ↘ 펼친 흐름';color:var(--dim);font-size:12px}
+li.own>details>summary::after,li.other>details>summary::after{content:' · 아래에 펼침';color:var(--dim);font-size:12px}
 pre{background:var(--card);padding:8px;border-radius:6px;overflow:auto;font-size:12px}
 a{color:var(--acc)}label{user-select:none}
 """
@@ -897,7 +955,7 @@ def render_html(doc: dict, agent: dict | None) -> str:
         if c.get(key):
             parts.append(f"<p><b>{label}</b>: {esc(', '.join(c[key]))}</p>")
     parts.append("<h2>행동과 흐름</h2><label><input type='checkbox' onchange=\"document.body.classList.toggle('logic',this.checked)\"> "
-                 "단계마다 의사코드 보기 (논리)</label>")
+                 "의사코드 함께 보기</label>")
     for b in doc["behaviors"]:
         agent_text = (agent or {}).get("behaviors", {}).get(b["id"])
         meta = []
@@ -937,9 +995,9 @@ def write_all(root: Path, project: Path | None) -> int:
         ex = others[name]
         behaviors = ex.behaviors()
         comp = ex.composition(behaviors)
-        doc = {"schema": SCHEMA, "name": name, "package": bp.get("package"), "assetClass": bp.get("assetClass"),
+        doc = fix_particles({"schema": SCHEMA, "name": name, "package": bp.get("package"), "assetClass": bp.get("assetClass"),
                "parent": lens_bp.short(bp.get("parent")), "parentChain": [lens_bp.short(c) for c in bp.get("parentChain", [])],
-               "kind": kind_words(bp, cpp), "summary": ex.summary(comp, behaviors), "composition": comp, "behaviors": behaviors}
+               "kind": kind_words(bp, cpp), "summary": ex.summary(comp, behaviors), "composition": comp, "behaviors": behaviors})
         agent = lens_bp.load(folder / f"{name}.agent.json")
         (folder / f"{name}.explain.json").write_text(json.dumps(doc, ensure_ascii=False, indent=1), encoding="utf-8")
         (folder / f"{name}.html").write_text(render_html(doc, agent), encoding="utf-8")
@@ -947,7 +1005,7 @@ def write_all(root: Path, project: Path | None) -> int:
         rows.append((e["dir"], name, doc))
     index = [f"<!doctype html><html lang='ko'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'>"
              f"<title>추적 중인 파일</title><style>{CSS}</style></head><body><main><h1>추적 중인 파일</h1>"
-             f"<p class='sub'>파일마다 구성 → 행동 → 흐름 → 논리 순서로 읽습니다. 내보낸 시각 {esc(manifest.get('exportedAtUtc', ''))}</p><table>"
+             f"<p class='sub'>추적 중인 블루프린트 {len(rows)}개. 파일마다 구성, 행동, 흐름 순서입니다. 내보낸 시각 {esc(manifest.get('exportedAtUtc', ''))}</p><table>"
              "<tr><th>파일</th><th>무엇</th><th>요약</th></tr>"]
     for d, name, doc in sorted(rows):
         index.append(f"<tr><td><a href='{esc(d)}/{esc(name)}.html'>{esc(name)}</a></td><td>{esc(doc['kind'])}</td><td>{esc(doc['summary'])}</td></tr>")

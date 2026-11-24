@@ -1120,15 +1120,15 @@ class ExplainTests(TempDir):
         overlap = list(self.texts(by["ActorBeginOverlap"]["steps"]))
         self.assertIn("'Open Door' 실행", overlap)
         self.assertIn("Door Control 재생", overlap)                  # the custom event is expanded in place
-        self.assertIn("Door2이(가) 있으면", overlap)
+        self.assertIn("Door2가 있으면", overlap)
         end = list(self.texts(by["ActorEndOverlap"]["steps"]))
         self.assertIn("Box에 겹친 Character 목록의 개수 = 0이면", end)
         self.assertIn("ActorBeginOverlap", by["Open Door"]["calledBy"])
         self.assertEqual(by["BeginPlay"]["writes"], ["Closed Position", "Closed Position_0"])
         # Set Mesh is called five times: expanded once, then referred to
         ucs = list(self.texts(by["UserConstructionScript"]["steps"]))
-        self.assertEqual(sum(1 for t in ucs if t == "컴포넌트 추가 — RelativeTransform"), 1)
-        self.assertIn("'Set Mesh' 실행 (위에서 펼친 것과 같은 흐름)", ucs)
+        self.assertEqual(sum(1 for t in ucs if t == "컴포넌트 추가 (RelativeTransform)"), 1)
+        self.assertIn("'Set Mesh' 실행 (위와 같은 흐름, 다시 펼치지 않음)", ucs)
         comp = d["composition"]
         self.assertEqual([c["role"] for c in comp["components"]][:2], ["기준점 (위치만)", "감지·충돌 영역"])
         self.assertIn("Door Size", [s["name"] for s in comp["settings"]])
@@ -1141,10 +1141,11 @@ class ExplainTests(TempDir):
         import lens_explain
         d = lens_explain.explain(self.bp("Game/LevelPrototyping/Interactable/JumpPad/BP_JumpPad"))
         steps = list(self.texts(d["behaviors"][0]["steps"]))
-        self.assertIn("OtherActor에 태그 Exclusion Tag이(가) 붙어 있지 않으면", steps)
-        self.assertIn("Character이(가) 맞으면", steps)
-        self.assertIn("그 Character을(를) 튕겨 보내기 — Launch Velocity: Velocity, ZOverride: true", steps)
-        self.assertIn("다른 액터가 겹치기 시작하면 그 Character을(를) 튕겨 보내기", d["summary"])
+        self.assertIn("OtherActor에 태그 Exclusion Tag가 붙어 있지 않으면", steps)
+        self.assertIn("Character가 맞으면", steps)
+        self.assertIn("변환한 Character를 튕겨 보내기 (Launch Velocity: Velocity, ZOverride: true)", steps)
+        self.assertIn("다른 액터가 겹치기 시작하면 변환한 Character를 튕겨 보내기", d["summary"])
+        self.assertNotIn("(를)", json.dumps(d, ensure_ascii=False))     # particles picked, never hedged
         self.assertIn("감지·충돌 영역", d["summary"])
 
     def test_cpp_bodies_and_callers(self):
