@@ -33,6 +33,16 @@
       "output": "__dwo-forge/blueprints/<path>/<Name>.md (pseudocode; overview + parts/ when long), <Name>.json (lens.bp/1), index.md"
     },
     {
+      "id": "game-flow",
+      "tool": "lens",
+      "station": "ST-2",
+      "kind": "build",
+      "status": "ready",
+      "command": "analyze",
+      "invocation": "lens_flow.py (inside analyze); window: DwoLens > 게임 흐름",
+      "output": "out/flow.json (lens.flow/1): maps, GameModes, player objects and what each object spawns, creates, owns and uses; report section with one diagram per map"
+    },
+    {
       "id": "blueprint-explain",
       "tool": "lens",
       "station": "ST-1",

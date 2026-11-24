@@ -1,6 +1,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Dom/JsonValue.h"
+
+class UBlueprint;
 
 namespace DwoLensInspector
 {
@@ -14,4 +17,11 @@ namespace DwoLensInspector
 	 * Returns the number of Blueprints that could not be exported (0 = all fine).
 	 */
 	int32 ExportTrackedBlueprints(const FString& ListFile, const FString& OutDir);
+
+	/** Class defaults this Blueprint changed against its parent ({name, value, owner}); what the game flow reads
+	 *  (DefaultPawnClass, PlayerControllerClass, EnemyClass ...). */
+	TArray<TSharedPtr<FJsonValue>> BlueprintClassDefaults(const UBlueprint* Blueprint);
+
+	/** Components the Blueprint adds (name, class, parent, changed values). */
+	TArray<TSharedPtr<FJsonValue>> BlueprintComponents(const UBlueprint* Blueprint);
 }

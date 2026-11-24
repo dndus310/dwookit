@@ -1184,6 +1184,98 @@ class ExplainTests(TempDir):
         self.assertIn("캐릭터가 다가오면 열리는 문", (door / "BP_DoorFrame.html").read_text(encoding="utf-8"))
 
 
+class GameFlowTests(TempDir):
+    """lens_flow.py: map -> GameMode -> player objects -> what they spawn, own and use."""
+
+    def make_run(self):
+        project = self.tmp / "Proj"
+        run = self.tmp / "run"
+        raw, out = run / "raw", run / "out"
+        raw.mkdir(parents=True)
+        out.mkdir(parents=True)
+
+        def bp(name, folder="/Game/G"):
+            return f"bp:{folder}/{name}.{name}_C"
+
+        def uc(name):
+            return f"uclass:/Script/Game.{name}"
+
+        symbols = [
+            {"key": uc("GameModeBase").replace("Game.", "Engine."), "kind": "class", "name": "GameModeBase", "external": True},
+            {"key": "uclass:/Script/Engine.PlayerController", "kind": "class", "name": "PlayerController", "external": True},
+            {"key": "uclass:/Script/Engine.Character", "kind": "class", "name": "Character", "external": True},
+            {"key": "uclass:/Script/Engine.Actor", "kind": "class", "name": "Actor", "external": True},
+            {"key": "uclass:/Script/UMG.UserWidget", "kind": "class", "name": "UserWidget", "external": True},
+            {"key": uc("HeroGameMode"), "kind": "class", "name": "HeroGameMode", "external": False, "file": "Source/Game/HeroGameMode.h"},
+            {"key": uc("Spawner"), "kind": "class", "name": "Spawner", "external": False, "file": "Source/Game/Spawner.h"},
+            {"key": bp("BP_GameMode"), "kind": "blueprint", "name": "BP_GameMode", "external": False, "package": "/Game/G/BP_GameMode"},
+            {"key": bp("BP_Controller"), "kind": "blueprint", "name": "BP_Controller", "external": False, "package": "/Game/G/BP_Controller"},
+            {"key": bp("BP_Hero"), "kind": "blueprint", "name": "BP_Hero", "external": False, "package": "/Game/G/BP_Hero"},
+            {"key": bp("BP_Spawner"), "kind": "blueprint", "name": "BP_Spawner", "external": False, "package": "/Game/G/BP_Spawner"},
+            {"key": bp("BP_Enemy"), "kind": "blueprint", "name": "BP_Enemy", "external": False, "package": "/Game/G/BP_Enemy"},
+            {"key": bp("WBP_Hud"), "kind": "blueprint", "name": "WBP_Hud", "external": False, "package": "/Game/G/WBP_Hud"},
+            {"key": bp("BP_Unused"), "kind": "blueprint", "name": "BP_Unused", "external": False, "package": "/Game/G/BP_Unused"},
+            {"key": "asset:/Game/Maps/L_Main", "kind": "asset", "name": "L_Main", "external": False, "asset_class": "/Script/Engine.World"},
+            {"key": "asset:/Game/G/BP_GameMode", "kind": "asset", "name": "BP_GameMode", "external": False, "asset_class": "/Script/Engine.Blueprint"},
+            {"key": "asset:/Game/G/BP_Spawner", "kind": "asset", "name": "BP_Spawner", "external": False, "asset_class": "/Script/Engine.Blueprint"},
+        ]
+        inherits = [
+            (uc("HeroGameMode"), "uclass:/Script/Engine.GameModeBase"), (bp("BP_GameMode"), uc("HeroGameMode")),
+            (bp("BP_Controller"), "uclass:/Script/Engine.PlayerController"), (bp("BP_Hero"), "uclass:/Script/Engine.Character"),
+            (uc("Spawner"), "uclass:/Script/Engine.Actor"), (bp("BP_Spawner"), uc("Spawner")),
+            (bp("BP_Enemy"), "uclass:/Script/Engine.Character"), (bp("WBP_Hud"), "uclass:/Script/UMG.UserWidget"),
+            (bp("BP_Unused"), "uclass:/Script/Engine.Actor"),
+        ]
+        relations = [{"source": s, "target": t, "type": "Inherits"} for s, t in inherits]
+        relations += [
+            {"source": "asset:/Game/Maps/L_Main", "target": "asset:/Game/G/BP_GameMode", "type": "AssetHardRef"},
+            {"source": "asset:/Game/Maps/L_Main", "target": "asset:/Game/G/BP_Spawner", "type": "AssetHardRef"},
+            {"source": bp("BP_Spawner"), "target": uc("Spawner"), "type": "Calls", "evidence": ["own parent"]},
+        ]
+        write(out / "graph.json", json.dumps({"symbols": symbols, "relations": relations}))
+        cls = "/Script/Engine.BlueprintGeneratedClass'/Game/G/{0}.{0}_C'"
+        write(raw / "blueprints.json", json.dumps({"blueprints": [
+            {"generatedClass": "/Game/G/BP_GameMode.BP_GameMode_C",
+             "classDefaults": [{"name": "PlayerControllerClass", "value": cls.format("BP_Controller")}]},
+            {"generatedClass": "/Game/G/BP_Spawner.BP_Spawner_C",
+             "classDefaults": [{"name": "EnemyClass", "value": cls.format("BP_Enemy")}]},
+            {"generatedClass": "/Game/G/BP_Hero.BP_Hero_C", "graphs": [{"name": "EventGraph", "nodes": [
+                {"class": "K2Node_CreateWidget", "title": "Create WBP Hud Widget", "classArg": "/Game/G/WBP_Hud.WBP_Hud_C"}]}]},
+        ]}))
+        write(out / "features.json", json.dumps({"classes": [{"key": bp("BP_Hero"), "behaviors": [{"name": "점프"}, {"name": "공격"}]}]}))
+        # C++: the GameMode's pawn comes from a ConstructorHelpers class finder
+        write(project / "Source/Game/HeroGameMode.cpp",
+              'AHeroGameMode::AHeroGameMode()\n{\n\tstatic ConstructorHelpers::FClassFinder<APawn> PawnBP(TEXT("/Game/G/BP_Hero"));\n'
+              "\tDefaultPawnClass = PawnBP.Class;\n}\n")
+        write(project / "Config/DefaultEngine.ini", "[/Script/EngineSettings.GameMapsSettings]\nGameDefaultMap=/Game/Maps/L_Main.L_Main\n"
+                                                     "GlobalDefaultGameMode=/Game/G/BP_GameMode.BP_GameMode_C\n")
+        return raw, out, project, bp
+
+    def test_flow_from_map_to_what_objects_make(self):
+        import lens_flow
+        raw, out, project, bp = self.make_run()
+        doc = lens_flow.build(raw, out, project)
+        edges = {(e["from"], e["to"]): e for e in doc["edges"]}
+        self.assertEqual(edges[("map:/Game/Maps/L_Main", bp("BP_GameMode"))]["kind"], "slot")       # World Settings
+        self.assertEqual(edges[("map:/Game/Maps/L_Main", bp("BP_Spawner"))]["kind"], "places")
+        self.assertEqual(edges[(bp("BP_GameMode"), bp("BP_Controller"))]["labels"][0], "플레이어 컨트롤러")
+        # DefaultPawnClass is set in the C++ parent's constructor and reaches the Blueprint child
+        self.assertEqual(edges[(bp("BP_GameMode"), bp("BP_Hero"))]["labels"][0], "플레이어 폰")
+        self.assertEqual(edges[(bp("BP_Controller"), bp("BP_Hero"))]["kind"], "possesses")
+        self.assertEqual(edges[(bp("BP_Spawner"), bp("BP_Enemy"))]["labels"], ["EnemyClass"])
+        self.assertEqual(edges[(bp("BP_Hero"), bp("WBP_Hud"))]["kind"], "creates")
+        self.assertNotIn((bp("BP_Spawner"), "uclass:/Script/Game.Spawner"), edges)                 # calls into its own parent
+        self.assertEqual(doc["roots"][0], {"key": "map:/Game/Maps/L_Main", "name": "L_Main", "kind": "map", "default": True})
+        self.assertEqual(doc["nodes"][bp("BP_Hero")]["role"], "character")
+        self.assertEqual(doc["nodes"][bp("BP_Hero")]["behaviors"], ["점프", "공격"])
+        self.assertEqual([u["name"] for u in doc["unreached"]], ["BP_Unused"])                        # C++ bases count via children
+        keys, shown = lens_flow.reachable(doc, "map:/Game/Maps/L_Main", depth=4)
+        self.assertIn(bp("WBP_Hud"), keys)                                                          # map -> mode -> pawn -> widget
+        html_text = lens_flow.render_html(doc)
+        self.assertIn("<h2>게임 흐름</h2>", html_text)
+        self.assertIn("flowchart LR", html_text)
+
+
 class CatalogAndConfigTests(unittest.TestCase):
     def test_catalog_is_consistent(self):
         catalog = json.loads((TOOLS / "catalog.json").read_text(encoding="utf-8"))

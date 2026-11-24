@@ -735,6 +735,21 @@ namespace DwoLensInspector::BpExport
 	}
 }
 
+TArray<TSharedPtr<FJsonValue>> DwoLensInspector::BlueprintClassDefaults(const UBlueprint* Blueprint)
+{
+	const UClass* Generated = Blueprint ? Blueprint->GeneratedClass.Get() : nullptr;
+	if (!Generated || !Generated->GetSuperClass())
+	{
+		return {};
+	}
+	return BpExport::DiffProperties(Generated->GetDefaultObject(false), Generated->GetSuperClass()->GetDefaultObject(false), Generated);
+}
+
+TArray<TSharedPtr<FJsonValue>> DwoLensInspector::BlueprintComponents(const UBlueprint* Blueprint)
+{
+	return Blueprint ? BpExport::DescribeComponents(Blueprint) : TArray<TSharedPtr<FJsonValue>>();
+}
+
 int32 DwoLensInspector::ExportTrackedBlueprints(const FString& ListFile, const FString& OutDirIn)
 {
 	using namespace DwoLensInspector::BpExport;

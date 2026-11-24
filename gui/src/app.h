@@ -397,6 +397,7 @@ enum class Activity
 	Launcher,   // the launcher home: projects, their tools, PC components (not a tool)
 	Ci,
 	Files,      // DwoLens: tracked Blueprints explained (composition, behaviors, flow, logic)
+	Flow,       // DwoLens: how the project runs, map -> GameMode -> player objects -> what they make and use
 	Count
 };
 

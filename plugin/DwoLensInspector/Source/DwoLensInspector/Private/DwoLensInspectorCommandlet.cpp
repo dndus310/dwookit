@@ -331,6 +331,18 @@ namespace DwoLensInspector
 			Entry->SetStringField(TEXT("class"), Node->GetClass()->GetName());
 			Entry->SetStringField(TEXT("title"), Node->GetNodeTitle(ENodeTitleType::ListView).ToString());
 			DescribeNodeSemantics(Node, Entry);
+			// The class a node works with when it is picked on the node: SpawnActor, CreateWidget, ConstructObject,
+			// GetAllActorsOfClass, AddComponent ... (what the game flow draws as 'spawns' / 'creates').
+			for (const UEdGraphPin* Pin : Node->Pins)
+			{
+				if (Pin && Pin->Direction == EGPD_Input && Pin->LinkedTo.Num() == 0 && Pin->DefaultObject &&
+				    (Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Class || Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_SoftClass))
+				{
+					Entry->SetStringField(TEXT("classArg"), Pin->DefaultObject->GetPathName());
+					Entry->SetStringField(TEXT("classArgPin"), Pin->PinName.ToString());
+					break;
+				}
+			}
 			PushObject(Nodes, Entry);
 
 			for (const UEdGraphPin* Pin : Node->Pins)
@@ -392,6 +404,11 @@ namespace DwoLensInspector
 			PushObject(Variables, Entry);
 		}
 		Out->SetArrayField(TEXT("variables"), Variables);
+		// For the game flow: changed class defaults (DefaultPawnClass, EnemyClass ...) and added components.
+		FJsonValues Defaults = BlueprintClassDefaults(Blueprint);
+		if (Defaults.Num() > 0) { Out->SetArrayField(TEXT("classDefaults"), Defaults); }
+		FJsonValues Components = BlueprintComponents(Blueprint);
+		if (Components.Num() > 0) { Out->SetArrayField(TEXT("components"), Components); }
 
 		TArray<UEdGraph*> Graphs;
 		Blueprint->GetAllGraphs(Graphs);

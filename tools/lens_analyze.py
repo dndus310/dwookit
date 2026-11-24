@@ -16,7 +16,8 @@ from collections import defaultdict
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import lens_features  # noqa: E402
+import lens_features
+import lens_flow  # noqa: E402
 import lens_quality  # noqa: E402
 
 SCHEMA = "lens.graph/0.1"
@@ -803,6 +804,14 @@ def main() -> int:
                                              "blueprints": load_json(args.raw / "blueprints.json")["blueprints"]},
                                             args.project.parent, graph_doc["symbols"])
     (args.out / "features.json").write_text(json.dumps(features, ensure_ascii=False, indent=1), encoding="utf-8")
+    # how the project runs: map -> GameMode -> player objects -> what they spawn, own and use
+    flow_html = ""
+    try:
+        flow = lens_flow.build(args.raw, args.out, args.project.parent)
+        (args.out / "flow.json").write_text(json.dumps(flow, ensure_ascii=False, indent=1), encoding="utf-8")
+        flow_html = lens_flow.render_html(flow)
+    except Exception as exc:                      # the rest of the report does not depend on it
+        print(f"[dwo-forge] game flow skipped: {exc}")
     (args.out / "findings.json").write_text(json.dumps({"runId": args.run_id, **result}, ensure_ascii=False, indent=1), encoding="utf-8")
     (args.out / "class_uml.mmd").write_text(classes_mmd, encoding="utf-8")
     (args.out / "class_uml.puml").write_text(classes_puml, encoding="utf-8")
@@ -812,7 +821,7 @@ def main() -> int:
     if diagrams["assets"]:
         (args.out / "assets.mmd").write_text(diagrams["assets"], encoding="utf-8")
     write_sqlite(g, args.out / "index.db", ctx["meta"])
-    render_report(args.out, args.run_id, g, ctx, result, diagrams, lens_quality.render_html(quality), lens_features.render_html(features))
+    render_report(args.out, args.run_id, g, ctx, result, diagrams, lens_quality.render_html(quality), flow_html + lens_features.render_html(features))
 
     print(f"[dwo-forge] symbols={len(g.symbols)} relations={len(g.relations)} verdict={result['verdict']} "
           f"findings={len(result['findings'])}")
