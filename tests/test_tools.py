@@ -1376,6 +1376,27 @@ class ReportTests(GameFlowTests):
         self.assertEqual(data["problems"][0]["more"], 100)       # long lists are capped
         self.assertEqual(data["classes"][bp("BP_Hero")]["role"], "character")
         self.assertTrue(any(r["kind"] == "map" for r in data["flow"]["roots"]))
+        self.assertEqual(data["rules"]["tick-usage"]["name"], "Tick 사용")     # every problem carries why and how to fix
+        self.assertTrue(data["rules"]["tick-usage"]["fix"])
+        self.assertIsNone(data["compare"])                       # no earlier run to compare with
+        self.assertNotIn("__COMMON__", html)
+
+    def test_report_compares_with_the_previous_run(self):
+        import lens_report
+        runs = self.tmp / "runs"
+        def run(name, findings):
+            out = runs / name / "out"
+            write(out / "findings.json", json.dumps({"verdict": "warn", "findings": findings}))
+            return out
+        tick = lambda bp: {"rule": "tick-usage", "severity": "warn", "message": f"{bp}: Tick",
+                           "items": [{"blueprint": bp, "graph": "EventGraph", "node": "AB"}]}
+        unused = lambda n: {"rule": "unused-asset", "severity": "info", "message": f"미사용 {n}개", "items": ["/Game/A"]}
+        run("run-1", [tick("B_A"), tick("B_B"), unused(3)])
+        data = lens_report.build_data(run("run-2", [tick("B_A"), tick("B_C"), unused(5)]), None)
+        cmp = data["compare"]
+        self.assertEqual((cmp["previousRun"], cmp["new"], cmp["fixed"]), ("run-1", 1, 1))
+        self.assertEqual([p["change"] for p in data["problems"]], ["same", "new", "same"])   # aggregate rules match by rule
+        self.assertEqual(data["problems"][0]["items"], ["B_A · EventGraph"])                  # record targets become one line
 
 
 class RunReportTests(TempDir):
@@ -1417,6 +1438,8 @@ class RunReportTests(TempDir):
             self.assertEqual((data["kind"], data["project"], data["runId"]), (kind, "MyGame", f"{kind}-1"))
             self.assertEqual(data["result"]["verdict"], result["verdict"])
             self.assertIn(f"<title>MyGame · {lens_report_runs.TITLES[kind]}</title>", html)
+            self.assertIn("function dataTable(", html)               # shared filters and tables from lens_report
+            self.assertNotIn("__COMMON__", html)
 
     def test_reads_the_json_and_works_outside_a_project(self):
         import lens_report_runs

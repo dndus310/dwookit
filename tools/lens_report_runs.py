@@ -1,13 +1,15 @@
 """DwoLens interactive reports for the check lines: verify, logs, smoke.
 
-Same shape as the analysis report (lens_report.py): one self-contained HTML file, a sidebar with search to pick
-what to look at, and a view for the picked item, so long result lists stay readable.
+Same shape and rules as the analysis report (lens_report.py, shared JS_COMMON and CSS): one self-contained HTML
+file, a sidebar with search, a summary that states the verdict and the counts first, and lists filtered by
+parameters kept in the address (severity, category, new only, text), so every number links to the rows behind it.
 
-    verify   overview (step verdicts, failed tests first) · each step · tests grouped by name prefix · the log
-             groups of the compile and data validation steps
-    logs     overview (counts, categories, new problems) · new problems · Fatal / Error / Warning by category ·
-             each group (sample, detail lines, where) · crashes (error, call stack) · log files
-    smoke    overview (one card per map) · each map (reasons, counts, groups, crashes, log) · its groups
+    verify   summary (verdict, failed steps and tests) · each step (its log groups, filterable) · test explorer
+             (result, name prefix, text) · each test
+    logs     summary (verdict, counts, new against the previous run, errors to look at first, categories) ·
+             problem explorer (severity, category, new, text) · each group (message, following lines, where) ·
+             crashes (error, call stack) · log files
+    smoke    summary (verdict, criteria, map cards filterable by verdict) · each map (counts, groups, crashes, log)
 
     python lens_report_runs.py --run <run dir> --kind verify|logs|smoke     -> <run>/out/report.html
 
@@ -22,16 +24,14 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from lens_report import CSS  # noqa: E402
+from lens_report import CSS, JS_COMMON  # noqa: E402
 
 TITLES = {"verify": "검증", "logs": "로그 분석", "smoke": "맵 스모크"}
 
 PAGE = r"""<!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>__TITLE__</title><style>__CSS__
-.bars div{display:flex;align-items:center;gap:8px;margin:3px 0}.bars i{display:inline-block;height:10px;border-radius:3px;background:var(--accent)}
-.bars .lbl{width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
-.card{cursor:pointer}.card:hover{border-color:var(--accent)}pre{white-space:pre-wrap;word-break:break-all}
+pre{white-space:pre-wrap;word-break:break-all}
 .new{background:#c2413a22;color:var(--fail)}
 </style></head><body>
 <div class="app">
@@ -43,41 +43,49 @@ PAGE = r"""<!doctype html>
 <button class="btn theme" id="theme" title="밝게/어둡게">◐</button>
 <script>
 const DATA = __DATA__;
-const $ = s => document.querySelector(s);
-const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const chip = v => `<span class="chip ${esc(String(v).toLowerCase() === "success" ? "pass" : String(v).toLowerCase())}">${esc(v)}</span>`;
-const SEV = {Fatal: "fail", Error: "fail", Warning: "warn"};
-const kpis = items => `<div class="grid">${items.map(([k, v, cls]) => `<div class="panel kpi"><div class="k">${esc(k)}</div><div class="v ${cls || ""}">${esc(v)}</div></div>`).join("")}</div>`;
+__COMMON__
+const VERDICT = {pass: "통과", warn: "경고", fail: "실패", skip: "건너뜀", skipped: "건너뜀"};
+const STATE = {Success: "성공", Fail: "실패", Failed: "실패", SuccessWithWarnings: "경고 포함 성공", NotRun: "미실행", InProcess: "실행 중"};
+const CLS = {pass: "pass", success: "pass", warn: "warn", successwithwarnings: "warn", fail: "fail", failed: "fail", fatal: "fail", error: "fail", warning: "warn"};
+const chip = v => `<span class="chip ${CLS[String(v).toLowerCase()] || ""}">${esc(VERDICT[v] || STATE[v] || v)}</span>`;
+const newChip = `<span class="chip new">새</span>`;
 const fileName = p => String(p || "").split(/[\\/]/).pop();
+const n = (v, unit) => `${(+v || 0).toLocaleString()}${unit}`;
+const crop = (s, max) => { s = String(s || ""); return s.length > max ? s.slice(0, max - 1) + "…" : s; };
 
-// groups of a log summary: one id space per page (prefix + index)
+// log groups of every summary on the page: one id space (prefix + index)
 const GROUPS = {};   // id -> {g, where}
 function registerGroups(prefix, summary, where){ (summary && summary.groups || []).forEach((g, i) => GROUPS[prefix + i] = {g, where}); }
-function groupRows(prefix, summary, limit){
-  const gs = (summary && summary.groups) || [];
-  if (!gs.length) return "<p class=muted>오류·경고 없음</p>";
-  return `<input class="search" style="margin:0 0 8px;width:280px" placeholder="표 안에서 찾기" oninput="filterTable(this)"><table><tr><th>심각도</th><th>카테고리</th><th>메시지</th><th>횟수</th></tr>${gs.slice(0, limit || 500).map((g, i) =>
-    `<tr><td>${chip(g.severity)}${g.new ? ' <span class="chip new">새</span>' : ""}</td><td>${esc(g.category)}</td><td><a href="#group/${prefix + i}">${esc(g.sample.length > 160 ? g.sample.slice(0, 159) + "…" : g.sample)}</a></td><td>${g.count}</td></tr>`).join("")}</table>`;
+function groupsOf(prefix, summary){ return ((summary && summary.groups) || []).map((g, i) => ({...g, id: prefix + i, isNew: g.new ? "새" : ""})); }
+// the group table with its filters: severity, category, new only, text; parameters stay in the address
+function groupTable(rows, params, empty){
+  const cats = [...new Set(rows.map(g => g.category))].sort();
+  const shown = rows.filter(g => (!params.sev || g.severity === params.sev) && (!params.cat || g.category === params.cat) && (!params.new || g.new)
+    && (!params.q || (g.sample + " " + g.category).toLowerCase().includes(params.q.toLowerCase())));
+  const total = shown.reduce((s, g) => s + g.count, 0);
+  return `<div class="filters">${select("sev", "심각도", [["Fatal", "Fatal"], ["Error", "Error"], ["Warning", "Warning"]], params.sev)}
+    ${select("cat", "카테고리", cats.map(c => [c, c]), params.cat)}${select("new", "변화", [["1", "새 문제만"]], params.new)}${textFilter("q", "메시지", params.q)}
+    <span class="muted">그룹 ${shown.length}개 · ${n(total, "회")}</span></div>` +
+    dataTable(shown, [{key: "severity", label: "심각도", fmt: g => chip(g.severity) + (g.new ? " " + newChip : "")}, {key: "category", label: "카테고리"},
+      {key: "sample", label: "메시지", fmt: g => esc(crop(g.sample, 160)), link: g => link("group", g.id)}, {key: "count", label: "횟수", num: true, fmt: g => n(g.count, "회")}],
+      params, empty || "조건에 맞는 문제 없음.");
 }
-window.filterTable = inp => { const q = inp.value.toLowerCase(); for (const tr of inp.nextElementSibling.querySelectorAll("tr:not(:first-child)")) tr.style.display = tr.textContent.toLowerCase().includes(q) ? "" : "none"; };
 function groupView(id){
   const x = GROUPS[id]; if (!x) return "<h1>없음</h1>";
   const g = x.g;
-  return `<div class="eyebrow">${esc(x.where)}</div><h1>${esc(g.category)}</h1><p class="lead">${chip(g.severity)}${g.new ? ' <span class="chip new">이전 실행에 없던 문제</span>' : ""} ${g.count}회</p>
-  <div class="panel"><pre class="mono">${esc(g.sample)}</pre></div>
-  ${(g.detail || []).length ? `<h3>이어지는 줄</h3><div class="panel"><pre class="mono">${esc(g.detail.join("\n"))}</pre></div>` : ""}
-  <h3>나온 곳</h3><ul>${(g.where || []).map(w => `<li class="mono">${esc(w)}</li>`).join("")}</ul>
-  <p class="muted">지문 ${esc(g.fingerprint || "")} — 같은 지문은 숫자·경로가 달라도 같은 문제로 묶입니다.</p>`;
+  return `<div class="eyebrow">${esc(x.where)} · ${esc(g.category)}</div><h1>${esc(crop(g.sample, 120))}</h1>
+  <p class="lead">${chip(g.severity)}${g.new ? ' <span class="chip new">이전 실행에 없던 문제</span>' : ""} ${n(g.count, "회")} 발생</p>
+  <h3>메시지</h3><div class="panel"><pre class="mono">${esc(g.sample)}</pre></div>
+  ${(g.detail || []).length ? `<h3>이어진 줄 ${g.detail.length}개</h3><div class="panel"><pre class="mono">${esc(g.detail.join("\n"))}</pre></div>` : ""}
+  <h3>위치 ${(g.where || []).length}곳 (파일:줄)</h3><ul>${(g.where || []).map(w => `<li class="mono">${esc(w)}</li>`).join("")}</ul>
+  <p class="muted">숫자·경로만 다른 같은 메시지는 한 그룹으로 묶어 횟수로 셉니다. 그룹 ID ${esc(g.fingerprint || "")}</p>`;
 }
 function crashView(c){
   return `<div class="eyebrow">크래시 · ${esc(c.folder)}</div><h1>${esc(c.error || "크래시")}</h1>
   <p class="lead">${c.new ? '<span class="chip new">새 크래시</span> ' : ""}${c.time ? new Date(c.time * 1000).toLocaleString() : ""} ${esc(c.engineVersion || "")}</p>
-  <h3>콜스택</h3><div class="panel"><pre class="mono">${esc((c.callstack || []).join("\n")) || "없음"}</pre></div>`;
+  <h3>콜스택</h3><div class="panel"><pre class="mono">${esc((c.callstack || []).join("\n")) || "콜스택 없음"}</pre></div>`;
 }
-function bars(pairs){
-  const max = Math.max(1, ...pairs.map(p => p[1]));
-  return `<div class="bars">${pairs.map(([k, v, href]) => `<div><span class="lbl">${href ? `<a href="${href}">${esc(k)}</a>` : esc(k)}</span><i style="width:${Math.max(3, 300 * v / max)}px"></i><span class="muted">${v}</span></div>`).join("")}</div>`;
-}
+const conclusion = html => `<div class="panel conclusion">${html}</div>`;
 
 // ------------------------------------------------------------------ per kind
 const NAV = [];
@@ -86,125 +94,139 @@ function prefixOf(name){ const p = String(name).split("."); return p.length > 2 
 
 function setupVerify(){
   const steps = DATA.result.steps || [];
-  NAV.push({sec: "top", label: "개요", hash: "#home"});
-  steps.forEach((s, i) => NAV.push({sec: "steps", label: `${s.id} ${s.name}`, hash: "#step/" + i, tag: s.verdict}));
-  steps.forEach((s, i) => { if (s.summary) { registerGroups(`s${i}-`, s.summary, `${s.id} ${s.name}`); (s.summary.groups || []).forEach((g, j) => NAV.push({sec: "groups", group: `${s.id} ${s.name}`, label: g.sample, hash: `#group/s${i}-${j}`, tag: g.severity})); } });
-  const tests = steps.flatMap(s => (s.automation && s.automation.tests) || []);
-  tests.forEach((t, i) => NAV.push({sec: "tests", group: prefixOf(t.name), label: t.name.split(".").slice(2).join(".") || t.name, hash: "#test/" + i, tag: t.state === "Success" ? "" : t.state, full: t.name}));
+  const tests = steps.flatMap(s => (s.automation && s.automation.tests) || []).map((t, i) => ({...t, idx: i, prefix: prefixOf(t.name),
+    short: t.name.split(".").slice(2).join(".") || t.name, stateWord: STATE[t.state] || t.state, firstError: (t.errors || [])[0] || ""}));
+  NAV.push({sec: "top", label: "요약", hash: "#home"});
+  if (tests.length) NAV.push({sec: "top", label: "테스트 전체", hash: "#tests", tag: tests.length + "개"});
+  steps.forEach((s, i) => NAV.push({sec: "steps", label: `${s.id} ${s.name}`, hash: "#step/" + i, tag: VERDICT[s.verdict] || s.verdict}));
+  steps.forEach((s, i) => { if (s.summary) registerGroups(`s${i}-`, s.summary, `${s.id} ${s.name}`); });
+  for (const [p, list] of Object.entries(tests.reduce((m, t) => ((m[t.prefix] ||= []).push(t), m), {})))
+    NAV.push({sec: "tests", label: p, hash: link("tests", "", {prefix: p}), tag: list.filter(t => t.state !== "Success").length ? `실패 ${list.filter(t => t.state !== "Success").length}` : list.length + "개"});
+  tests.forEach(t => NAV.push({sec: "tests", label: t.name, hash: "#test/" + t.idx, searchOnly: true}));
   VIEWS.home = () => {
-    const failed = tests.filter(t => t.state !== "Success");
-    return `<div class="eyebrow">검증 · ${esc(DATA.runId)}</div><h1>${esc(DATA.project)}</h1><p class="lead">결과 ${chip(DATA.result.verdict)}</p>
-    <div class="grid">${steps.map((s, i) => `<a class="panel kpi card" href="#step/${i}"><div class="k">${esc(s.id)} ${esc(s.name)}</div><div class="v">${chip(s.verdict)}</div>
-      <div class="muted">${s.summary ? `Error ${s.summary.counts.Error} · Warning ${s.summary.counts.Warning}` : s.automation ? `성공 ${s.automation.summary.succeeded} · 실패 ${s.automation.summary.failed}` : esc(s.note || "실행 안 함")}</div></a>`).join("")}</div>
-    <h2>실패한 테스트 (${failed.length})</h2>${failed.length ? failed.map(t => `<div><a href="#test/${tests.indexOf(t)}">${esc(t.name)}</a> ${chip(t.state)}</div>`).join("") : "<p class=muted>없음</p>"}`;
+    const failedSteps = steps.filter(s => s.verdict === "fail"), failed = tests.filter(t => t.state !== "Success" && t.state !== "SuccessWithWarnings");
+    const errs = steps.reduce((m, s) => m + (s.summary ? s.summary.counts.Error + s.summary.counts.Fatal : 0), 0);
+    return `<div class="eyebrow">검증 · ${esc(DATA.runId)}</div><h1>${esc(DATA.project || "검증")}</h1>
+    ${conclusion(`<b>판정</b> ${chip(DATA.result.verdict)} 단계 ${steps.length}개 중 실패 ${failedSteps.length}개${failedSteps.length ? ` (${failedSteps.map(s => `<a href="#step/${steps.indexOf(s)}">${esc(s.id)} ${esc(s.name)}</a>`).join(", ")})` : ""}.
+      ${tests.length ? `자동화 테스트 ${tests.length}개 중 실패 ${failed.length}개.` : ""} ${errs ? `빌드·데이터 검증 로그 오류 ${errs}건.` : ""}`)}
+    <div class="grid">${steps.map((s, i) => kpi(`${s.id} ${s.name}`, chip(s.verdict), s.summary ? `Error ${s.summary.counts.Error} · Warning ${s.summary.counts.Warning}`
+      : s.automation ? `성공 ${s.automation.summary.succeeded} · 실패 ${s.automation.summary.failed}` : esc(s.note || "실행 안 함"), "#step/" + i)).join("")}</div>
+    <h2>실패한 테스트 ${failed.length}개</h2>${failed.length ? dataTable(failed, [{key: "prefix", label: "묶음"}, {key: "short", label: "테스트", link: t => "#test/" + t.idx}, {key: "firstError", label: "첫 오류", fmt: t => esc(crop(t.firstError, 140))}], {}) : `<p class="muted">실패한 테스트 0개.</p>`}`;
   };
-  VIEWS.step = i => {
+  VIEWS.tests = (arg, params) => {
+    const prefixes = [...new Set(tests.map(t => t.prefix))].sort();
+    const shown = tests.filter(t => (!params.state || t.state === params.state) && (!params.prefix || t.prefix === params.prefix) && (!params.q || t.name.toLowerCase().includes(params.q.toLowerCase())));
+    return `<div class="eyebrow">자동화 테스트</div><h1>${esc(params.prefix || "테스트 전체")}</h1>
+    <div class="filters">${select("state", "결과", [...new Set(tests.map(t => t.state))].map(s => [s, STATE[s] || s]), params.state)}${select("prefix", "묶음", prefixes.map(p => [p, p]), params.prefix)}
+      ${textFilter("q", "이름", params.q)}<span class="muted">${shown.length}개</span></div>
+    ${dataTable(shown, [{key: "prefix", label: "묶음"}, {key: "short", label: "테스트", link: t => "#test/" + t.idx}, {key: "stateWord", label: "결과", fmt: t => chip(t.state)}, {key: "firstError", label: "첫 오류", fmt: t => esc(crop(t.firstError, 140))}], params, "조건에 맞는 테스트 없음.")}`;
+  };
+  VIEWS.step = (i, params) => {
     const s = steps[+i]; if (!s) return "<h1>없음</h1>";
     let body = "";
-    if (s.summary) body = kpis([["Fatal", s.summary.counts.Fatal], ["Error", s.summary.counts.Error], ["Warning", s.summary.counts.Warning]]) + `<h2>오류 · 경고 그룹</h2>` + groupRows(`s${i}-`, s.summary);
+    if (s.summary) body = `<div class="grid">${kpi("Fatal", n(s.summary.counts.Fatal, "건"), "", link("step", i, {sev: "Fatal"}))}${kpi("Error", n(s.summary.counts.Error, "건"), "", link("step", i, {sev: "Error"}))}${kpi("Warning", n(s.summary.counts.Warning, "건"), "", link("step", i, {sev: "Warning"}))}</div>
+      <h2>오류·경고 그룹</h2>` + groupTable(groupsOf(`s${i}-`, s.summary), params, "오류·경고 0건.");
     else if (s.automation){
-      const a = s.automation, sm = a.summary;
-      body = kpis([["성공", sm.succeeded], ["경고 포함 성공", sm.succeededWithWarnings], ["실패", sm.failed], ["미실행", sm.notRun]]) +
-        `<h2>테스트</h2><input class="search" style="margin:0 0 8px;width:280px" placeholder="표 안에서 찾기" oninput="filterTable(this)"><table><tr><th>테스트</th><th>결과</th><th>오류</th></tr>${a.tests.map(t =>
-          `<tr><td><a href="#test/${tests.indexOf(t)}">${esc(t.name)}</a></td><td>${chip(t.state)}</td><td>${esc((t.errors || []).slice(0, 2).join(" / "))}</td></tr>`).join("")}</table>`;
-    } else body = `<p class="muted">${esc(s.note || "실행 안 함")}</p>`;
+      const sm = s.automation.summary;
+      body = `<div class="grid">${kpi("성공", n(sm.succeeded, "개"), "", link("tests", "", {state: "Success"}))}${kpi("경고 포함 성공", n(sm.succeededWithWarnings, "개"), "", link("tests", "", {state: "SuccessWithWarnings"}))}${kpi("실패", n(sm.failed, "개"), "", link("tests", "", {state: "Fail"}))}${kpi("미실행", n(sm.notRun, "개"), "", "#tests")}</div>
+        <p><a href="#tests">테스트 ${tests.length}개 전체 보기</a></p>`;
+    } else body = `<p class="muted">${esc(s.note || "이 단계는 실행하지 않았습니다.")}</p>`;
     return `<div class="eyebrow">검증 단계</div><h1>${esc(s.id)} ${esc(s.name)}</h1><p class="lead">${chip(s.verdict)} ${esc(s.note || "")}</p>` + body;
   };
   VIEWS.test = i => {
     const t = tests[+i]; if (!t) return "<h1>없음</h1>";
-    const list = (h, xs) => xs && xs.length ? `<h3>${h} (${xs.length})</h3><div class="panel"><pre class="mono">${esc(xs.join("\n"))}</pre></div>` : "";
-    return `<div class="eyebrow">자동화 테스트 · ${esc(prefixOf(t.name))}</div><h1>${esc(t.name)}</h1><p class="lead">${chip(t.state)}</p>${list("오류", t.errors)}${list("경고", t.warnings)}
-     ${!(t.errors || []).length && !(t.warnings || []).length ? "<p class=muted>오류·경고 없음</p>" : ""}`;
+    const list = (h, xs) => xs && xs.length ? `<h3>${h} ${xs.length}건</h3><div class="panel"><pre class="mono">${esc(xs.join("\n"))}</pre></div>` : "";
+    return `<div class="eyebrow"><a href="${link("tests", "", {prefix: t.prefix})}">${esc(t.prefix)}</a></div><h1>${esc(t.name)}</h1><p class="lead">${chip(t.state)}</p>${list("오류", t.errors)}${list("경고", t.warnings)}
+     ${!(t.errors || []).length && !(t.warnings || []).length ? `<p class="muted">오류·경고 0건.</p>` : ""}`;
   };
 }
 
 function setupLogs(){
-  const s = DATA.result;
+  const s = DATA.result, rows = groupsOf("g", s), crashes = s.crashes || [];
   registerGroups("g", s, "로그");
-  NAV.push({sec: "top", label: "개요", hash: "#home"});
-  if (s.newGroups) NAV.push({sec: "top", label: "새 문제", hash: "#new", tag: s.newGroups});
-  (s.groups || []).forEach((g, i) => NAV.push({sec: g.severity, group: g.category, label: g.sample, hash: "#group/g" + i, tag: g.new ? "새" : g.count}));
-  (s.crashes || []).forEach((c, i) => NAV.push({sec: "crashes", label: c.error || c.folder, hash: "#crash/" + i, tag: c.new ? "새" : ""}));
-  (s.files || []).forEach(f => NAV.push({sec: "files", label: fileName(f), hash: "#files"}));
   const cats = {};
-  for (const g of s.groups || []) cats[g.category] = (cats[g.category] || 0) + g.count;
-  VIEWS.home = () => `<div class="eyebrow">로그 분석 · ${esc(DATA.runId)}</div><h1>${esc(DATA.project)}</h1><p class="lead">결과 ${chip(s.verdict)} · 파일 ${(s.files || []).length}개</p>
-    ${kpis([["Fatal", s.counts.Fatal], ["Error", s.counts.Error], ["Warning", s.counts.Warning], ["그룹", (s.groups || []).length], ["새 그룹", s.newGroups], ["크래시", (s.crashes || []).length]])}
-    <h2>카테고리별 (상위 20)</h2>${bars(Object.entries(cats).sort((a, b) => b[1] - a[1]).slice(0, 20).map(([k, v]) => [k, v, "#cat/" + encodeURIComponent(k)]))}
-    <h2>새 문제</h2>${(s.groups || []).some(g => g.new) ? (s.groups || []).map((g, i) => g.new ? `<div>${chip(g.severity)} <a href="#group/g${i}">${esc(g.category)}: ${esc(g.sample.slice(0, 140))}</a> <span class="muted">${g.count}회</span></div>` : "").join("") : "<p class=muted>이전 실행에 없던 문제는 없습니다.</p>"}
-    <h2>많이 나온 문제 (상위 15)</h2>${(s.groups || []).map((g, i) => [g, i]).sort((a, b) => b[0].count - a[0].count).slice(0, 15).map(([g, i]) => `<div>${chip(g.severity)} <a href="#group/g${i}">${esc(g.category)}: ${esc(g.sample.slice(0, 140))}</a> <span class="muted">${g.count}회</span></div>`).join("") || "<p class=muted>없음</p>"}`;
-  VIEWS.new = () => { const idx = (s.groups || []).map((g, i) => [g, i]).filter(x => x[0].new);
-    return `<h1>새 문제</h1><p class="lead">이전 실행에 없던 오류·경고 그룹 ${idx.length}개</p><table><tr><th>심각도</th><th>카테고리</th><th>메시지</th><th>횟수</th></tr>${idx.map(([g, i]) => `<tr><td>${chip(g.severity)}</td><td>${esc(g.category)}</td><td><a href="#group/g${i}">${esc(g.sample)}</a></td><td>${g.count}</td></tr>`).join("")}</table>`; };
-  VIEWS.cat = c => { const idx = (s.groups || []).map((g, i) => [g, i]).filter(x => x[0].category === c);
-    return `<div class="eyebrow">카테고리</div><h1>${esc(c)}</h1><p class="lead">그룹 ${idx.length}개 · ${idx.reduce((n, x) => n + x[0].count, 0)}회</p><table><tr><th>심각도</th><th>메시지</th><th>횟수</th></tr>${idx.map(([g, i]) => `<tr><td>${chip(g.severity)}${g.new ? ' <span class="chip new">새</span>' : ""}</td><td><a href="#group/g${i}">${esc(g.sample)}</a></td><td>${g.count}</td></tr>`).join("")}</table>`; };
-  VIEWS.crash = i => crashView((s.crashes || [])[+i] || {});
-  VIEWS.files = () => `<h1>읽은 로그 파일</h1><ul>${(s.files || []).map(f => `<li class="mono">${esc(f)}</li>`).join("")}</ul>`;
+  for (const g of rows) cats[g.category] = (cats[g.category] || 0) + g.count;
+  NAV.push({sec: "top", label: "요약", hash: "#home"});
+  NAV.push({sec: "top", label: "문제 전체", hash: "#groups", tag: rows.length + "개"});
+  if (s.newGroups) NAV.push({sec: "top", label: "새 문제", hash: link("groups", "", {new: "1"}), tag: s.newGroups + "개"});
+  for (const sev of ["Fatal", "Error", "Warning"]){ const c = rows.filter(g => g.severity === sev).length; if (c) NAV.push({sec: "sev", label: sev, hash: link("groups", "", {sev}), tag: c + "개"}); }
+  for (const [c, v] of Object.entries(cats).sort((a, b) => b[1] - a[1])) NAV.push({sec: "cat", label: c, hash: link("groups", "", {cat: c}), tag: n(v, "회")});
+  rows.forEach(g => NAV.push({sec: "cat", label: g.sample, hash: link("group", g.id), searchOnly: true}));
+  crashes.forEach((c, i) => NAV.push({sec: "crashes", label: c.error || c.folder, hash: "#crash/" + i, tag: c.new ? "새" : ""}));
+  if ((s.files || []).length) NAV.push({sec: "top", label: "읽은 로그 파일", hash: "#files", tag: s.files.length + "개"});
+  VIEWS.home = () => {
+    const top = Object.entries(cats).sort((a, b) => b[1] - a[1])[0];
+    const first = rows.filter(g => g.severity !== "Warning").sort((a, b) => (b.new ? 1 : 0) - (a.new ? 1 : 0) || b.count - a.count).slice(0, 10);
+    return `<div class="eyebrow">로그 분석 · ${esc(DATA.runId)}</div><h1>${esc(DATA.project || "로그 분석")}</h1>
+    ${conclusion(`<b>판정</b> ${chip(s.verdict)} Fatal ${n(s.counts.Fatal, "건")}, Error ${n(s.counts.Error, "건")}, Warning ${n(s.counts.Warning, "건")} (같은 메시지를 묶은 그룹 ${rows.length}개).
+      이전 실행 대비 새 그룹 ${s.newGroups || 0}개, 새 크래시 ${s.newCrashes || 0}건.${top ? ` 가장 많은 카테고리는 <a href="${link("groups", "", {cat: top[0]})}">${esc(top[0])}</a> (${n(top[1], "회")}).` : ""}`)}
+    <div class="grid">${kpi("Fatal", n(s.counts.Fatal, "건"), "", link("groups", "", {sev: "Fatal"}), s.counts.Fatal ? "warn" : "")}${kpi("Error", n(s.counts.Error, "건"), "", link("groups", "", {sev: "Error"}), s.counts.Error ? "warn" : "")}
+      ${kpi("Warning", n(s.counts.Warning, "건"), "", link("groups", "", {sev: "Warning"}))}${kpi("새 그룹", n(s.newGroups, "개"), "이전 실행 대비", link("groups", "", {new: "1"}))}
+      ${kpi("크래시", n(crashes.length, "건"), s.newCrashes ? `새 ${s.newCrashes}건` : "", crashes.length ? "#crash/0" : "#home")}</div>
+    <h2>먼저 확인할 오류 (새 문제 먼저, 횟수 순)</h2>${first.length ? dataTable(first, [{key: "severity", label: "심각도", fmt: g => chip(g.severity) + (g.new ? " " + newChip : "")}, {key: "category", label: "카테고리"},
+      {key: "sample", label: "메시지", fmt: g => esc(crop(g.sample, 140)), link: g => link("group", g.id)}, {key: "count", label: "횟수", num: true, fmt: g => n(g.count, "회")}], {}) : `<p class="muted">Fatal·Error 0건.</p>`}
+    <h2>카테고리별 발생 횟수 (상위 20)</h2>${bars(Object.entries(cats).sort((a, b) => b[1] - a[1]).slice(0, 20).map(([k, v]) => [k, v, link("groups", "", {cat: k})]), "회")}`;
+  };
+  VIEWS.groups = (arg, params) => `<div class="eyebrow">로그 분석</div><h1>${esc(params.cat || params.sev || (params.new ? "새 문제" : "문제 전체"))}</h1>` + groupTable(rows, params, "오류·경고 0건.");
+  VIEWS.crash = i => crashView(crashes[+i] || {});
+  VIEWS.files = () => `<div class="eyebrow">로그 분석</div><h1>읽은 로그 파일 ${(s.files || []).length}개</h1><ul>${(s.files || []).map(f => `<li class="mono">${esc(f)}</li>`).join("")}</ul>`;
 }
 
 function setupSmoke(){
-  const r = DATA.result, maps = r.maps || [];
-  NAV.push({sec: "top", label: "개요", hash: "#home"});
-  maps.forEach((m, i) => {
-    NAV.push({sec: "maps", label: m.map.split("/").pop(), hash: "#map/" + i, tag: m.verdict});
-    registerGroups(`m${i}-`, m, m.map);
-    (m.groups || []).forEach((g, j) => NAV.push({sec: "groups", group: m.map.split("/").pop(), label: g.sample, hash: `#group/m${i}-${j}`, tag: g.severity}));
-  });
-  VIEWS.home = () => `<div class="eyebrow">맵 스모크 · ${esc(DATA.runId)}</div><h1>${esc(DATA.project)}</h1>
-    <p class="lead">결과 ${chip(r.verdict)} · 맵마다 ${r.seconds}초 실행 · 허용 오류 ${r.maxErrors} · 허용 경고 ${r.maxWarnings}</p>
-    <div class="grid">${maps.map((m, i) => `<a class="panel kpi card" href="#map/${i}"><div class="k">${esc(m.map.split("/").pop())}</div><div class="v">${chip(m.verdict)}</div>
-     <div class="muted">오류 ${m.errors} · 경고 ${m.warnings} · ensure ${m.ensures}${m.crashed ? " · 크래시" : ""}</div>${(m.reasons || []).length ? `<div class="muted">${esc(m.reasons.join(", "))}</div>` : ""}</a>`).join("")}</div>`;
-  VIEWS.map = i => {
+  const r = DATA.result, maps = (r.maps || []).map((m, i) => ({...m, idx: i, name: m.map.split("/").pop()}));
+  NAV.push({sec: "top", label: "요약", hash: "#home"});
+  maps.forEach(m => { NAV.push({sec: "maps", label: m.name, hash: "#map/" + m.idx, tag: VERDICT[m.verdict] || m.verdict}); registerGroups(`m${m.idx}-`, m, m.name); });
+  VIEWS.home = (arg, params) => {
+    const failed = maps.filter(m => m.verdict === "fail"), shown = maps.filter(m => !params.verdict || m.verdict === params.verdict);
+    return `<div class="eyebrow">맵 스모크 · ${esc(DATA.runId)}</div><h1>${esc(DATA.project || "맵 스모크")}</h1>
+    ${conclusion(`<b>판정</b> ${chip(r.verdict)} 맵 ${maps.length}개 중 실패 ${failed.length}개${failed.length ? ` (${failed.map(m => `<a href="#map/${m.idx}">${esc(m.name)}</a>`).join(", ")})` : ""}.
+      기준: 맵마다 ${r.seconds}초 실행, 오류 ${r.maxErrors}건·경고 ${r.maxWarnings}건까지 허용, 크래시·Fatal은 실패.`)}
+    <div class="filters">${select("verdict", "판정", [["pass", "통과"], ["warn", "경고"], ["fail", "실패"]], params.verdict)}<span class="muted">${shown.length}개</span></div>
+    <div class="grid">${shown.map(m => kpi(m.name, chip(m.verdict), `오류 ${m.errors} · 경고 ${m.warnings} · ensure&nbsp;${m.ensures}${(m.crashes || []).length ? " · 크래시" : ""}${(m.reasons || []).length ? "<br>" + esc(m.reasons.join(", ")) : ""}`, "#map/" + m.idx)).join("") || `<p class="muted">조건에 맞는 맵 없음.</p>`}</div>`;
+  };
+  VIEWS.map = (i, params) => {
     const m = maps[+i]; if (!m) return "<h1>없음</h1>";
-    return `<div class="eyebrow">맵 스모크</div><h1>${esc(m.map)}</h1><p class="lead">${chip(m.verdict)} ${(m.reasons || []).map(x => `<span class="chip fail">${esc(x)}</span>`).join("")}</p>
-    ${kpis([["실행 초", m.seconds], ["오류", m.errors], ["경고", m.warnings], ["ensure", m.ensures], ["Fatal", m.fatal ? "있음" : "없음"], ["종료 코드", m.exitCode ?? (m.killed ? "시간 끝 (정상)" : "-")]])}
-    <h2>오류 · 경고 그룹</h2>${groupRows(`m${i}-`, m)}
-    ${(m.crashes || []).length ? `<h2>크래시</h2>${m.crashes.map(c => crashView(c)).join("")}` : ""}
+    return `<div class="eyebrow">맵 스모크</div><h1>${esc(m.name)}</h1><p class="lead">${chip(m.verdict)} ${(m.reasons || []).map(x => `<span class="chip fail">${esc(x)}</span>`).join("")}<br><span class="mono muted">${esc(m.map)}</span></p>
+    <div class="grid">${kpi("실행 시간", n(m.seconds, "초"), "", "#map/" + i)}${kpi("Error", n(m.errors, "건"), "", link("map", i, {sev: "Error"}))}${kpi("Warning", n(m.warnings, "건"), "", link("map", i, {sev: "Warning"}))}
+     ${kpi("ensure", n(m.ensures, "건"), "", "#map/" + i)}${kpi("종료", m.fatal ? "Fatal" : m.exitCode != null ? "코드 " + m.exitCode : m.killed ? "시간 종료" : "-", m.killed ? "정해진 시간 뒤 종료 (정상)" : "", "#map/" + i)}</div>
+    <h2>오류·경고 그룹</h2>${groupTable(groupsOf(`m${i}-`, m), params, "오류·경고 0건.")}
+    ${(m.crashes || []).length ? `<h2>크래시 ${m.crashes.length}건</h2>${m.crashes.map(c => crashView(c)).join("")}` : ""}
     <p class="muted mono">로그: ${esc(m.log || "없음")}</p>`;
   };
 }
 
 // ------------------------------------------------------------------ sidebar and routing
-const SECS = {verify: [["top", ""], ["steps", "단계"], ["tests", "테스트"], ["groups", "로그 문제"]],
-              logs: [["top", ""], ["Fatal", "Fatal"], ["Error", "Error"], ["Warning", "Warning"], ["crashes", "크래시"], ["files", "파일"]],
-              smoke: [["top", ""], ["maps", "맵"], ["groups", "맵별 문제"]]}[DATA.kind];
-const closed = new Set(DATA.kind === "logs" ? ["Warning", "files"] : DATA.kind === "verify" ? ["groups"] : []), openGrp = new Set();
-const itemHtml = n => `<a class="it" href="${n.hash}" title="${esc(n.full || n.label)}">${esc(n.label.length > 60 ? n.label.slice(0, 59) + "…" : n.label)}${n.tag ? `<span class="t">${esc(n.tag)}</span>` : ""}</a>`;
+const SECS = {verify: [["top", ""], ["steps", "단계"], ["tests", "테스트 묶음"]],
+              logs: [["top", ""], ["sev", "심각도"], ["cat", "카테고리"], ["crashes", "크래시"]],
+              smoke: [["top", ""], ["maps", "맵"]]}[DATA.kind];
+const closed = new Set(), openGrp = new Set();
+const itemHtml = x => `<a class="it" href="${x.hash}" title="${esc(x.label)}">${esc(crop(x.label, 60))}${x.tag ? `<span class="t">${esc(x.tag)}</span>` : ""}</a>`;
 function renderNav(){
   const q = $("#search").value.trim().toLowerCase();
   let html = "";
   for (const [sec, title] of SECS){
-    const items = NAV.filter(n => n.sec === sec && (!q || (n.label + " " + (n.group || "") + " " + (n.full || "")).toLowerCase().includes(q)));
+    const items = NAV.filter(x => x.sec === sec && (q ? x.label.toLowerCase().includes(q) : !x.searchOnly));
     if (!items.length) continue;
     if (sec === "top"){ html += `<div class="top">${items.map(itemHtml).join("")}</div>`; continue; }
     const open = q || !closed.has(sec);
-    html += `<div class="sec"><div class="h" data-sec="${sec}"><span>${open ? "▾" : "▸"} ${title}</span><span class="n">${items.length}</span></div>`;
-    if (open){
-      const groups = {};
-      for (const it of items) (groups[it.group || ""] ||= []).push(it);
-      for (const [g, list] of Object.entries(groups)){
-        if (!g){ html += list.slice(0, 500).map(itemHtml).join(""); continue; }
-        const gopen = q || openGrp.has(sec + "|" + g) || Object.keys(groups).length === 1;
-        html += `<div class="grp"><div class="h" data-grp="${esc(sec + "|" + g)}"><span>${gopen ? "▾" : "▸"} ${esc(g)}</span><span class="muted">${list.length}</span></div>`;
-        if (gopen) html += list.slice(0, 300).map(itemHtml).join("");
-        html += `</div>`;
-      }
-    }
-    html += `</div>`;
+    html += `<div class="sec"><div class="h" data-sec="${sec}"><span>${open ? "▾" : "▸"} ${title}</span><span class="n">${items.length}</span></div>${open ? items.slice(0, 400).map(itemHtml).join("") : ""}</div>`;
   }
-  $("#nav").innerHTML = html || `<div class="it muted">찾는 항목이 없습니다</div>`;
-  for (const a of document.querySelectorAll(".it")) a.classList.toggle("cur", a.getAttribute("href") === location.hash);
+  $("#nav").innerHTML = html || `<div class="it muted">일치하는 항목 없음</div>`;
+  markCurrent();
 }
+function markCurrent(){ const h = location.hash || "#home"; for (const a of document.querySelectorAll(".it")) a.classList.toggle("cur", a.getAttribute("href") === h); }
 document.addEventListener("click", e => {
-  const s = e.target.closest("[data-sec]"); if (s){ const k = s.dataset.sec; closed.has(k) ? closed.delete(k) : closed.add(k); renderNav(); return; }
-  const g = e.target.closest("[data-grp]"); if (g){ const k = g.dataset.grp; openGrp.has(k) ? openGrp.delete(k) : openGrp.add(k); renderNav(); }
+  const s = e.target.closest("[data-sec]"); if (s){ const k = s.dataset.sec; closed.has(k) ? closed.delete(k) : closed.add(k); renderNav(); }
 });
+let lastPath = "";
 function render(){
-  const m = decodeURIComponent(location.hash || "#home").match(/^#([^/]+)\/?(.*)$/) || [null, "home", ""];
-  const kind = m[1], arg = m[2];
-  const v = kind === "group" ? () => groupView(arg) : VIEWS[kind] || VIEWS.home;
-  $("#view").innerHTML = v(arg);
-  for (const a of document.querySelectorAll(".it")) a.classList.toggle("cur", a.getAttribute("href") === location.hash);
-  $("#main").scrollTop = 0;
+  const r = route();
+  const v = r.kind === "group" ? () => groupView(r.arg) : VIEWS[r.kind] || VIEWS.home;
+  $("#view").innerHTML = v(r.arg, r.params);
+  markCurrent();
+  const p = (location.hash || "").split("?")[0];
+  if (p !== lastPath) $("#main").scrollTop = 0;
+  lastPath = p;
 }
 ({verify: setupVerify, logs: setupLogs, smoke: setupSmoke})[DATA.kind]();
 $("#pname").textContent = DATA.project || DATA.title;
@@ -239,7 +261,7 @@ def write(run: Path, kind: str, result: dict | None = None) -> Path:
     data = {"schema": "lens.report.run/1", "kind": kind, "title": TITLES[kind], "runId": run.name,
             "project": project_name(run), "result": result}
     payload = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
-    html = (PAGE.replace("__CSS__", CSS).replace("__TITLE__", f"{data['project']} · {TITLES[kind]}".replace("<", ""))
+    html = (PAGE.replace("__COMMON__", JS_COMMON).replace("__CSS__", CSS).replace("__TITLE__", f"{data['project']} · {TITLES[kind]}".replace("<", ""))
             .replace("__DATA__", payload))
     path = out / "report.html"
     path.write_text(html, encoding="utf-8")
