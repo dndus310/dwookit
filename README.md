@@ -435,6 +435,35 @@ __dwookit.bat live off | status | rebuild
 
 추적 대상은 **파일 분석 › 목록에서 고르기**에서 프로젝트 블루프린트 트리로 고릅니다(명령줄의 `bp add`와 같은 `bp-track.txt`를 씁니다). 후보 목록은 에디터 없이 `.uasset` 헤더에서 읽습니다(`tools/lens_targets.py`, Lyra 506개 약 2초).
 
+### 네이티브 C++ 마이그레이션 (`native`, 개발 중)
+
+블루프린트(액터·컴포넌트, 위젯, 애니메이션 블루프린트)의 구성 요소, 값, 노드 로직을 C++ 부모 클래스로 옮기고, 원래 블루프린트를 그 클래스를 상속하도록 바꿉니다(rebase). 에셋, 참조, 레벨에 놓인 인스턴스, 옮기지 못한 로직은 블루프린트에 그대로 남아 계속 동작합니다.
+
+```bat
+__dwookit.bat native plan     /Game/Props/BP_JumpPad        :: 무엇이 C++로 가고 무엇이 왜 남는지
+__dwookit.bat native generate /Game/Props/BP_JumpPad        :: Source\<모듈>\DwoNative\BP_JumpPad\ + Build.cs 모듈 추가(백업)
+__dwookit.bat compile                                        :: 에디터 대상 빌드 (에디터 닫고)
+__dwookit.bat native rebase   /Game/Props/BP_JumpPad --dry-run   :: 검증만
+__dwookit.bat native rebase   /Game/Props/BP_JumpPad        :: 백업 후 상속 전환, 검증 통과 시에만 저장
+__dwookit.bat native restore  /Game/Props/BP_JumpPad        :: 마지막 백업으로 되돌리기
+```
+
+정확도 원칙:
+- **정확하거나, 옮기지 않거나**: 함수·이벤트는 안의 노드가 모두 같은 의미의 C++로 바뀔 때만 옮깁니다. 노드 하나라도 모르면 그 함수 전체가 블루프린트에 남고, 리포트(`<이름>.native.md`)에 이유와 노드를 적습니다.
+- **같은 이름**: 변수와 컴포넌트는 블루프린트 이름 그대로 C++ 멤버가 됩니다(참조, 레벨 인스턴스, 저장된 값이 그대로 연결). 식별자가 될 수 없는 이름(공백 등)은 바꾼 이름과 원래 이름(DisplayName)을 기록합니다.
+- **블루프린트 의미 그대로**: 대상이 None인 호출은 건너뛰고 출력은 기본값(블루프린트와 같음, C++에서 크래시 없음). 이벤트 그래프의 임시 값은 멤버로(블루프린트의 지속 프레임), 순수 노드는 사용할 때마다 다시 계산, 리터럴은 블루프린트 컴파일러와 같은 방식으로 해석(`FDefaultValueHelper` 다음 `ImportText`), 엔진 이벤트는 엔진이 부르는 순서에 맞춘 네이티브 오버라이드(`BeginPlay`, `Tick`, `NativeConstruct`, `NativeUpdateAnimation` …).
+- **정확한 시그니처**: 내보내기(`bp export`)가 호출하는 함수마다 C++ 매개변수 타입·순서·접근 수준, 헤더 경로, 열거형 C++ 표기를 기록하므로 추측하지 않습니다. 블루프린트 전용(CustomThunk, BlueprintInternalUseOnly), 지연(Delay 등), private 멤버는 옮기지 않습니다(알려진 엔진 getter로 바꿀 수 있는 것은 바꿈: `CharacterMovement` → `GetCharacterMovement()`).
+- **값은 블루프린트에**: 컴포넌트 템플릿 값, 에셋 참조, 변수 기본값은 블루프린트의 기본값으로 남깁니다(rebase가 옮기고 검증). C++ 초기값은 단순한 값만 같은 값으로 적습니다. 코드가 쓰는 에셋은 숨은 UPROPERTY로 만들어 하드 참조(쿠킹 포함)를 유지합니다.
+
+안정성(rebase, DwoLensInspector commandlet):
+1. 블루프린트 클래스 기본값과 컴포넌트 템플릿의 모든 값을 텍스트로 기록합니다.
+2. 옮긴 변수·컴포넌트·함수·이벤트·디스패처를 블루프린트에서 빼고, 그것을 쓰던 노드는 이름으로 C++ 멤버에 다시 연결합니다. 엔진의 변수 삭제 함수는 그 변수를 쓰는 노드까지 지우므로 쓰지 않습니다.
+3. 부모 클래스를 생성된 클래스로 바꾸고, 옮긴 컴포넌트에 붙어 있던 남은 컴포넌트는 네이티브 컴포넌트에 다시 붙입니다.
+4. 기록한 값을 새 기본값과 네이티브 컴포넌트에 되돌려 씁니다.
+5. 컴파일 오류가 없고, 다시 기록한 값이 처음과 하나도 다르지 않을 때만 저장합니다. 실패하면 저장하지 않고 백업을 되돌립니다. 결과는 `__dwookit/native/<이름>.rebase.json`.
+
+현재 범위: 액터·컴포넌트·위젯·애니메이션 블루프린트의 변수, 컴포넌트(SCS), BindWidget 위젯, 이벤트 디스패처, 함수, 엔진 이벤트·커스텀 이벤트·컴포넌트 바운드 이벤트, Construction Script(`OnConstruction`), 분기·시퀀스·스위치·캐스트·For/ForEach/While·IsValid·FlipFlop·DoOnce. 블루프린트에 남는 것: 지연·타임라인·입력 이벤트, 복제 함수, 부모 C++의 BlueprintImplementableEvent 구현, 블루프린트 매크로·구조체·열거형을 쓰는 코드, AnimGraph(상태 머신), 비헤이비어 트리 노드 블루프린트(계획 중). 비헤이비어 트리 에셋 자체는 데이터라 옮길 대상이 아닙니다.
+
 ### 에이전트 안내 (`agent`)
 
 연결하면 Claude Code와 GitHub Copilot이 dwookit가 만든 자료를 알고 시작하도록 안내 파일을 둡니다. 모두 git exclude에 들어가 `git status`에 보이지 않고, `uninstall`이 지웁니다.

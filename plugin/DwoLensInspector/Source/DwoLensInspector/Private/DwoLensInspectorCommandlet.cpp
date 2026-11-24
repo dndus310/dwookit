@@ -1,5 +1,6 @@
 #include "DwoLensInspectorCommandlet.h"
 #include "DwoLensBlueprintExport.h"
+#include "DwoLensNativeRebase.h"
 
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetRegistry/IAssetRegistry.h"
@@ -461,6 +462,18 @@ UDwoLensInspectorCommandlet::UDwoLensInspectorCommandlet()
 int32 UDwoLensInspectorCommandlet::Main(const FString& Params)
 {
 	using namespace DwoLensInspector;
+
+	// Native migration: -LensRebase=<Name.native.json> -LensRebaseReport=<file> [-LensDryRun] [-LensForce]
+	FString RebaseMap;
+	if (FParse::Value(*Params, TEXT("LensRebase="), RebaseMap) && !RebaseMap.IsEmpty())
+	{
+		FString RebaseReport;
+		if (!FParse::Value(*Params, TEXT("LensRebaseReport="), RebaseReport) || RebaseReport.IsEmpty())
+		{
+			RebaseReport = FPaths::ChangeExtension(RebaseMap, TEXT("rebase.json"));
+		}
+		return RebaseBlueprint(RebaseMap, RebaseReport, FParse::Param(*Params, TEXT("LensDryRun")), FParse::Param(*Params, TEXT("LensForce")));
+	}
 
 	// Tracked Blueprints: -LensBpList=<file> -LensBpOut=<dir>. Alone, or together with the full -LensOut dump
 	// so one editor start serves both.

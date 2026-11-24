@@ -1,0 +1,5674 @@
+{
+	"schema": "lens.bp/1",
+	"name": "ABP_Unarmed",
+	"asset": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.ABP_Unarmed",
+	"package": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed",
+	"assetClass": "AnimBlueprint",
+	"blueprintType": "BPTYPE_Normal",
+	"status": "BS_UpToDate",
+	"engineVersion": "5.7.4-51494982+++UE5+Release-5.7",
+	"exportedAtUtc": "2026-11-24T17:02:55.543Z",
+	"source":
+	{
+		"file": "Content/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.uasset",
+		"bytes": 385911,
+		"modifiedUtc": "2026-11-07T10:01:37.000Z"
+	},
+	"parent": "/Script/Engine.AnimInstance",
+	"parentChain": [
+		"/Script/Engine.AnimInstance"
+	],
+	"generatedClass": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.ABP_Unarmed_C",
+	"interfaces": [],
+	"variables": [
+		{
+			"name": "Character",
+			"type":
+			{
+				"text": "Character",
+				"category": "object",
+				"object": "/Script/Engine.Character"
+			},
+			"category": "디폴트",
+			"default": "None"
+		},
+		{
+			"name": "MovementComponent",
+			"type":
+			{
+				"text": "CharacterMovementComponent",
+				"category": "object",
+				"object": "/Script/Engine.CharacterMovementComponent"
+			},
+			"category": "디폴트",
+			"default": "None"
+		},
+		{
+			"name": "Velocity",
+			"type":
+			{
+				"text": "Vector",
+				"category": "struct",
+				"object": "/Script/CoreUObject.Vector"
+			},
+			"category": "디폴트",
+			"default": "(X=0.000000,Y=0.000000,Z=0.000000)"
+		},
+		{
+			"name": "GroundSpeed",
+			"type":
+			{
+				"text": "float",
+				"category": "real",
+				"subCategory": "double"
+			},
+			"category": "디폴트",
+			"default": "0.000000"
+		},
+		{
+			"name": "Direction",
+			"type":
+			{
+				"text": "float",
+				"category": "real",
+				"subCategory": "double"
+			},
+			"category": "디폴트",
+			"default": "0.000000"
+		},
+		{
+			"name": "ShouldMove",
+			"type":
+			{
+				"text": "bool",
+				"category": "bool"
+			},
+			"category": "디폴트",
+			"default": "False"
+		},
+		{
+			"name": "IsFalling",
+			"type":
+			{
+				"text": "bool",
+				"category": "bool"
+			},
+			"category": "디폴트",
+			"default": "False"
+		}
+	],
+	"components": [],
+	"graphs": [
+		{
+			"name": "AnimGraph",
+			"kind": "function",
+			"nodes": [
+				{
+					"id": "E570645D48A8AD10CBDFF3B10DF080E3",
+					"class": "AnimGraphNode_Root",
+					"title": "출력 포즈\nAnimGraph",
+					"role": "other",
+					"kind": "node",
+					"pos": [
+						-64,
+						80
+					],
+					"pins": [
+						{
+							"name": "Result",
+							"dir": "in",
+							"type":
+							{
+								"text": "PoseLink",
+								"category": "struct",
+								"object": "/Script/Engine.PoseLink"
+							},
+							"default": "(LinkID=-1,SourceLinkID=-1)",
+							"autoDefault": "(LinkID=-1,SourceLinkID=-1)",
+							"links": [
+								{
+									"node": "BDE61FFC4E653CE138E8E8BB38AA415C",
+									"pin": "Pose"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "C8AA021D402FC7CCABB7CA8625CF9D5E",
+					"class": "AnimGraphNode_StateMachine",
+					"title": "Locomotion\nState Machine",
+					"role": "other",
+					"kind": "node",
+					"pos": [
+						-768,
+						0
+					],
+					"pins": [
+						{
+							"name": "Pose",
+							"dir": "out",
+							"type":
+							{
+								"text": "PoseLink",
+								"category": "struct",
+								"object": "/Script/Engine.PoseLink"
+							},
+							"links": [
+								{
+									"node": "BFE5EF664D6BA9E88D30A7B3D8C028DB",
+									"pin": "Pose"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "BFE5EF664D6BA9E88D30A7B3D8C028DB",
+					"class": "AnimGraphNode_SaveCachedPose",
+					"title": "Save cached pose 'Locomotion'",
+					"role": "other",
+					"kind": "node",
+					"pos": [
+						-576,
+						16
+					],
+					"pins": [
+						{
+							"name": "Pose",
+							"dir": "in",
+							"type":
+							{
+								"text": "PoseLink",
+								"category": "struct",
+								"object": "/Script/Engine.PoseLink"
+							},
+							"default": "(LinkID=-1,SourceLinkID=-1)",
+							"autoDefault": "(LinkID=-1,SourceLinkID=-1)",
+							"links": [
+								{
+									"node": "C8AA021D402FC7CCABB7CA8625CF9D5E",
+									"pin": "Pose"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "522947644D164B12CC7F14B433900011",
+					"class": "AnimGraphNode_StateMachine",
+					"title": "Main States\nState Machine",
+					"role": "other",
+					"kind": "node",
+					"pos": [
+						-768,
+						128
+					],
+					"pins": [
+						{
+							"name": "Pose",
+							"dir": "out",
+							"type":
+							{
+								"text": "PoseLink",
+								"category": "struct",
+								"object": "/Script/Engine.PoseLink"
+							},
+							"links": [
+								{
+									"node": "225929434D10442114B9619BCE666A10",
+									"pin": "Source"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "225929434D10442114B9619BCE666A10",
+					"class": "AnimGraphNode_Slot",
+					"title": "Slot 'DefaultSlot'\nGroup 'DefaultGroup'",
+					"role": "other",
+					"kind": "node",
+					"pos": [
+						-576,
+						128
+					],
+					"pins": [
+						{
+							"name": "Source",
+							"dir": "in",
+							"type":
+							{
+								"text": "PoseLink",
+								"category": "struct",
+								"object": "/Script/Engine.PoseLink"
+							},
+							"default": "(LinkID=-1,SourceLinkID=-1)",
+							"autoDefault": "(LinkID=-1,SourceLinkID=-1)",
+							"links": [
+								{
+									"node": "522947644D164B12CC7F14B433900011",
+									"pin": "Pose"
+								}
+							]
+						},
+						{
+							"name": "Pose",
+							"dir": "out",
+							"type":
+							{
+								"text": "PoseLink",
+								"category": "struct",
+								"object": "/Script/Engine.PoseLink"
+							},
+							"links": [
+								{
+									"node": "BDE61FFC4E653CE138E8E8BB38AA415C",
+									"pin": "Source"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "F97E55A74F17297369FF42B70572C528",
+					"class": "K2Node_VariableGet",
+					"title": "Get IsFalling",
+					"member": "IsFalling",
+					"memberOwner": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.SKEL_ABP_Unarmed_C",
+					"memberCpp": "bool",
+					"memberName": "IsFalling",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						-320,
+						336
+					],
+					"pins": [
+						{
+							"name": "IsFalling",
+							"dir": "out",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false",
+							"links": [
+								{
+									"node": "D894933A42E52759831718A9100D8499",
+									"pin": "A"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "ABP_Unarmed",
+								"category": "object",
+								"object": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.ABP_Unarmed_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "D894933A42E52759831718A9100D8499",
+					"class": "K2Node_CallFunction",
+					"title": "NOT Boolean",
+					"member": "Not_PreBool",
+					"memberOwner": "/Script/Engine.KismetMathLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						-320,
+						288
+					],
+					"pins": [
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "KismetMathLibrary",
+								"category": "object",
+								"object": "/Script/Engine.KismetMathLibrary"
+							},
+							"defaultObject": "/Script/Engine.Default__KismetMathLibrary",
+							"hidden": true
+						},
+						{
+							"name": "A",
+							"dir": "in",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false",
+							"links": [
+								{
+									"node": "F97E55A74F17297369FF42B70572C528",
+									"pin": "IsFalling"
+								}
+							]
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false",
+							"links": [
+								{
+									"node": "BDE61FFC4E653CE138E8E8BB38AA415C",
+									"pin": "ShouldDoIKTrace"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "BDE61FFC4E653CE138E8E8BB38AA415C",
+					"class": "AnimGraphNode_ControlRig",
+					"title": "컨트롤 릭",
+					"role": "other",
+					"kind": "node",
+					"pos": [
+						-352,
+						144
+					],
+					"pins": [
+						{
+							"name": "Source",
+							"dir": "in",
+							"type":
+							{
+								"text": "PoseLink",
+								"category": "struct",
+								"object": "/Script/Engine.PoseLink"
+							},
+							"default": "(LinkID=-1,SourceLinkID=-1)",
+							"autoDefault": "(LinkID=-1,SourceLinkID=-1)",
+							"links": [
+								{
+									"node": "225929434D10442114B9619BCE666A10",
+									"pin": "Pose"
+								}
+							]
+						},
+						{
+							"name": "Alpha",
+							"dir": "in",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "float"
+							},
+							"default": "1.000000",
+							"autoDefault": "1.000000"
+						},
+						{
+							"name": "bAlphaBoolEnabled",
+							"label": "bEnabled",
+							"dir": "in",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "True",
+							"autoDefault": "True",
+							"hidden": true
+						},
+						{
+							"name": "AlphaCurveName",
+							"label": "Alpha Curve Name",
+							"dir": "in",
+							"type":
+							{
+								"text": "name",
+								"category": "name"
+							},
+							"default": "None",
+							"autoDefault": "None",
+							"hidden": true
+						},
+						{
+							"name": "Pose",
+							"dir": "out",
+							"type":
+							{
+								"text": "PoseLink",
+								"category": "struct",
+								"object": "/Script/Engine.PoseLink"
+							},
+							"links": [
+								{
+									"node": "E570645D48A8AD10CBDFF3B10DF080E3",
+									"pin": "Result"
+								}
+							]
+						},
+						{
+							"name": "ShouldDoIKTrace",
+							"dir": "in",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false",
+							"links": [
+								{
+									"node": "D894933A42E52759831718A9100D8499",
+									"pin": "ReturnValue"
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Locomotion",
+			"kind": "sub",
+			"owner": "Locomotion",
+			"parentGraph": "AnimGraph",
+			"nodes": [
+				{
+					"id": "8DDBCCC04E34DFB2AF4A039221979353",
+					"class": "AnimStateEntryNode",
+					"title": "Locomotion",
+					"role": "other",
+					"kind": "node",
+					"pos": [
+						0,
+						0
+					],
+					"pins": [
+						{
+							"name": "Entry",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "D263A56E4545C84AD9134299DEEB29DF",
+									"pin": "In"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "D263A56E4545C84AD9134299DEEB29DF",
+					"class": "AnimStateNode",
+					"title": "Idle",
+					"role": "other",
+					"kind": "node",
+					"pos": [
+						128,
+						0
+					],
+					"pins": [
+						{
+							"name": "In",
+							"dir": "in",
+							"type":
+							{
+								"text": "Transition",
+								"category": "Transition"
+							},
+							"links": [
+								{
+									"node": "8DDBCCC04E34DFB2AF4A039221979353",
+									"pin": "Entry"
+								},
+								{
+									"node": "FBFF13B6426F0CD096B67D958955B9D9",
+									"pin": "Out"
+								}
+							]
+						},
+						{
+							"name": "Out",
+							"dir": "out",
+							"type":
+							{
+								"text": "Transition",
+								"category": "Transition"
+							},
+							"links": [
+								{
+									"node": "F76B7E75484460E2EC85CEAD34FFCBE8",
+									"pin": "In"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "B7677A4143F8E3F8FE9492A9C4878E2D",
+					"class": "AnimStateNode",
+					"title": "Walk / Run",
+					"role": "other",
+					"kind": "node",
+					"pos": [
+						384,
+						0
+					],
+					"pins": [
+						{
+							"name": "In",
+							"dir": "in",
+							"type":
+							{
+								"text": "Transition",
+								"category": "Transition"
+							},
+							"links": [
+								{
+									"node": "F76B7E75484460E2EC85CEAD34FFCBE8",
+									"pin": "Out"
+								}
+							]
+						},
+						{
+							"name": "Out",
+							"dir": "out",
+							"type":
+							{
+								"text": "Transition",
+								"category": "Transition"
+							},
+							"links": [
+								{
+									"node": "FBFF13B6426F0CD096B67D958955B9D9",
+									"pin": "In"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "F76B7E75484460E2EC85CEAD34FFCBE8",
+					"class": "AnimStateTransitionNode",
+					"title": "Idle -> Walk / Run",
+					"role": "other",
+					"kind": "node",
+					"pos": [
+						284,
+						-18
+					],
+					"pins": [
+						{
+							"name": "In",
+							"dir": "in",
+							"type":
+							{
+								"text": "Transition",
+								"category": "Transition"
+							},
+							"hidden": true,
+							"links": [
+								{
+									"node": "D263A56E4545C84AD9134299DEEB29DF",
+									"pin": "Out"
+								}
+							]
+						},
+						{
+							"name": "Out",
+							"dir": "out",
+							"type":
+							{
+								"text": "Transition",
+								"category": "Transition"
+							},
+							"hidden": true,
+							"links": [
+								{
+									"node": "B7677A4143F8E3F8FE9492A9C4878E2D",
+									"pin": "In"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "FBFF13B6426F0CD096B67D958955B9D9",
+					"class": "AnimStateTransitionNode",
+					"title": "Walk / Run -> Idle",
+					"role": "other",
+					"kind": "node",
+					"pos": [
+						284,
+						41
+					],
+					"pins": [
+						{
+							"name": "In",
+							"dir": "in",
+							"type":
+							{
+								"text": "Transition",
+								"category": "Transition"
+							},
+							"hidden": true,
+							"links": [
+								{
+									"node": "B7677A4143F8E3F8FE9492A9C4878E2D",
+									"pin": "Out"
+								}
+							]
+						},
+						{
+							"name": "Out",
+							"dir": "out",
+							"type":
+							{
+								"text": "Transition",
+								"category": "Transition"
+							},
+							"hidden": true,
+							"links": [
+								{
+									"node": "D263A56E4545C84AD9134299DEEB29DF",
+									"pin": "In"
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Idle",
+			"kind": "sub",
+			"owner": "Idle",
+			"parentGraph": "Locomotion",
+			"nodes": [
+				{
+					"id": "7FB9764648171269E2E92AAFE813B9C2",
+					"class": "AnimGraphNode_StateResult",
+					"title": "애니메이션 포즈 출력",
+					"role": "other",
+					"kind": "node",
+					"pos": [
+						0,
+						-1
+					],
+					"pins": [
+						{
+							"name": "Result",
+							"dir": "in",
+							"type":
+							{
+								"text": "PoseLink",
+								"category": "struct",
+								"object": "/Script/Engine.PoseLink"
+							},
+							"default": "(LinkID=-1,SourceLinkID=-1)",
+							"autoDefault": "(LinkID=-1,SourceLinkID=-1)",
+							"links": [
+								{
+									"node": "EF6DC11F462303EB8835E09CA26E14EB",
+									"pin": "Pose"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "EF6DC11F462303EB8835E09CA26E14EB",
+					"class": "AnimGraphNode_SequencePlayer",
+					"title": "MM_Idle\n시퀀스 플레이어",
+					"role": "other",
+					"kind": "node",
+					"pos": [
+						-240,
+						-16
+					],
+					"pins": [
+						{
+							"name": "Pose",
+							"dir": "out",
+							"type":
+							{
+								"text": "PoseLink",
+								"category": "struct",
+								"object": "/Script/Engine.PoseLink"
+							},
+							"links": [
+								{
+									"node": "7FB9764648171269E2E92AAFE813B9C2",
+									"pin": "Result"
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Walk / Run",
+			"kind": "sub",
+			"owner": "Walk / Run",
+			"parentGraph": "Locomotion",
+			"nodes": [
+				{
+					"id": "E2D7DF4A4CC484998AE5D89299676824",
+					"class": "AnimGraphNode_StateResult",
+					"title": "애니메이션 포즈 출력",
+					"role": "other",
+					"kind": "node",
+					"pos": [
+						0,
+						16
+					],
+					"pins": [
+						{
+							"name": "Result",
+							"dir": "in",
+							"type":
+							{
+								"text": "PoseLink",
+								"category": "struct",
+								"object": "/Script/Engine.PoseLink"
+							},
+							"default": "(LinkID=-1,SourceLinkID=-1)",
+							"autoDefault": "(LinkID=-1,SourceLinkID=-1)",
+							"links": [
+								{
+									"node": "0548D2FF4D564E5C80F85F9591BD5A11",
+									"pin": "Pose"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "0548D2FF4D564E5C80F85F9591BD5A11",
+					"class": "AnimGraphNode_BlendSpacePlayer",
+					"title": "BS_Idle_Walk_Run\n블렌드 스페이스 플레이어\n 동기화 그룹 Locomotion",
+					"role": "other",
+					"kind": "node",
+					"pos": [
+						-240,
+						-16
+					],
+					"pins": [
+						{
+							"name": "X",
+							"label": "Direction",
+							"dir": "in",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "float"
+							},
+							"default": "0.000000",
+							"autoDefault": "0.000000",
+							"links": [
+								{
+									"node": "BBD9868747529E877448CFA95E870DC7",
+									"pin": "Direction"
+								}
+							]
+						},
+						{
+							"name": "Y",
+							"label": "Speed",
+							"dir": "in",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "float"
+							},
+							"default": "0.000000",
+							"autoDefault": "0.000000",
+							"links": [
+								{
+									"node": "B2016AA04326D8C89DB906A2CCD6FCCE",
+									"pin": "GroundSpeed"
+								}
+							]
+						},
+						{
+							"name": "Pose",
+							"dir": "out",
+							"type":
+							{
+								"text": "PoseLink",
+								"category": "struct",
+								"object": "/Script/Engine.PoseLink"
+							},
+							"links": [
+								{
+									"node": "E2D7DF4A4CC484998AE5D89299676824",
+									"pin": "Result"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "B2016AA04326D8C89DB906A2CCD6FCCE",
+					"class": "K2Node_VariableGet",
+					"title": "Get GroundSpeed",
+					"member": "GroundSpeed",
+					"memberOwner": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.SKEL_ABP_Unarmed_C",
+					"memberCpp": "double",
+					"memberName": "GroundSpeed",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						-400,
+						80
+					],
+					"pins": [
+						{
+							"name": "GroundSpeed",
+							"dir": "out",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "double"
+							},
+							"default": "0.0",
+							"autoDefault": "0.0",
+							"links": [
+								{
+									"node": "0548D2FF4D564E5C80F85F9591BD5A11",
+									"pin": "Y"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "ABP_Unarmed",
+								"category": "object",
+								"object": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.ABP_Unarmed_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "BBD9868747529E877448CFA95E870DC7",
+					"class": "K2Node_VariableGet",
+					"title": "Get Direction",
+					"member": "Direction",
+					"memberOwner": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.SKEL_ABP_Unarmed_C",
+					"memberCpp": "double",
+					"memberName": "Direction",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						-400,
+						32
+					],
+					"pins": [
+						{
+							"name": "Direction",
+							"dir": "out",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "double"
+							},
+							"default": "0.0",
+							"autoDefault": "0.0",
+							"links": [
+								{
+									"node": "0548D2FF4D564E5C80F85F9591BD5A11",
+									"pin": "X"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "ABP_Unarmed",
+								"category": "object",
+								"object": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.ABP_Unarmed_C"
+							},
+							"hidden": true
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Transition",
+			"kind": "sub",
+			"owner": "Idle -> Walk / Run",
+			"parentGraph": "Locomotion",
+			"nodes": [
+				{
+					"id": "830CE54F4B2C6752254C14A6924B5D6D",
+					"class": "AnimGraphNode_TransitionResult",
+					"title": "결과",
+					"role": "other",
+					"kind": "node",
+					"pos": [
+						0,
+						-7
+					],
+					"pins": [
+						{
+							"name": "bCanEnterTransition",
+							"label": "Can Enter Transition",
+							"dir": "in",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "False",
+							"autoDefault": "False",
+							"links": [
+								{
+									"node": "A9100289434D67670CE2DD81548D8842",
+									"pin": "ShouldMove"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "A9100289434D67670CE2DD81548D8842",
+					"class": "K2Node_VariableGet",
+					"title": "Get ShouldMove",
+					"member": "ShouldMove",
+					"memberOwner": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.SKEL_ABP_Unarmed_C",
+					"memberCpp": "bool",
+					"memberName": "ShouldMove",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						-176,
+						16
+					],
+					"pins": [
+						{
+							"name": "ShouldMove",
+							"dir": "out",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false",
+							"links": [
+								{
+									"node": "830CE54F4B2C6752254C14A6924B5D6D",
+									"pin": "bCanEnterTransition"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "ABP_Unarmed",
+								"category": "object",
+								"object": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.ABP_Unarmed_C"
+							},
+							"hidden": true
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Transition",
+			"kind": "sub",
+			"owner": "Walk / Run -> Idle",
+			"parentGraph": "Locomotion",
+			"nodes": [
+				{
+					"id": "A52409944840B6F83140FE8D442119D8",
+					"class": "AnimGraphNode_TransitionResult",
+					"title": "결과",
+					"role": "other",
+					"kind": "node",
+					"pos": [
+						0,
+						-22
+					],
+					"pins": [
+						{
+							"name": "bCanEnterTransition",
+							"label": "Can Enter Transition",
+							"dir": "in",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "False",
+							"autoDefault": "False",
+							"links": [
+								{
+									"node": "B1F1E96E45AC83860316DEB567E8F849",
+									"pin": "ReturnValue"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "486BDD19406CF6B517221196062341B4",
+					"class": "K2Node_VariableGet",
+					"title": "Get ShouldMove",
+					"member": "ShouldMove",
+					"memberOwner": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.SKEL_ABP_Unarmed_C",
+					"memberCpp": "bool",
+					"memberName": "ShouldMove",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						-384,
+						0
+					],
+					"pins": [
+						{
+							"name": "ShouldMove",
+							"dir": "out",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false",
+							"links": [
+								{
+									"node": "B1F1E96E45AC83860316DEB567E8F849",
+									"pin": "A"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "ABP_Unarmed",
+								"category": "object",
+								"object": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.ABP_Unarmed_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "B1F1E96E45AC83860316DEB567E8F849",
+					"class": "K2Node_CallFunction",
+					"title": "NOT Boolean",
+					"member": "Not_PreBool",
+					"memberOwner": "/Script/Engine.KismetMathLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						-224,
+						-1
+					],
+					"pins": [
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "KismetMathLibrary",
+								"category": "object",
+								"object": "/Script/Engine.KismetMathLibrary"
+							},
+							"defaultObject": "/Script/Engine.Default__KismetMathLibrary",
+							"hidden": true
+						},
+						{
+							"name": "A",
+							"dir": "in",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false",
+							"links": [
+								{
+									"node": "486BDD19406CF6B517221196062341B4",
+									"pin": "ShouldMove"
+								}
+							]
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false",
+							"links": [
+								{
+									"node": "A52409944840B6F83140FE8D442119D8",
+									"pin": "bCanEnterTransition"
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Main States",
+			"kind": "sub",
+			"owner": "Main States",
+			"parentGraph": "AnimGraph",
+			"nodes": [
+				{
+					"id": "A0F4EC26460A2E9E244E97B5B7A2A1C0",
+					"class": "AnimStateEntryNode",
+					"title": "Main States",
+					"role": "other",
+					"kind": "node",
+					"pos": [
+						0,
+						128
+					],
+					"pins": [
+						{
+							"name": "Entry",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "C6F732D147034D56AD5B4B854B7E5E0C",
+									"pin": "In"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "C6F732D147034D56AD5B4B854B7E5E0C",
+					"class": "AnimStateNode",
+					"title": "Locomotion",
+					"role": "other",
+					"kind": "node",
+					"pos": [
+						0,
+						0
+					],
+					"pins": [
+						{
+							"name": "In",
+							"dir": "in",
+							"type":
+							{
+								"text": "Transition",
+								"category": "Transition"
+							},
+							"links": [
+								{
+									"node": "A0F4EC26460A2E9E244E97B5B7A2A1C0",
+									"pin": "Entry"
+								},
+								{
+									"node": "0072F1614E26A205BCF087AACA030420",
+									"pin": "Out"
+								},
+								{
+									"node": "03700C194C591A8649EED0A3BC5B9013",
+									"pin": "Out"
+								}
+							]
+						},
+						{
+							"name": "Out",
+							"dir": "out",
+							"type":
+							{
+								"text": "Transition",
+								"category": "Transition"
+							}
+						}
+					]
+				},
+				{
+					"id": "DF7F18D84C07BD59150FBC9DD71F0520",
+					"class": "AnimStateAliasNode",
+					"title": "To Falling",
+					"role": "other",
+					"kind": "node",
+					"pos": [
+						512,
+						-304
+					],
+					"pins": [
+						{
+							"name": "In",
+							"dir": "in",
+							"type":
+							{
+								"text": "Transition",
+								"category": "Transition"
+							}
+						},
+						{
+							"name": "Out",
+							"dir": "out",
+							"type":
+							{
+								"text": "Transition",
+								"category": "Transition"
+							},
+							"links": [
+								{
+									"node": "8862E04143021670886E2C81C4D48F1B",
+									"pin": "In"
+								},
+								{
+									"node": "E3C0EE6A427328A7E433E5B57EA4892C",
+									"pin": "In"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "D5DC713144D886D8838D40B7F5A57447",
+					"class": "AnimStateNode",
+					"title": "Jump",
+					"role": "other",
+					"kind": "node",
+					"pos": [
+						256,
+						-432
+					],
+					"pins": [
+						{
+							"name": "In",
+							"dir": "in",
+							"type":
+							{
+								"text": "Transition",
+								"category": "Transition"
+							},
+							"links": [
+								{
+									"node": "8862E04143021670886E2C81C4D48F1B",
+									"pin": "Out"
+								}
+							]
+						},
+						{
+							"name": "Out",
+							"dir": "out",
+							"type":
+							{
+								"text": "Transition",
+								"category": "Transition"
+							},
+							"links": [
+								{
+									"node": "58C85E6B46384100D925EBA51B929F3C",
+									"pin": "In"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "8862E04143021670886E2C81C4D48F1B",
+					"class": "AnimStateTransitionNode",
+					"title": "To Falling -> Jump",
+					"role": "other",
+					"kind": "node",
+					"pos": [
+						407,
+						-329
+					],
+					"pins": [
+						{
+							"name": "In",
+							"dir": "in",
+							"type":
+							{
+								"text": "Transition",
+								"category": "Transition"
+							},
+							"hidden": true,
+							"links": [
+								{
+									"node": "DF7F18D84C07BD59150FBC9DD71F0520",
+									"pin": "Out"
+								}
+							]
+						},
+						{
+							"name": "Out",
+							"dir": "out",
+							"type":
+							{
+								"text": "Transition",
+								"category": "Transition"
+							},
+							"hidden": true,
+							"links": [
+								{
+									"node": "D5DC713144D886D8838D40B7F5A57447",
+									"pin": "In"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "C21076494A08436815BCFA8C7231181F",
+					"class": "AnimStateNode",
+					"title": "Fall Loop",
+					"role": "other",
+					"kind": "node",
+					"pos": [
+						0,
+						-304
+					],
+					"pins": [
+						{
+							"name": "In",
+							"dir": "in",
+							"type":
+							{
+								"text": "Transition",
+								"category": "Transition"
+							},
+							"links": [
+								{
+									"node": "E3C0EE6A427328A7E433E5B57EA4892C",
+									"pin": "Out"
+								},
+								{
+									"node": "58C85E6B46384100D925EBA51B929F3C",
+									"pin": "Out"
+								}
+							]
+						},
+						{
+							"name": "Out",
+							"dir": "out",
+							"type":
+							{
+								"text": "Transition",
+								"category": "Transition"
+							}
+						}
+					]
+				},
+				{
+					"id": "E3C0EE6A427328A7E433E5B57EA4892C",
+					"class": "AnimStateTransitionNode",
+					"title": "To Falling -> Fall Loop",
+					"role": "other",
+					"kind": "node",
+					"pos": [
+						308,
+						-262
+					],
+					"pins": [
+						{
+							"name": "In",
+							"dir": "in",
+							"type":
+							{
+								"text": "Transition",
+								"category": "Transition"
+							},
+							"hidden": true,
+							"links": [
+								{
+									"node": "DF7F18D84C07BD59150FBC9DD71F0520",
+									"pin": "Out"
+								}
+							]
+						},
+						{
+							"name": "Out",
+							"dir": "out",
+							"type":
+							{
+								"text": "Transition",
+								"category": "Transition"
+							},
+							"hidden": true,
+							"links": [
+								{
+									"node": "C21076494A08436815BCFA8C7231181F",
+									"pin": "In"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "789005AF40EFB219078453B75E6F7F06",
+					"class": "AnimStateAliasNode",
+					"title": "To Land",
+					"role": "other",
+					"kind": "node",
+					"pos": [
+						512,
+						0
+					],
+					"pins": [
+						{
+							"name": "In",
+							"dir": "in",
+							"type":
+							{
+								"text": "Transition",
+								"category": "Transition"
+							}
+						},
+						{
+							"name": "Out",
+							"dir": "out",
+							"type":
+							{
+								"text": "Transition",
+								"category": "Transition"
+							},
+							"links": [
+								{
+									"node": "6520472E4738F3C4F834078562CB9F7A",
+									"pin": "In"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "58C85E6B46384100D925EBA51B929F3C",
+					"class": "AnimStateTransitionNode",
+					"title": "Jump -> Fall Loop",
+					"role": "other",
+					"kind": "node",
+					"pos": [
+						196,
+						-331
+					],
+					"pins": [
+						{
+							"name": "In",
+							"dir": "in",
+							"type":
+							{
+								"text": "Transition",
+								"category": "Transition"
+							},
+							"hidden": true,
+							"links": [
+								{
+									"node": "D5DC713144D886D8838D40B7F5A57447",
+									"pin": "Out"
+								}
+							]
+						},
+						{
+							"name": "Out",
+							"dir": "out",
+							"type":
+							{
+								"text": "Transition",
+								"category": "Transition"
+							},
+							"hidden": true,
+							"links": [
+								{
+									"node": "C21076494A08436815BCFA8C7231181F",
+									"pin": "In"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "7E52DE584E34BE9457063CB5D54909F3",
+					"class": "AnimStateNode",
+					"title": "Land",
+					"role": "other",
+					"kind": "node",
+					"pos": [
+						272,
+						0
+					],
+					"pins": [
+						{
+							"name": "In",
+							"dir": "in",
+							"type":
+							{
+								"text": "Transition",
+								"category": "Transition"
+							},
+							"links": [
+								{
+									"node": "6520472E4738F3C4F834078562CB9F7A",
+									"pin": "Out"
+								}
+							]
+						},
+						{
+							"name": "Out",
+							"dir": "out",
+							"type":
+							{
+								"text": "Transition",
+								"category": "Transition"
+							},
+							"links": [
+								{
+									"node": "0072F1614E26A205BCF087AACA030420",
+									"pin": "In"
+								},
+								{
+									"node": "03700C194C591A8649EED0A3BC5B9013",
+									"pin": "In"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "6520472E4738F3C4F834078562CB9F7A",
+					"class": "AnimStateTransitionNode",
+					"title": "To Land -> Land",
+					"role": "other",
+					"kind": "node",
+					"pos": [
+						426,
+						41
+					],
+					"pins": [
+						{
+							"name": "In",
+							"dir": "in",
+							"type":
+							{
+								"text": "Transition",
+								"category": "Transition"
+							},
+							"hidden": true,
+							"links": [
+								{
+									"node": "789005AF40EFB219078453B75E6F7F06",
+									"pin": "Out"
+								}
+							]
+						},
+						{
+							"name": "Out",
+							"dir": "out",
+							"type":
+							{
+								"text": "Transition",
+								"category": "Transition"
+							},
+							"hidden": true,
+							"links": [
+								{
+									"node": "7E52DE584E34BE9457063CB5D54909F3",
+									"pin": "In"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "0072F1614E26A205BCF087AACA030420",
+					"class": "AnimStateTransitionNode",
+					"title": "Land -> Locomotion",
+					"role": "other",
+					"kind": "node",
+					"pos": [
+						221,
+						41
+					],
+					"pins": [
+						{
+							"name": "In",
+							"dir": "in",
+							"type":
+							{
+								"text": "Transition",
+								"category": "Transition"
+							},
+							"hidden": true,
+							"links": [
+								{
+									"node": "7E52DE584E34BE9457063CB5D54909F3",
+									"pin": "Out"
+								}
+							]
+						},
+						{
+							"name": "Out",
+							"dir": "out",
+							"type":
+							{
+								"text": "Transition",
+								"category": "Transition"
+							},
+							"hidden": true,
+							"links": [
+								{
+									"node": "C6F732D147034D56AD5B4B854B7E5E0C",
+									"pin": "In"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "03700C194C591A8649EED0A3BC5B9013",
+					"class": "AnimStateTransitionNode",
+					"title": "Land -> Locomotion",
+					"role": "other",
+					"kind": "node",
+					"pos": [
+						179,
+						41
+					],
+					"pins": [
+						{
+							"name": "In",
+							"dir": "in",
+							"type":
+							{
+								"text": "Transition",
+								"category": "Transition"
+							},
+							"hidden": true,
+							"links": [
+								{
+									"node": "7E52DE584E34BE9457063CB5D54909F3",
+									"pin": "Out"
+								}
+							]
+						},
+						{
+							"name": "Out",
+							"dir": "out",
+							"type":
+							{
+								"text": "Transition",
+								"category": "Transition"
+							},
+							"hidden": true,
+							"links": [
+								{
+									"node": "C6F732D147034D56AD5B4B854B7E5E0C",
+									"pin": "In"
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Locomotion",
+			"kind": "sub",
+			"owner": "Locomotion",
+			"parentGraph": "Main States",
+			"nodes": [
+				{
+					"id": "DA9EBF6646B82B37AE35A982A4179D83",
+					"class": "AnimGraphNode_StateResult",
+					"title": "애니메이션 포즈 출력",
+					"role": "other",
+					"kind": "node",
+					"pos": [
+						0,
+						0
+					],
+					"pins": [
+						{
+							"name": "Result",
+							"dir": "in",
+							"type":
+							{
+								"text": "PoseLink",
+								"category": "struct",
+								"object": "/Script/Engine.PoseLink"
+							},
+							"default": "(LinkID=-1,SourceLinkID=-1)",
+							"autoDefault": "(LinkID=-1,SourceLinkID=-1)",
+							"links": [
+								{
+									"node": "CF9C5D0241BB55EAD2E575AB5F81BE99",
+									"pin": "Pose"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "CF9C5D0241BB55EAD2E575AB5F81BE99",
+					"class": "AnimGraphNode_UseCachedPose",
+					"title": "'Locomotion' 캐시 포즈를 사용합니다.",
+					"role": "other",
+					"kind": "node",
+					"pos": [
+						-384,
+						0
+					],
+					"pins": [
+						{
+							"name": "Pose",
+							"dir": "out",
+							"type":
+							{
+								"text": "PoseLink",
+								"category": "struct",
+								"object": "/Script/Engine.PoseLink"
+							},
+							"links": [
+								{
+									"node": "DA9EBF6646B82B37AE35A982A4179D83",
+									"pin": "Result"
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Jump",
+			"kind": "sub",
+			"owner": "Jump",
+			"parentGraph": "Main States",
+			"nodes": [
+				{
+					"id": "A3BDAD5B42DED18140C297B42F63DF29",
+					"class": "AnimGraphNode_StateResult",
+					"title": "애니메이션 포즈 출력",
+					"role": "other",
+					"kind": "node",
+					"pos": [
+						0,
+						0
+					],
+					"pins": [
+						{
+							"name": "Result",
+							"dir": "in",
+							"type":
+							{
+								"text": "PoseLink",
+								"category": "struct",
+								"object": "/Script/Engine.PoseLink"
+							},
+							"default": "(LinkID=-1,SourceLinkID=-1)",
+							"autoDefault": "(LinkID=-1,SourceLinkID=-1)",
+							"links": [
+								{
+									"node": "B958FF2248562BBCAAC692BFD327B635",
+									"pin": "Pose"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "B958FF2248562BBCAAC692BFD327B635",
+					"class": "AnimGraphNode_SequencePlayer",
+					"title": "MM_Jump\n시퀀스 플레이어",
+					"role": "other",
+					"kind": "node",
+					"pos": [
+						-256,
+						-16
+					],
+					"pins": [
+						{
+							"name": "Pose",
+							"dir": "out",
+							"type":
+							{
+								"text": "PoseLink",
+								"category": "struct",
+								"object": "/Script/Engine.PoseLink"
+							},
+							"links": [
+								{
+									"node": "A3BDAD5B42DED18140C297B42F63DF29",
+									"pin": "Result"
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Transition",
+			"kind": "sub",
+			"owner": "To Falling -> Jump",
+			"parentGraph": "Main States",
+			"nodes": [
+				{
+					"id": "0E3DC2854F5C527DFEECC298E8C3D6FA",
+					"class": "AnimGraphNode_TransitionResult",
+					"title": "결과",
+					"role": "other",
+					"kind": "node",
+					"pos": [
+						-48,
+						6
+					],
+					"pins": [
+						{
+							"name": "bCanEnterTransition",
+							"label": "Can Enter Transition",
+							"dir": "in",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "False",
+							"autoDefault": "False",
+							"links": [
+								{
+									"node": "C6A5D3174E1EADB3FE53E38917D726E2",
+									"pin": "ReturnValue"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "6334E681462106F7C21CACA51A19AFC0",
+					"class": "K2Node_VariableGet",
+					"title": "Get IsFalling",
+					"member": "IsFalling",
+					"memberOwner": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.SKEL_ABP_Unarmed_C",
+					"memberCpp": "bool",
+					"memberName": "IsFalling",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						-432,
+						-16
+					],
+					"pins": [
+						{
+							"name": "IsFalling",
+							"dir": "out",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false",
+							"links": [
+								{
+									"node": "C6A5D3174E1EADB3FE53E38917D726E2",
+									"pin": "A"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "ABP_Unarmed",
+								"category": "object",
+								"object": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.ABP_Unarmed_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "C6A5D3174E1EADB3FE53E38917D726E2",
+					"class": "K2Node_CommutativeAssociativeBinaryOperator",
+					"title": "AND Boolean",
+					"member": "BooleanAND",
+					"memberOwner": "/Script/Engine.KismetMathLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						-272,
+						32
+					],
+					"pins": [
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "KismetMathLibrary",
+								"category": "object",
+								"object": "/Script/Engine.KismetMathLibrary"
+							},
+							"defaultObject": "/Script/Engine.Default__KismetMathLibrary",
+							"hidden": true
+						},
+						{
+							"name": "A",
+							"dir": "in",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false",
+							"links": [
+								{
+									"node": "6334E681462106F7C21CACA51A19AFC0",
+									"pin": "IsFalling"
+								}
+							]
+						},
+						{
+							"name": "B",
+							"dir": "in",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false",
+							"links": [
+								{
+									"node": "3F55B36145AF0C7AD472788E5797570E",
+									"pin": "ReturnValue"
+								}
+							]
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false",
+							"links": [
+								{
+									"node": "0E3DC2854F5C527DFEECC298E8C3D6FA",
+									"pin": "bCanEnterTransition"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "8B1CEB5F4E76EC8712327EA980E8E12E",
+					"class": "K2Node_VariableGet",
+					"title": "Get",
+					"member": "Velocity",
+					"memberOwner": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.SKEL_ABP_Unarmed_C",
+					"memberCpp": "FVector",
+					"memberName": "Velocity",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						-608,
+						64
+					],
+					"pins": [
+						{
+							"name": "Velocity",
+							"dir": "out",
+							"type":
+							{
+								"text": "Vector",
+								"category": "struct",
+								"object": "/Script/CoreUObject.Vector"
+							},
+							"default": "0, 0, 0",
+							"autoDefault": "0, 0, 0",
+							"hidden": true,
+							"split": true
+						},
+						{
+							"name": "Velocity_X",
+							"label": "Velocity X",
+							"dir": "out",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "double"
+							},
+							"default": "0.0",
+							"autoDefault": "0.0",
+							"splitFrom": "Velocity"
+						},
+						{
+							"name": "Velocity_Y",
+							"label": "Velocity Y",
+							"dir": "out",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "double"
+							},
+							"default": "0.0",
+							"autoDefault": "0.0",
+							"splitFrom": "Velocity"
+						},
+						{
+							"name": "Velocity_Z",
+							"label": "Velocity Z",
+							"dir": "out",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "double"
+							},
+							"default": "0.0",
+							"autoDefault": "0.0",
+							"splitFrom": "Velocity",
+							"links": [
+								{
+									"node": "3F55B36145AF0C7AD472788E5797570E",
+									"pin": "A"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "ABP_Unarmed",
+								"category": "object",
+								"object": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.ABP_Unarmed_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "3F55B36145AF0C7AD472788E5797570E",
+					"class": "K2Node_PromotableOperator",
+					"title": "float > float",
+					"member": "Greater_DoubleDouble",
+					"memberOwner": "/Script/Engine.KismetMathLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						-464,
+						80
+					],
+					"pins": [
+						{
+							"name": "A",
+							"dir": "in",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "double"
+							},
+							"links": [
+								{
+									"node": "8B1CEB5F4E76EC8712327EA980E8E12E",
+									"pin": "Velocity_Z"
+								}
+							]
+						},
+						{
+							"name": "B",
+							"dir": "in",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "double"
+							},
+							"default": "100.000000"
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"links": [
+								{
+									"node": "C6A5D3174E1EADB3FE53E38917D726E2",
+									"pin": "B"
+								}
+							]
+						},
+						{
+							"name": "ErrorTolerance",
+							"dir": "in",
+							"type":
+							{
+								"text": "None",
+								"category": "None"
+							},
+							"hidden": true
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Fall Loop",
+			"kind": "sub",
+			"owner": "Fall Loop",
+			"parentGraph": "Main States",
+			"nodes": [
+				{
+					"id": "752729F84FA5EDC48443D4AE19A30B6D",
+					"class": "AnimGraphNode_StateResult",
+					"title": "애니메이션 포즈 출력",
+					"role": "other",
+					"kind": "node",
+					"pos": [
+						0,
+						0
+					],
+					"pins": [
+						{
+							"name": "Result",
+							"dir": "in",
+							"type":
+							{
+								"text": "PoseLink",
+								"category": "struct",
+								"object": "/Script/Engine.PoseLink"
+							},
+							"default": "(LinkID=-1,SourceLinkID=-1)",
+							"autoDefault": "(LinkID=-1,SourceLinkID=-1)",
+							"links": [
+								{
+									"node": "54C84113400F569D392573B7120AB2D4",
+									"pin": "Pose"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "54C84113400F569D392573B7120AB2D4",
+					"class": "AnimGraphNode_SequencePlayer",
+					"title": "MM_Fall_Loop\n시퀀스 플레이어",
+					"role": "other",
+					"kind": "node",
+					"pos": [
+						-384,
+						-16
+					],
+					"pins": [
+						{
+							"name": "Pose",
+							"dir": "out",
+							"type":
+							{
+								"text": "PoseLink",
+								"category": "struct",
+								"object": "/Script/Engine.PoseLink"
+							},
+							"links": [
+								{
+									"node": "752729F84FA5EDC48443D4AE19A30B6D",
+									"pin": "Result"
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Transition",
+			"kind": "sub",
+			"owner": "To Falling -> Fall Loop",
+			"parentGraph": "Main States",
+			"nodes": [
+				{
+					"id": "B12202DE4183702E50D522BA64767691",
+					"class": "AnimGraphNode_TransitionResult",
+					"title": "결과",
+					"role": "other",
+					"kind": "node",
+					"pos": [
+						0,
+						-7
+					],
+					"pins": [
+						{
+							"name": "bCanEnterTransition",
+							"label": "Can Enter Transition",
+							"dir": "in",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "False",
+							"autoDefault": "False",
+							"links": [
+								{
+									"node": "6AE5B109453A96F245D2E884713F90A2",
+									"pin": "IsFalling"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "6AE5B109453A96F245D2E884713F90A2",
+					"class": "K2Node_VariableGet",
+					"title": "Get IsFalling",
+					"member": "IsFalling",
+					"memberOwner": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.SKEL_ABP_Unarmed_C",
+					"memberCpp": "bool",
+					"memberName": "IsFalling",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						-256,
+						16
+					],
+					"pins": [
+						{
+							"name": "IsFalling",
+							"dir": "out",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false",
+							"links": [
+								{
+									"node": "B12202DE4183702E50D522BA64767691",
+									"pin": "bCanEnterTransition"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "ABP_Unarmed",
+								"category": "object",
+								"object": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.ABP_Unarmed_C"
+							},
+							"hidden": true
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Transition",
+			"kind": "sub",
+			"owner": "Jump -> Fall Loop",
+			"parentGraph": "Main States",
+			"nodes": [
+				{
+					"id": "F82C83D54858DAE6E2D9D79D1CA98EC2",
+					"class": "AnimGraphNode_TransitionResult",
+					"title": "결과",
+					"role": "other",
+					"kind": "node",
+					"pos": [
+						0,
+						0
+					],
+					"pins": [
+						{
+							"name": "bCanEnterTransition",
+							"label": "Can Enter Transition",
+							"dir": "in",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "False",
+							"autoDefault": "False"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Land",
+			"kind": "sub",
+			"owner": "Land",
+			"parentGraph": "Main States",
+			"nodes": [
+				{
+					"id": "028F2F2B401F9E755DDFD9BF13F2C71F",
+					"class": "AnimGraphNode_StateResult",
+					"title": "애니메이션 포즈 출력",
+					"role": "other",
+					"kind": "node",
+					"pos": [
+						0,
+						0
+					],
+					"pins": [
+						{
+							"name": "Result",
+							"dir": "in",
+							"type":
+							{
+								"text": "PoseLink",
+								"category": "struct",
+								"object": "/Script/Engine.PoseLink"
+							},
+							"default": "(LinkID=-1,SourceLinkID=-1)",
+							"autoDefault": "(LinkID=-1,SourceLinkID=-1)",
+							"links": [
+								{
+									"node": "CA514C7E41C50ABA34C154BE1C373F37",
+									"pin": "Pose"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "CA514C7E41C50ABA34C154BE1C373F37",
+					"class": "AnimGraphNode_SequencePlayer",
+					"title": "MM_Land\n시퀀스 플레이어",
+					"role": "other",
+					"kind": "node",
+					"pos": [
+						-256,
+						-16
+					],
+					"pins": [
+						{
+							"name": "Pose",
+							"dir": "out",
+							"type":
+							{
+								"text": "PoseLink",
+								"category": "struct",
+								"object": "/Script/Engine.PoseLink"
+							},
+							"links": [
+								{
+									"node": "028F2F2B401F9E755DDFD9BF13F2C71F",
+									"pin": "Result"
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Transition",
+			"kind": "sub",
+			"owner": "To Land -> Land",
+			"parentGraph": "Main States",
+			"nodes": [
+				{
+					"id": "B821F34A4663F77DB84ABE98CD86B668",
+					"class": "AnimGraphNode_TransitionResult",
+					"title": "결과",
+					"role": "other",
+					"kind": "node",
+					"pos": [
+						0,
+						-22
+					],
+					"pins": [
+						{
+							"name": "bCanEnterTransition",
+							"label": "Can Enter Transition",
+							"dir": "in",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "False",
+							"autoDefault": "False",
+							"links": [
+								{
+									"node": "52F7DBE24DF3A1DE6A4584A8DD9F191C",
+									"pin": "ReturnValue"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "432488DF4B276CE17EA41F99B188C994",
+					"class": "K2Node_VariableGet",
+					"title": "Get IsFalling",
+					"member": "IsFalling",
+					"memberOwner": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.SKEL_ABP_Unarmed_C",
+					"memberCpp": "bool",
+					"memberName": "IsFalling",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						-336,
+						0
+					],
+					"pins": [
+						{
+							"name": "IsFalling",
+							"dir": "out",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false",
+							"links": [
+								{
+									"node": "52F7DBE24DF3A1DE6A4584A8DD9F191C",
+									"pin": "A"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "ABP_Unarmed",
+								"category": "object",
+								"object": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.ABP_Unarmed_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "52F7DBE24DF3A1DE6A4584A8DD9F191C",
+					"class": "K2Node_CallFunction",
+					"title": "NOT Boolean",
+					"member": "Not_PreBool",
+					"memberOwner": "/Script/Engine.KismetMathLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						-192,
+						-1
+					],
+					"pins": [
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "KismetMathLibrary",
+								"category": "object",
+								"object": "/Script/Engine.KismetMathLibrary"
+							},
+							"defaultObject": "/Script/Engine.Default__KismetMathLibrary",
+							"hidden": true
+						},
+						{
+							"name": "A",
+							"dir": "in",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false",
+							"links": [
+								{
+									"node": "432488DF4B276CE17EA41F99B188C994",
+									"pin": "IsFalling"
+								}
+							]
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false",
+							"links": [
+								{
+									"node": "B821F34A4663F77DB84ABE98CD86B668",
+									"pin": "bCanEnterTransition"
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Transition",
+			"kind": "sub",
+			"owner": "Land -> Locomotion",
+			"parentGraph": "Main States",
+			"nodes": [
+				{
+					"id": "CBBBAC114191577B4E8FED9AD3CAA4E1",
+					"class": "AnimGraphNode_TransitionResult",
+					"title": "결과",
+					"role": "other",
+					"kind": "node",
+					"pos": [
+						0,
+						0
+					],
+					"pins": [
+						{
+							"name": "bCanEnterTransition",
+							"label": "Can Enter Transition",
+							"dir": "in",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "False",
+							"autoDefault": "False"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Transition",
+			"kind": "sub",
+			"owner": "Land -> Locomotion",
+			"parentGraph": "Main States",
+			"nodes": [
+				{
+					"id": "7784452949955E1C4D92EE8B0E675ECD",
+					"class": "AnimGraphNode_TransitionResult",
+					"title": "결과",
+					"role": "other",
+					"kind": "node",
+					"pos": [
+						0,
+						-7
+					],
+					"pins": [
+						{
+							"name": "bCanEnterTransition",
+							"label": "Can Enter Transition",
+							"dir": "in",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "False",
+							"autoDefault": "False",
+							"links": [
+								{
+									"node": "3304A4CB443742029016038415B09CB2",
+									"pin": "ShouldMove"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "3304A4CB443742029016038415B09CB2",
+					"class": "K2Node_VariableGet",
+					"title": "Get ShouldMove",
+					"member": "ShouldMove",
+					"memberOwner": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.SKEL_ABP_Unarmed_C",
+					"memberCpp": "bool",
+					"memberName": "ShouldMove",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						-192,
+						16
+					],
+					"pins": [
+						{
+							"name": "ShouldMove",
+							"dir": "out",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false",
+							"links": [
+								{
+									"node": "7784452949955E1C4D92EE8B0E675ECD",
+									"pin": "bCanEnterTransition"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "ABP_Unarmed",
+								"category": "object",
+								"object": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.ABP_Unarmed_C"
+							},
+							"hidden": true
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "EventGraph",
+			"kind": "event",
+			"nodes": [
+				{
+					"id": "98D0BB544E19DCF9AD0DAAA0C832F6D0",
+					"class": "K2Node_Event",
+					"title": "BlueprintUpdateAnimation 이벤트",
+					"member": "BlueprintUpdateAnimation",
+					"memberOwner": "/Script/Engine.AnimInstance",
+					"override": true,
+					"role": "event",
+					"kind": "event",
+					"pos": [
+						-1264,
+						-112
+					],
+					"pins": [
+						{
+							"name": "OutputDelegate",
+							"dir": "out",
+							"type":
+							{
+								"text": "delegate",
+								"category": "delegate"
+							}
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "68C189E4499FCDD2A6D94C94A55B46EB",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "DeltaTimeX",
+							"dir": "out",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "float"
+							},
+							"default": "0.0",
+							"autoDefault": "0.0"
+						}
+					]
+				},
+				{
+					"id": "339C7E80414ADB1E2BEBD5AACF950D2D",
+					"class": "K2Node_Event",
+					"title": "BlueprintInitializeAnimation 이벤트",
+					"member": "BlueprintInitializeAnimation",
+					"memberOwner": "/Script/Engine.AnimInstance",
+					"override": true,
+					"role": "event",
+					"kind": "event",
+					"pos": [
+						-1264,
+						-640
+					],
+					"pins": [
+						{
+							"name": "OutputDelegate",
+							"dir": "out",
+							"type":
+							{
+								"text": "delegate",
+								"category": "delegate"
+							}
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "F83B1190492DF16C27725F86140AA505",
+									"pin": "execute"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "68C189E4499FCDD2A6D94C94A55B46EB",
+					"class": "K2Node_VariableGet",
+					"title": "Get",
+					"member": "Character",
+					"memberOwner": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.SKEL_ABP_Unarmed_C",
+					"memberCpp": "ACharacter*",
+					"memberName": "Character",
+					"role": "variable",
+					"kind": "get",
+					"pos": [
+						-880,
+						-112
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "98D0BB544E19DCF9AD0DAAA0C832F6D0",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"label": "유효한지",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "DA1DBDCF4012FA38E5018BACADCC84B2",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "else",
+							"label": "유효하지 않은지",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "Character",
+							"dir": "out",
+							"type":
+							{
+								"text": "Character",
+								"category": "object",
+								"object": "/Script/Engine.Character"
+							}
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "ABP_Unarmed",
+								"category": "object",
+								"object": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.ABP_Unarmed_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "23FAB2764CC016F3D763558C7FC61CE8",
+					"class": "K2Node_CallFunction",
+					"title": "Get Owning Actor\n타깃은 Anim Instance",
+					"member": "GetOwningActor",
+					"memberOwner": "/Script/Engine.AnimInstance",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Const"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						-1216,
+						-576
+					],
+					"pins": [
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "AnimInstance",
+								"category": "object",
+								"object": "/Script/Engine.AnimInstance"
+							}
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "Actor",
+								"category": "object",
+								"object": "/Script/Engine.Actor"
+							},
+							"links": [
+								{
+									"node": "F83B1190492DF16C27725F86140AA505",
+									"pin": "Object"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "F83B1190492DF16C27725F86140AA505",
+					"class": "K2Node_DynamicCast",
+					"title": "Cast To Character",
+					"member": "/Script/Engine.Character",
+					"role": "cast",
+					"kind": "cast",
+					"pos": [
+						-912,
+						-640
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "339C7E80414ADB1E2BEBD5AACF950D2D",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "B933F21D42F09F880AA13892B5BF428D",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "CastFailed",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "Object",
+							"dir": "in",
+							"type":
+							{
+								"text": "Object",
+								"category": "object",
+								"object": "/Script/CoreUObject.Object"
+							},
+							"links": [
+								{
+									"node": "23FAB2764CC016F3D763558C7FC61CE8",
+									"pin": "ReturnValue"
+								}
+							]
+						},
+						{
+							"name": "AsCharacter",
+							"dir": "out",
+							"type":
+							{
+								"text": "Character",
+								"category": "object",
+								"object": "/Script/Engine.Character"
+							},
+							"links": [
+								{
+									"node": "B933F21D42F09F880AA13892B5BF428D",
+									"pin": "Character"
+								}
+							]
+						},
+						{
+							"name": "bSuccess",
+							"dir": "out",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "1F5FF1764918AECE5A9D948F3F0B8F52",
+					"class": "K2Node_VariableGet",
+					"title": "Get CharacterMovement",
+					"member": "CharacterMovement",
+					"memberOwner": "/Script/Engine.Character",
+					"memberCpp": "TObjectPtr<UCharacterMovementComponent>",
+					"memberName": "CharacterMovement",
+					"memberAccess": "private",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						-448,
+						-560
+					],
+					"pins": [
+						{
+							"name": "CharacterMovement",
+							"label": "Character Movement",
+							"dir": "out",
+							"type":
+							{
+								"text": "CharacterMovementComponent",
+								"category": "object",
+								"object": "/Script/Engine.CharacterMovementComponent"
+							},
+							"links": [
+								{
+									"node": "6D1B74B0430E07949A9648B339239594",
+									"pin": "MovementComponent"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "Character",
+								"category": "object",
+								"object": "/Script/Engine.Character"
+							},
+							"links": [
+								{
+									"node": "B933F21D42F09F880AA13892B5BF428D",
+									"pin": "Output_Get"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "B933F21D42F09F880AA13892B5BF428D",
+					"class": "K2Node_VariableSet",
+					"title": "Set Character",
+					"member": "Character",
+					"memberOwner": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.SKEL_ABP_Unarmed_C",
+					"memberCpp": "ACharacter*",
+					"memberName": "Character",
+					"role": "variable",
+					"kind": "set",
+					"pos": [
+						-656,
+						-624
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "F83B1190492DF16C27725F86140AA505",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "6D1B74B0430E07949A9648B339239594",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "Character",
+							"dir": "in",
+							"type":
+							{
+								"text": "Character",
+								"category": "object",
+								"object": "/Script/Engine.Character"
+							},
+							"links": [
+								{
+									"node": "F83B1190492DF16C27725F86140AA505",
+									"pin": "AsCharacter"
+								}
+							]
+						},
+						{
+							"name": "Output_Get",
+							"dir": "out",
+							"type":
+							{
+								"text": "Character",
+								"category": "object",
+								"object": "/Script/Engine.Character"
+							},
+							"links": [
+								{
+									"node": "1F5FF1764918AECE5A9D948F3F0B8F52",
+									"pin": "self"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "ABP_Unarmed",
+								"category": "object",
+								"object": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.ABP_Unarmed_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "6D1B74B0430E07949A9648B339239594",
+					"class": "K2Node_VariableSet",
+					"title": "Set MovementComponent",
+					"member": "MovementComponent",
+					"memberOwner": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.SKEL_ABP_Unarmed_C",
+					"memberCpp": "UCharacterMovementComponent*",
+					"memberName": "MovementComponent",
+					"role": "variable",
+					"kind": "set",
+					"pos": [
+						-144,
+						-624
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "B933F21D42F09F880AA13892B5BF428D",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "MovementComponent",
+							"dir": "in",
+							"type":
+							{
+								"text": "CharacterMovementComponent",
+								"category": "object",
+								"object": "/Script/Engine.CharacterMovementComponent"
+							},
+							"links": [
+								{
+									"node": "1F5FF1764918AECE5A9D948F3F0B8F52",
+									"pin": "CharacterMovement"
+								}
+							]
+						},
+						{
+							"name": "Output_Get",
+							"dir": "out",
+							"type":
+							{
+								"text": "CharacterMovementComponent",
+								"category": "object",
+								"object": "/Script/Engine.CharacterMovementComponent"
+							}
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "ABP_Unarmed",
+								"category": "object",
+								"object": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.ABP_Unarmed_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "DA1DBDCF4012FA38E5018BACADCC84B2",
+					"class": "K2Node_ExecutionSequence",
+					"title": "시퀀스",
+					"role": "other",
+					"kind": "sequence",
+					"pos": [
+						-528,
+						-112
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "68C189E4499FCDD2A6D94C94A55B46EB",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then_0",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "F80A771D4CB48C86728FF28FCC42FCE4",
+									"pin": "InputPin"
+								}
+							]
+						},
+						{
+							"name": "then_1",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "DBA4829D47D793019F696AAAEFCE981F",
+									"pin": "InputPin"
+								}
+							]
+						},
+						{
+							"name": "then_2",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "A642F22344E86023662F388418815D49",
+									"pin": "InputPin"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "EB7C997947872223E6B1FB8D0AF984BE",
+					"class": "K2Node_VariableSet",
+					"title": "Set Velocity",
+					"member": "Velocity",
+					"memberOwner": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.SKEL_ABP_Unarmed_C",
+					"memberCpp": "FVector",
+					"memberName": "Velocity",
+					"role": "variable",
+					"kind": "set",
+					"pos": [
+						144,
+						-224
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "F80A771D4CB48C86728FF28FCC42FCE4",
+									"pin": "OutputPin"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "454EA064492A35091FFBF1BCF163610C",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "Velocity",
+							"dir": "in",
+							"type":
+							{
+								"text": "Vector",
+								"category": "struct",
+								"object": "/Script/CoreUObject.Vector"
+							},
+							"default": "0, 0, 0",
+							"autoDefault": "0, 0, 0",
+							"links": [
+								{
+									"node": "8F0F23FC44118FF69EE347878B363CB7",
+									"pin": "Velocity"
+								}
+							]
+						},
+						{
+							"name": "Output_Get",
+							"dir": "out",
+							"type":
+							{
+								"text": "Vector",
+								"category": "struct",
+								"object": "/Script/CoreUObject.Vector"
+							},
+							"default": "0, 0, 0",
+							"autoDefault": "0, 0, 0",
+							"links": [
+								{
+									"node": "31092E8C477FB1E30815F1BD9B6855B3",
+									"pin": "A"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "ABP_Unarmed",
+								"category": "object",
+								"object": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.ABP_Unarmed_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "E43AFC7045224EB804F96B8D7E12FB58",
+					"class": "K2Node_VariableGet",
+					"title": "Get MovementComponent",
+					"member": "MovementComponent",
+					"memberOwner": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.SKEL_ABP_Unarmed_C",
+					"memberCpp": "UCharacterMovementComponent*",
+					"memberName": "MovementComponent",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						-240,
+						-176
+					],
+					"pins": [
+						{
+							"name": "MovementComponent",
+							"dir": "out",
+							"type":
+							{
+								"text": "CharacterMovementComponent",
+								"category": "object",
+								"object": "/Script/Engine.CharacterMovementComponent"
+							},
+							"links": [
+								{
+									"node": "8F0F23FC44118FF69EE347878B363CB7",
+									"pin": "self"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "ABP_Unarmed",
+								"category": "object",
+								"object": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.ABP_Unarmed_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "8F0F23FC44118FF69EE347878B363CB7",
+					"class": "K2Node_VariableGet",
+					"title": "Get Velocity",
+					"member": "Velocity",
+					"memberOwner": "/Script/Engine.MovementComponent",
+					"memberCpp": "FVector",
+					"memberName": "Velocity",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						-48,
+						-176
+					],
+					"pins": [
+						{
+							"name": "Velocity",
+							"dir": "out",
+							"type":
+							{
+								"text": "Vector",
+								"category": "struct",
+								"object": "/Script/CoreUObject.Vector"
+							},
+							"default": "0, 0, 0",
+							"autoDefault": "0, 0, 0",
+							"links": [
+								{
+									"node": "EB7C997947872223E6B1FB8D0AF984BE",
+									"pin": "Velocity"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "MovementComponent",
+								"category": "object",
+								"object": "/Script/Engine.MovementComponent"
+							},
+							"links": [
+								{
+									"node": "E43AFC7045224EB804F96B8D7E12FB58",
+									"pin": "MovementComponent"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "31092E8C477FB1E30815F1BD9B6855B3",
+					"class": "K2Node_CallFunction",
+					"title": "Vector Length XY",
+					"member": "VSizeXY",
+					"memberOwner": "/Script/Engine.KismetMathLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						320,
+						-192
+					],
+					"pins": [
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "KismetMathLibrary",
+								"category": "object",
+								"object": "/Script/Engine.KismetMathLibrary"
+							},
+							"defaultObject": "/Script/Engine.Default__KismetMathLibrary",
+							"hidden": true
+						},
+						{
+							"name": "A",
+							"dir": "in",
+							"type":
+							{
+								"text": "Vector",
+								"category": "struct",
+								"object": "/Script/CoreUObject.Vector"
+							},
+							"default": "0, 0, 0",
+							"autoDefault": "0, 0, 0",
+							"links": [
+								{
+									"node": "EB7C997947872223E6B1FB8D0AF984BE",
+									"pin": "Output_Get"
+								}
+							]
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "double"
+							},
+							"default": "0.0",
+							"autoDefault": "0.0",
+							"links": [
+								{
+									"node": "454EA064492A35091FFBF1BCF163610C",
+									"pin": "GroundSpeed"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "454EA064492A35091FFBF1BCF163610C",
+					"class": "K2Node_VariableSet",
+					"title": "Set GroundSpeed",
+					"member": "GroundSpeed",
+					"memberOwner": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.SKEL_ABP_Unarmed_C",
+					"memberCpp": "double",
+					"memberName": "GroundSpeed",
+					"role": "variable",
+					"kind": "set",
+					"pos": [
+						528,
+						-224
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "EB7C997947872223E6B1FB8D0AF984BE",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "BCBD703348373BE5A799DD9FF9CB569E",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "GroundSpeed",
+							"dir": "in",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "double"
+							},
+							"default": "0.0",
+							"autoDefault": "0.0",
+							"links": [
+								{
+									"node": "31092E8C477FB1E30815F1BD9B6855B3",
+									"pin": "ReturnValue"
+								}
+							]
+						},
+						{
+							"name": "Output_Get",
+							"dir": "out",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "double"
+							},
+							"default": "0.0",
+							"autoDefault": "0.0"
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "ABP_Unarmed",
+								"category": "object",
+								"object": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.ABP_Unarmed_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "F80A771D4CB48C86728FF28FCC42FCE4",
+					"class": "K2Node_Knot",
+					"title": "경유 노드",
+					"role": "other",
+					"kind": "knot",
+					"pure": true,
+					"pos": [
+						-256,
+						-208
+					],
+					"pins": [
+						{
+							"name": "InputPin",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "DA1DBDCF4012FA38E5018BACADCC84B2",
+									"pin": "then_0"
+								}
+							]
+						},
+						{
+							"name": "OutputPin",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "EB7C997947872223E6B1FB8D0AF984BE",
+									"pin": "execute"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "7E838DBE4E664F51E389899658E13632",
+					"class": "K2Node_VariableSet",
+					"title": "Set ShouldMove",
+					"member": "ShouldMove",
+					"memberOwner": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.SKEL_ABP_Unarmed_C",
+					"memberCpp": "bool",
+					"memberName": "ShouldMove",
+					"role": "variable",
+					"kind": "set",
+					"pos": [
+						768,
+						16
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "DBA4829D47D793019F696AAAEFCE981F",
+									"pin": "OutputPin"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "ShouldMove",
+							"dir": "in",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false",
+							"links": [
+								{
+									"node": "91423472465BFF1F9AEBFFAE9555D725",
+									"pin": "ReturnValue"
+								}
+							]
+						},
+						{
+							"name": "Output_Get",
+							"dir": "out",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false"
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "ABP_Unarmed",
+								"category": "object",
+								"object": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.ABP_Unarmed_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "DBA4829D47D793019F696AAAEFCE981F",
+					"class": "K2Node_Knot",
+					"title": "경유 노드",
+					"role": "other",
+					"kind": "knot",
+					"pure": true,
+					"pos": [
+						-256,
+						32
+					],
+					"pins": [
+						{
+							"name": "InputPin",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "DA1DBDCF4012FA38E5018BACADCC84B2",
+									"pin": "then_1"
+								}
+							]
+						},
+						{
+							"name": "OutputPin",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "7E838DBE4E664F51E389899658E13632",
+									"pin": "execute"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "D86F06F84DFE201AD23833B40ACEAAB2",
+					"class": "K2Node_VariableGet",
+					"title": "Get GroundSpeed",
+					"member": "GroundSpeed",
+					"memberOwner": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.SKEL_ABP_Unarmed_C",
+					"memberCpp": "double",
+					"memberName": "GroundSpeed",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						240,
+						64
+					],
+					"pins": [
+						{
+							"name": "GroundSpeed",
+							"dir": "out",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "double"
+							},
+							"default": "0.0",
+							"autoDefault": "0.0",
+							"links": [
+								{
+									"node": "C8363C90486CD63EA8B887A21B139EEB",
+									"pin": "A"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "ABP_Unarmed",
+								"category": "object",
+								"object": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.ABP_Unarmed_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "C8363C90486CD63EA8B887A21B139EEB",
+					"class": "K2Node_PromotableOperator",
+					"title": "float > float",
+					"member": "Greater_DoubleDouble",
+					"memberOwner": "/Script/Engine.KismetMathLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						384,
+						64
+					],
+					"pins": [
+						{
+							"name": "A",
+							"dir": "in",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "double"
+							},
+							"links": [
+								{
+									"node": "D86F06F84DFE201AD23833B40ACEAAB2",
+									"pin": "GroundSpeed"
+								}
+							]
+						},
+						{
+							"name": "B",
+							"dir": "in",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "double"
+							},
+							"default": "0.010000"
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"links": [
+								{
+									"node": "91423472465BFF1F9AEBFFAE9555D725",
+									"pin": "A"
+								}
+							]
+						},
+						{
+							"name": "ErrorTolerance",
+							"dir": "in",
+							"type":
+							{
+								"text": "None",
+								"category": "None"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "91423472465BFF1F9AEBFFAE9555D725",
+					"class": "K2Node_CommutativeAssociativeBinaryOperator",
+					"title": "AND Boolean",
+					"member": "BooleanAND",
+					"memberOwner": "/Script/Engine.KismetMathLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						576,
+						112
+					],
+					"pins": [
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "KismetMathLibrary",
+								"category": "object",
+								"object": "/Script/Engine.KismetMathLibrary"
+							},
+							"defaultObject": "/Script/Engine.Default__KismetMathLibrary",
+							"hidden": true
+						},
+						{
+							"name": "A",
+							"dir": "in",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false",
+							"links": [
+								{
+									"node": "C8363C90486CD63EA8B887A21B139EEB",
+									"pin": "ReturnValue"
+								}
+							]
+						},
+						{
+							"name": "B",
+							"dir": "in",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false",
+							"links": [
+								{
+									"node": "205FBB2141DF350A890580B651C62142",
+									"pin": "ReturnValue"
+								}
+							]
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false",
+							"links": [
+								{
+									"node": "7E838DBE4E664F51E389899658E13632",
+									"pin": "ShouldMove"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "EBE527B842ED713CADA7C8932A7FABD9",
+					"class": "K2Node_VariableGet",
+					"title": "Get MovementComponent",
+					"member": "MovementComponent",
+					"memberOwner": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.SKEL_ABP_Unarmed_C",
+					"memberCpp": "UCharacterMovementComponent*",
+					"memberName": "MovementComponent",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						-256,
+						144
+					],
+					"pins": [
+						{
+							"name": "MovementComponent",
+							"dir": "out",
+							"type":
+							{
+								"text": "CharacterMovementComponent",
+								"category": "object",
+								"object": "/Script/Engine.CharacterMovementComponent"
+							},
+							"links": [
+								{
+									"node": "8549E80B4A8E0601BF3E92A8F5DDE8BB",
+									"pin": "self"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "ABP_Unarmed",
+								"category": "object",
+								"object": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.ABP_Unarmed_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "8549E80B4A8E0601BF3E92A8F5DDE8BB",
+					"class": "K2Node_CallFunction",
+					"title": "Get Current Acceleration\n타깃은 Character Movement Component",
+					"member": "GetCurrentAcceleration",
+					"memberOwner": "/Script/Engine.CharacterMovementComponent",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Const"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						-64,
+						96
+					],
+					"pins": [
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "CharacterMovementComponent",
+								"category": "object",
+								"object": "/Script/Engine.CharacterMovementComponent"
+							},
+							"links": [
+								{
+									"node": "EBE527B842ED713CADA7C8932A7FABD9",
+									"pin": "MovementComponent"
+								}
+							]
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "Vector",
+								"category": "struct",
+								"object": "/Script/CoreUObject.Vector"
+							},
+							"default": "0, 0, 0",
+							"autoDefault": "0, 0, 0",
+							"links": [
+								{
+									"node": "205FBB2141DF350A890580B651C62142",
+									"pin": "A"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "205FBB2141DF350A890580B651C62142",
+					"class": "K2Node_PromotableOperator",
+					"title": "Not Equal (Vector)",
+					"member": "NotEqual_VectorVector",
+					"memberOwner": "/Script/Engine.KismetMathLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						256,
+						144
+					],
+					"pins": [
+						{
+							"name": "A",
+							"dir": "in",
+							"type":
+							{
+								"text": "Vector",
+								"category": "struct",
+								"object": "/Script/CoreUObject.Vector"
+							},
+							"links": [
+								{
+									"node": "8549E80B4A8E0601BF3E92A8F5DDE8BB",
+									"pin": "ReturnValue"
+								}
+							]
+						},
+						{
+							"name": "B",
+							"dir": "in",
+							"type":
+							{
+								"text": "Vector",
+								"category": "struct",
+								"object": "/Script/CoreUObject.Vector"
+							}
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"links": [
+								{
+									"node": "91423472465BFF1F9AEBFFAE9555D725",
+									"pin": "B"
+								}
+							]
+						},
+						{
+							"name": "ErrorTolerance",
+							"dir": "in",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "float"
+							}
+						}
+					]
+				},
+				{
+					"id": "774AE07941BFF488F72C24B3B276208A",
+					"class": "K2Node_VariableSet",
+					"title": "Set IsFalling",
+					"member": "IsFalling",
+					"memberOwner": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.SKEL_ABP_Unarmed_C",
+					"memberCpp": "bool",
+					"memberName": "IsFalling",
+					"role": "variable",
+					"kind": "set",
+					"pos": [
+						272,
+						368
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "A642F22344E86023662F388418815D49",
+									"pin": "OutputPin"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "IsFalling",
+							"dir": "in",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false",
+							"links": [
+								{
+									"node": "6638184B417C5F55463BA78C5A03F010",
+									"pin": "ReturnValue"
+								}
+							]
+						},
+						{
+							"name": "Output_Get",
+							"dir": "out",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false"
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "ABP_Unarmed",
+								"category": "object",
+								"object": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.ABP_Unarmed_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "A642F22344E86023662F388418815D49",
+					"class": "K2Node_Knot",
+					"title": "경유 노드",
+					"role": "other",
+					"kind": "knot",
+					"pure": true,
+					"pos": [
+						-256,
+						384
+					],
+					"pins": [
+						{
+							"name": "InputPin",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "DA1DBDCF4012FA38E5018BACADCC84B2",
+									"pin": "then_2"
+								}
+							]
+						},
+						{
+							"name": "OutputPin",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "774AE07941BFF488F72C24B3B276208A",
+									"pin": "execute"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "81063A8B4637B78CAB14E481EEEF8E65",
+					"class": "K2Node_VariableGet",
+					"title": "Get MovementComponent",
+					"member": "MovementComponent",
+					"memberOwner": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.SKEL_ABP_Unarmed_C",
+					"memberCpp": "UCharacterMovementComponent*",
+					"memberName": "MovementComponent",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						-240,
+						464
+					],
+					"pins": [
+						{
+							"name": "MovementComponent",
+							"dir": "out",
+							"type":
+							{
+								"text": "CharacterMovementComponent",
+								"category": "object",
+								"object": "/Script/Engine.CharacterMovementComponent"
+							},
+							"links": [
+								{
+									"node": "6638184B417C5F55463BA78C5A03F010",
+									"pin": "self"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "ABP_Unarmed",
+								"category": "object",
+								"object": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.ABP_Unarmed_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "6638184B417C5F55463BA78C5A03F010",
+					"class": "K2Node_CallFunction",
+					"title": "Is Falling\n타깃은 Nav Movement Component",
+					"member": "IsFalling",
+					"memberOwner": "/Script/Engine.NavMovementComponent",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Const"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						-32,
+						416
+					],
+					"pins": [
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "NavMovementComponent",
+								"category": "object",
+								"object": "/Script/Engine.NavMovementComponent"
+							},
+							"links": [
+								{
+									"node": "81063A8B4637B78CAB14E481EEEF8E65",
+									"pin": "MovementComponent"
+								}
+							]
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false",
+							"links": [
+								{
+									"node": "774AE07941BFF488F72C24B3B276208A",
+									"pin": "IsFalling"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "4A3C50BC418AC5FEB99558A287FE46EA",
+					"class": "EdGraphNode_Comment",
+					"title": "Set references to owning character when this blueprint initializes.",
+					"size": [
+						1424,
+						256
+					],
+					"role": "other",
+					"kind": "comment",
+					"pos": [
+						-1296,
+						-720
+					],
+					"pins": []
+				},
+				{
+					"id": "DF25198E4BFB40D711086582C76D12BD",
+					"class": "EdGraphNode_Comment",
+					"title": "Only update values if the character is valid (character exists in the world and the reference is set).",
+					"size": [
+						608,
+						240
+					],
+					"role": "other",
+					"kind": "comment",
+					"pos": [
+						-1296,
+						-208
+					],
+					"pins": []
+				},
+				{
+					"id": "1F77A4A54B9B1FAF636D658AF498CA5D",
+					"class": "EdGraphNode_Comment",
+					"title": "Set velocity and ground speed from the movement components velocity. Ground speed is calculated from only the X and Y axis of the velocity, so moving up or down does not affect it.",
+					"size": [
+						1232,
+						240
+					],
+					"role": "other",
+					"kind": "comment",
+					"pos": [
+						-272,
+						-336
+					],
+					"pins": []
+				},
+				{
+					"id": "93425FBE40AEFA7FA572F0A927BEAA0C",
+					"class": "EdGraphNode_Comment",
+					"title": "Set Should Move to true only if ground speed is above a small threshold (to prevent incredibly small velocities from triggering animations) and if there is currently acceleration (input) applied.",
+					"size": [
+						1248,
+						368
+					],
+					"role": "other",
+					"kind": "comment",
+					"pos": [
+						-272,
+						-80
+					],
+					"pins": []
+				},
+				{
+					"id": "5FA2430F441076439F521FA1BEF99E0F",
+					"class": "EdGraphNode_Comment",
+					"title": "Set Is Falling from the movement components falling state.",
+					"size": [
+						736,
+						224
+					],
+					"role": "other",
+					"kind": "comment",
+					"pos": [
+						-272,
+						304
+					],
+					"pins": []
+				},
+				{
+					"id": "BCBD703348373BE5A799DD9FF9CB569E",
+					"class": "K2Node_VariableSet",
+					"title": "Set Direction",
+					"member": "Direction",
+					"memberOwner": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.SKEL_ABP_Unarmed_C",
+					"memberCpp": "double",
+					"memberName": "Direction",
+					"role": "variable",
+					"kind": "set",
+					"pos": [
+						2176,
+						-224
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "454EA064492A35091FFBF1BCF163610C",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "Direction",
+							"dir": "in",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "double"
+							},
+							"default": "0.0",
+							"autoDefault": "0.0",
+							"links": [
+								{
+									"node": "DAA123E34EE8FE97E7ECE1A035FBDB63",
+									"pin": "ReturnValue"
+								}
+							]
+						},
+						{
+							"name": "Output_Get",
+							"dir": "out",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "double"
+							},
+							"default": "0.0",
+							"autoDefault": "0.0"
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "ABP_Unarmed",
+								"category": "object",
+								"object": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.ABP_Unarmed_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "D5C8A62F4F30DA651707CCA6559C35A5",
+					"class": "K2Node_CallFunction",
+					"title": "Calculate Direction\n타깃은 Anim Instance",
+					"member": "CalculateDirection",
+					"memberOwner": "/Script/Engine.AnimInstance",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Const"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						1408,
+						-176
+					],
+					"pins": [
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "AnimInstance",
+								"category": "object",
+								"object": "/Script/Engine.AnimInstance"
+							}
+						},
+						{
+							"name": "Velocity",
+							"dir": "in",
+							"type":
+							{
+								"text": "Vector&",
+								"category": "struct",
+								"object": "/Script/CoreUObject.Vector",
+								"ref": true,
+								"const": true
+							},
+							"default": "0, 0, 0",
+							"autoDefault": "0, 0, 0",
+							"links": [
+								{
+									"node": "0890D4344A08BA2F07DC83934D067291",
+									"pin": "Velocity"
+								}
+							]
+						},
+						{
+							"name": "BaseRotation",
+							"dir": "in",
+							"type":
+							{
+								"text": "Rotator&",
+								"category": "struct",
+								"object": "/Script/CoreUObject.Rotator",
+								"ref": true,
+								"const": true
+							},
+							"default": "0, 0, 0",
+							"autoDefault": "0, 0, 0",
+							"links": [
+								{
+									"node": "9BF5A206492D5E0E153581AABF93EE0C",
+									"pin": "ReturnValue"
+								}
+							]
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "float"
+							},
+							"default": "0.0",
+							"autoDefault": "0.0",
+							"links": [
+								{
+									"node": "76E9E64D4DAC69EF3AA0648F44A2C57B",
+									"pin": "Value"
+								},
+								{
+									"node": "DAA123E34EE8FE97E7ECE1A035FBDB63",
+									"pin": "Option 0"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "0890D4344A08BA2F07DC83934D067291",
+					"class": "K2Node_VariableGet",
+					"title": "Get Velocity",
+					"member": "Velocity",
+					"memberOwner": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.SKEL_ABP_Unarmed_C",
+					"memberCpp": "FVector",
+					"memberName": "Velocity",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						1248,
+						-128
+					],
+					"pins": [
+						{
+							"name": "Velocity",
+							"dir": "out",
+							"type":
+							{
+								"text": "Vector",
+								"category": "struct",
+								"object": "/Script/CoreUObject.Vector"
+							},
+							"default": "0, 0, 0",
+							"autoDefault": "0, 0, 0",
+							"links": [
+								{
+									"node": "D5C8A62F4F30DA651707CCA6559C35A5",
+									"pin": "Velocity"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "ABP_Unarmed",
+								"category": "object",
+								"object": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.ABP_Unarmed_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "7DA3135846703AFEC164ADBFB3164E73",
+					"class": "K2Node_VariableGet",
+					"title": "Get Character",
+					"member": "Character",
+					"memberOwner": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.SKEL_ABP_Unarmed_C",
+					"memberCpp": "ACharacter*",
+					"memberName": "Character",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						1040,
+						-32
+					],
+					"pins": [
+						{
+							"name": "Character",
+							"dir": "out",
+							"type":
+							{
+								"text": "Character",
+								"category": "object",
+								"object": "/Script/Engine.Character"
+							},
+							"links": [
+								{
+									"node": "9BF5A206492D5E0E153581AABF93EE0C",
+									"pin": "self"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "ABP_Unarmed",
+								"category": "object",
+								"object": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.ABP_Unarmed_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "9BF5A206492D5E0E153581AABF93EE0C",
+					"class": "K2Node_CallFunction",
+					"title": "Get Actor Rotation\n타깃은 Actor",
+					"member": "K2_GetActorRotation",
+					"memberOwner": "/Script/Engine.Actor",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Const"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						1184,
+						-80
+					],
+					"pins": [
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "Actor",
+								"category": "object",
+								"object": "/Script/Engine.Actor"
+							},
+							"links": [
+								{
+									"node": "7DA3135846703AFEC164ADBFB3164E73",
+									"pin": "Character"
+								}
+							]
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "Rotator",
+								"category": "struct",
+								"object": "/Script/CoreUObject.Rotator"
+							},
+							"default": "0, 0, 0",
+							"autoDefault": "0, 0, 0",
+							"links": [
+								{
+									"node": "D5C8A62F4F30DA651707CCA6559C35A5",
+									"pin": "BaseRotation"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "76E9E64D4DAC69EF3AA0648F44A2C57B",
+					"class": "K2Node_CallFunction",
+					"title": "Clamp (Float)",
+					"member": "FClamp",
+					"memberOwner": "/Script/Engine.KismetMathLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						1680,
+						-96
+					],
+					"pins": [
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "KismetMathLibrary",
+								"category": "object",
+								"object": "/Script/Engine.KismetMathLibrary"
+							},
+							"defaultObject": "/Script/Engine.Default__KismetMathLibrary",
+							"hidden": true
+						},
+						{
+							"name": "Value",
+							"dir": "in",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "double"
+							},
+							"default": "0.0",
+							"autoDefault": "0.0",
+							"links": [
+								{
+									"node": "D5C8A62F4F30DA651707CCA6559C35A5",
+									"pin": "ReturnValue"
+								}
+							]
+						},
+						{
+							"name": "Min",
+							"dir": "in",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "double"
+							},
+							"default": "-45.000000",
+							"autoDefault": "0.0"
+						},
+						{
+							"name": "Max",
+							"dir": "in",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "double"
+							},
+							"default": "45.000000",
+							"autoDefault": "1.0"
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "double"
+							},
+							"default": "0.0",
+							"autoDefault": "0.0",
+							"links": [
+								{
+									"node": "DAA123E34EE8FE97E7ECE1A035FBDB63",
+									"pin": "Option 1"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "6E42958B4D22820FA8A02EB5E941ACE6",
+					"class": "EdGraphNode_Comment",
+					"title": "Calculate direction using the delta between the velocity and the actor rotation. When the character is not strafing, clamp the value between - and + 45 degrees so that backwards animations do not play when turning around, but running into wall looks better.",
+					"size": [
+						1344,
+						528
+					],
+					"role": "other",
+					"kind": "comment",
+					"pos": [
+						1024,
+						-336
+					],
+					"pins": []
+				},
+				{
+					"id": "FCBF9DDC4652815CAB5FB5923F2C87E5",
+					"class": "K2Node_VariableGet",
+					"title": "Get MovementComponent",
+					"member": "MovementComponent",
+					"memberOwner": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.SKEL_ABP_Unarmed_C",
+					"memberCpp": "UCharacterMovementComponent*",
+					"memberName": "MovementComponent",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						1409,
+						56
+					],
+					"pins": [
+						{
+							"name": "MovementComponent",
+							"dir": "out",
+							"type":
+							{
+								"text": "CharacterMovementComponent",
+								"category": "object",
+								"object": "/Script/Engine.CharacterMovementComponent"
+							},
+							"links": [
+								{
+									"node": "AFDD75FF44B30C9BC4067CA8D8540DB4",
+									"pin": "self"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "ABP_Unarmed",
+								"category": "object",
+								"object": "/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.ABP_Unarmed_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "AFDD75FF44B30C9BC4067CA8D8540DB4",
+					"class": "K2Node_VariableGet",
+					"title": "Get bOrientRotationToMovement",
+					"member": "bOrientRotationToMovement",
+					"memberOwner": "/Script/Engine.CharacterMovementComponent",
+					"memberCpp": "uint8",
+					"memberName": "bOrientRotationToMovement",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						1617,
+						56
+					],
+					"pins": [
+						{
+							"name": "bOrientRotationToMovement",
+							"label": "Orient Rotation to Movement",
+							"dir": "out",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false",
+							"links": [
+								{
+									"node": "DAA123E34EE8FE97E7ECE1A035FBDB63",
+									"pin": "Index"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "CharacterMovementComponent",
+								"category": "object",
+								"object": "/Script/Engine.CharacterMovementComponent"
+							},
+							"links": [
+								{
+									"node": "FCBF9DDC4652815CAB5FB5923F2C87E5",
+									"pin": "MovementComponent"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "DAA123E34EE8FE97E7ECE1A035FBDB63",
+					"class": "K2Node_Select",
+					"title": "선택",
+					"role": "other",
+					"kind": "node",
+					"pure": true,
+					"pos": [
+						1936,
+						-160
+					],
+					"pins": [
+						{
+							"name": "Option 0",
+							"label": "False",
+							"dir": "in",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "double"
+							},
+							"default": "0.0",
+							"autoDefault": "0.0",
+							"links": [
+								{
+									"node": "D5C8A62F4F30DA651707CCA6559C35A5",
+									"pin": "ReturnValue"
+								}
+							]
+						},
+						{
+							"name": "Option 1",
+							"label": "True",
+							"dir": "in",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "double"
+							},
+							"default": "0.0",
+							"autoDefault": "0.0",
+							"links": [
+								{
+									"node": "76E9E64D4DAC69EF3AA0648F44A2C57B",
+									"pin": "ReturnValue"
+								}
+							]
+						},
+						{
+							"name": "Index",
+							"dir": "in",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false",
+							"links": [
+								{
+									"node": "AFDD75FF44B30C9BC4067CA8D8540DB4",
+									"pin": "bOrientRotationToMovement"
+								}
+							]
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "double"
+							},
+							"links": [
+								{
+									"node": "BCBD703348373BE5A799DD9FF9CB569E",
+									"pin": "Direction"
+								}
+							]
+						}
+					]
+				}
+			]
+		}
+	],
+	"native":
+	{
+		"types":
+		{
+			"/Script/Engine.AnimInstance":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UAnimInstance",
+				"include": "Animation/AnimInstance.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.AnimInstance"
+			},
+			"/Script/Engine.Character":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "ACharacter",
+				"include": "GameFramework/Character.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.Character",
+				"actor": true
+			},
+			"/Script/Engine.CharacterMovementComponent":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UCharacterMovementComponent",
+				"include": "GameFramework/CharacterMovementComponent.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.CharacterMovementComponent",
+				"component": true
+			},
+			"/Script/CoreUObject.Vector":
+			{
+				"kind": "struct",
+				"native": true,
+				"cpp": "FVector",
+				"include": "UObject/NoExportTypes.h",
+				"module": "CoreUObject"
+			},
+			"/Script/Engine.PoseLink":
+			{
+				"kind": "struct",
+				"native": true,
+				"cpp": "FPoseLink",
+				"include": "Animation/AnimNodeBase.h",
+				"module": "Engine"
+			},
+			"/Game/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.ABP_Unarmed_C":
+			{
+				"kind": "class",
+				"native": false,
+				"cpp": "UABP_Unarmed_C",
+				"nativeParent": "/Script/Engine.AnimInstance"
+			},
+			"/Script/Engine.KismetMathLibrary":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UKismetMathLibrary",
+				"include": "Kismet/KismetMathLibrary.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.KismetMathLibrary"
+			},
+			"/Script/Engine.Actor":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "AActor",
+				"include": "GameFramework/Actor.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.Actor",
+				"actor": true
+			},
+			"/Script/CoreUObject.Object":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UObject",
+				"include": "UObject/Object.h",
+				"module": "CoreUObject",
+				"nativeParent": "/Script/CoreUObject.Object",
+				"abstract": true
+			},
+			"/Script/Engine.MovementComponent":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UMovementComponent",
+				"include": "GameFramework/MovementComponent.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.MovementComponent",
+				"abstract": true,
+				"component": true
+			},
+			"/Script/Engine.NavMovementComponent":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UNavMovementComponent",
+				"include": "GameFramework/NavMovementComponent.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.NavMovementComponent",
+				"abstract": true,
+				"component": true
+			},
+			"/Script/CoreUObject.Rotator":
+			{
+				"kind": "struct",
+				"native": true,
+				"cpp": "FRotator",
+				"include": "UObject/NoExportTypes.h",
+				"module": "CoreUObject"
+			}
+		},
+		"enums":
+		{
+		},
+		"functions":
+		{
+			"/Script/Engine.KismetMathLibrary:Not_PreBool":
+			{
+				"name": "Not_PreBool",
+				"owner": "/Script/Engine.KismetMathLibrary",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Pure",
+					"Static"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "A",
+						"cpp": "bool"
+					},
+					{
+						"name": "ReturnValue",
+						"cpp": "bool",
+						"return": true
+					}
+				]
+			},
+			"/Script/Engine.KismetMathLibrary:BooleanAND":
+			{
+				"name": "BooleanAND",
+				"owner": "/Script/Engine.KismetMathLibrary",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Pure",
+					"Static"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "A",
+						"cpp": "bool"
+					},
+					{
+						"name": "B",
+						"cpp": "bool"
+					},
+					{
+						"name": "ReturnValue",
+						"cpp": "bool",
+						"return": true
+					}
+				]
+			},
+			"/Script/Engine.KismetMathLibrary:Greater_DoubleDouble":
+			{
+				"name": "Greater_DoubleDouble",
+				"owner": "/Script/Engine.KismetMathLibrary",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Pure",
+					"Static"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "A",
+						"cpp": "double"
+					},
+					{
+						"name": "B",
+						"cpp": "double"
+					},
+					{
+						"name": "ReturnValue",
+						"cpp": "bool",
+						"return": true
+					}
+				]
+			},
+			"/Script/Engine.AnimInstance:BlueprintUpdateAnimation":
+			{
+				"name": "BlueprintUpdateAnimation",
+				"owner": "/Script/Engine.AnimInstance",
+				"flags": [
+					"Event",
+					"BlueprintEvent"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "DeltaTimeX",
+						"cpp": "float"
+					}
+				]
+			},
+			"/Script/Engine.AnimInstance:BlueprintInitializeAnimation":
+			{
+				"name": "BlueprintInitializeAnimation",
+				"owner": "/Script/Engine.AnimInstance",
+				"flags": [
+					"Event",
+					"BlueprintEvent"
+				],
+				"native": true,
+				"access": "public",
+				"params": []
+			},
+			"/Script/Engine.AnimInstance:GetOwningActor":
+			{
+				"name": "GetOwningActor",
+				"owner": "/Script/Engine.AnimInstance",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Pure",
+					"Const"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "ReturnValue",
+						"cpp": "AActor*",
+						"return": true
+					}
+				]
+			},
+			"/Script/Engine.KismetMathLibrary:VSizeXY":
+			{
+				"name": "VSizeXY",
+				"owner": "/Script/Engine.KismetMathLibrary",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Pure",
+					"Static"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "A",
+						"cpp": "FVector"
+					},
+					{
+						"name": "ReturnValue",
+						"cpp": "double",
+						"return": true
+					}
+				]
+			},
+			"/Script/Engine.CharacterMovementComponent:GetCurrentAcceleration":
+			{
+				"name": "GetCurrentAcceleration",
+				"owner": "/Script/Engine.CharacterMovementComponent",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Pure",
+					"Const"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "ReturnValue",
+						"cpp": "FVector",
+						"return": true
+					}
+				]
+			},
+			"/Script/Engine.KismetMathLibrary:NotEqual_VectorVector":
+			{
+				"name": "NotEqual_VectorVector",
+				"owner": "/Script/Engine.KismetMathLibrary",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Pure",
+					"Static"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "A",
+						"cpp": "FVector"
+					},
+					{
+						"name": "B",
+						"cpp": "FVector"
+					},
+					{
+						"name": "ErrorTolerance",
+						"cpp": "float",
+						"cppDefault": "0.000100"
+					},
+					{
+						"name": "ReturnValue",
+						"cpp": "bool",
+						"return": true
+					}
+				]
+			},
+			"/Script/Engine.NavMovementComponent:IsFalling":
+			{
+				"name": "IsFalling",
+				"owner": "/Script/Engine.NavMovementComponent",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Pure",
+					"Const"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "ReturnValue",
+						"cpp": "bool",
+						"return": true
+					}
+				]
+			},
+			"/Script/Engine.AnimInstance:CalculateDirection":
+			{
+				"name": "CalculateDirection",
+				"owner": "/Script/Engine.AnimInstance",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Pure",
+					"Const"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "Velocity",
+						"cpp": "FVector",
+						"ref": true,
+						"const": true
+					},
+					{
+						"name": "BaseRotation",
+						"cpp": "FRotator",
+						"ref": true,
+						"const": true
+					},
+					{
+						"name": "ReturnValue",
+						"cpp": "float",
+						"return": true
+					}
+				]
+			},
+			"/Script/Engine.Actor:K2_GetActorRotation":
+			{
+				"name": "K2_GetActorRotation",
+				"owner": "/Script/Engine.Actor",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Pure",
+					"Const"
+				],
+				"native": true,
+				"access": "public",
+				"scriptName": "GetActorRotation",
+				"params": [
+					{
+						"name": "ReturnValue",
+						"cpp": "FRotator",
+						"return": true
+					}
+				]
+			},
+			"/Script/Engine.KismetMathLibrary:FClamp":
+			{
+				"name": "FClamp",
+				"owner": "/Script/Engine.KismetMathLibrary",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Pure",
+					"Static"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "Value",
+						"cpp": "double"
+					},
+					{
+						"name": "Min",
+						"cpp": "double"
+					},
+					{
+						"name": "Max",
+						"cpp": "double"
+					},
+					{
+						"name": "ReturnValue",
+						"cpp": "double",
+						"return": true
+					}
+				]
+			}
+		}
+	}
+}

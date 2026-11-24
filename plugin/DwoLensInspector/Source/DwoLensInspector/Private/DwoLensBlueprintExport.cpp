@@ -824,6 +824,13 @@ namespace DwoLensInspector::BpExport
 			if (Class->HasAnyClassFlags(CLASS_Native)) { break; }
 		}
 		for (const FBPVariableDescription& Variable : Blueprint->NewVariables) { Collector.AddPinType(Variable.VarType); }
+		if (const UWidgetBlueprint* WidgetBlueprint = Cast<UWidgetBlueprint>(Blueprint))
+		{
+			if (WidgetBlueprint->WidgetTree)
+			{
+				WidgetBlueprint->WidgetTree->ForEachWidget([&Collector](UWidget* Widget) { if (Widget) { Collector.AddObject(Widget->GetClass()); } });
+			}
+		}
 		if (const USimpleConstructionScript* Scs = Blueprint->SimpleConstructionScript)
 		{
 			for (const USCS_Node* Node : Scs->GetAllNodes()) { if (Node) { Collector.AddObject(Node->ComponentClass); } }
@@ -931,7 +938,18 @@ namespace DwoLensInspector::BpExport
 
 		FNativeCollector Collector;
 		CollectNative(Blueprint, Collector);
-		Out->SetObjectField(TEXT("native"), DescribeNative(Collector));
+		FJsonRef Native = DescribeNative(Collector);
+		// names the native parent already has: a generated member with one of these names would clash
+		const UClass* NativeParent = Blueprint->ParentClass;
+		while (NativeParent && !NativeParent->HasAnyClassFlags(CLASS_Native)) { NativeParent = NativeParent->GetSuperClass(); }
+		if (NativeParent)
+		{
+			FJsonValues Names;
+			for (TFieldIterator<FProperty> It(NativeParent); It; ++It) { PushString(Names, It->GetName()); }
+			for (TFieldIterator<UFunction> It(NativeParent); It; ++It) { PushString(Names, It->GetName()); }
+			Native->SetArrayField(TEXT("parentMembers"), Names);
+		}
+		Out->SetObjectField(TEXT("native"), Native);
 		return Out;
 	}
 

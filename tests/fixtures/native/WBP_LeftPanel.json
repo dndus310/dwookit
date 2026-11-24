@@ -1,0 +1,645 @@
+{
+	"schema": "lens.bp/1",
+	"name": "WBP_LeftPanel",
+	"asset": "/Game/AttributeSample/UI/WBP_LeftPanel.WBP_LeftPanel",
+	"package": "/Game/AttributeSample/UI/WBP_LeftPanel",
+	"assetClass": "WidgetBlueprint",
+	"blueprintType": "BPTYPE_Normal",
+	"status": "BS_UpToDate",
+	"engineVersion": "5.7.4-51494982+++UE5+Release-5.7",
+	"exportedAtUtc": "2026-11-24T17:25:28.220Z",
+	"source":
+	{
+		"file": "Content/AttributeSample/UI/WBP_LeftPanel.uasset",
+		"bytes": 31823,
+		"modifiedUtc": "2026-11-10T13:45:59.000Z"
+	},
+	"parent": "/Script/DWO_Proj_01.AttributeLeftPanelWidget",
+	"parentChain": [
+		"/Script/DWO_Proj_01.AttributeLeftPanelWidget"
+	],
+	"generatedClass": "/Game/AttributeSample/UI/WBP_LeftPanel.WBP_LeftPanel_C",
+	"interfaces": [],
+	"variables": [],
+	"components": [],
+	"widgets": [
+		{
+			"name": "RootCanvas",
+			"class": "CanvasPanel"
+		},
+		{
+			"name": "PanelFrame",
+			"class": "Border",
+			"parent": "RootCanvas"
+		},
+		{
+			"name": "Content",
+			"class": "VerticalBox",
+			"parent": "PanelFrame"
+		},
+		{
+			"name": "TextBlock_0",
+			"class": "TextBlock",
+			"parent": "Content"
+		},
+		{
+			"name": "TextBlock_1",
+			"class": "TextBlock",
+			"parent": "Content"
+		},
+		{
+			"name": "Layer",
+			"class": "HorizontalBox",
+			"parent": "Content",
+			"variable": true
+		},
+		{
+			"name": "BuildingTab",
+			"class": "Button",
+			"parent": "Layer",
+			"variable": true
+		},
+		{
+			"name": "TextBlock_2",
+			"class": "TextBlock",
+			"parent": "BuildingTab"
+		},
+		{
+			"name": "LoadTab",
+			"class": "Button",
+			"parent": "Layer",
+			"variable": true
+		},
+		{
+			"name": "TextBlock_3",
+			"class": "TextBlock",
+			"parent": "LoadTab"
+		},
+		{
+			"name": "AttributeList",
+			"class": "WBP_AttributeList",
+			"parent": "Content",
+			"variable": true
+		},
+		{
+			"name": "StatusText",
+			"class": "TextBlock",
+			"parent": "Content",
+			"variable": true
+		}
+	],
+	"graphs": [
+		{
+			"name": "EventGraph",
+			"kind": "event",
+			"nodes": [
+				{
+					"id": "B9BE7AE249C001773FB2DF858EC385B2",
+					"class": "K2Node_Event",
+					"title": "PreConstruct 이벤트",
+					"member": "PreConstruct",
+					"memberOwner": "/Script/UMG.UserWidget",
+					"override": true,
+					"role": "event",
+					"kind": "event",
+					"pos": [
+						0,
+						0
+					],
+					"comment": "지금 이 노드는 비활성 상태입니다. \n핀을 끌어서 다른 노드를 연결하면 활성화됩니다.",
+					"disabled": true,
+					"pins": [
+						{
+							"name": "OutputDelegate",
+							"dir": "out",
+							"type":
+							{
+								"text": "delegate",
+								"category": "delegate"
+							}
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "IsDesignTime",
+							"dir": "out",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false"
+						}
+					]
+				},
+				{
+					"id": "DF987775455C44B536127B82410ADFC9",
+					"class": "K2Node_Event",
+					"title": "Construct 이벤트",
+					"member": "Construct",
+					"memberOwner": "/Script/UMG.UserWidget",
+					"override": true,
+					"role": "event",
+					"kind": "event",
+					"pos": [
+						0,
+						208
+					],
+					"comment": "지금 이 노드는 비활성 상태입니다. \n핀을 끌어서 다른 노드를 연결하면 활성화됩니다.",
+					"disabled": true,
+					"pins": [
+						{
+							"name": "OutputDelegate",
+							"dir": "out",
+							"type":
+							{
+								"text": "delegate",
+								"category": "delegate"
+							}
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						}
+					]
+				},
+				{
+					"id": "A9EACB304295F46931179BA22C25AAA3",
+					"class": "K2Node_Event",
+					"title": "Tick 이벤트",
+					"member": "Tick",
+					"memberOwner": "/Script/UMG.UserWidget",
+					"override": true,
+					"role": "event",
+					"kind": "event",
+					"pos": [
+						0,
+						416
+					],
+					"comment": "지금 이 노드는 비활성 상태입니다. \n핀을 끌어서 다른 노드를 연결하면 활성화됩니다.",
+					"disabled": true,
+					"pins": [
+						{
+							"name": "OutputDelegate",
+							"dir": "out",
+							"type":
+							{
+								"text": "delegate",
+								"category": "delegate"
+							}
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "MyGeometry",
+							"dir": "out",
+							"type":
+							{
+								"text": "Geometry",
+								"category": "struct",
+								"object": "/Script/SlateCore.Geometry"
+							}
+						},
+						{
+							"name": "InDeltaTime",
+							"dir": "out",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "float"
+							},
+							"default": "0.0",
+							"autoDefault": "0.0"
+						}
+					]
+				}
+			]
+		}
+	],
+	"native":
+	{
+		"types":
+		{
+			"/Script/DWO_Proj_01.AttributeLeftPanelWidget":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UAttributeLeftPanelWidget",
+				"include": "AttributeSample/UI/AttributeLeftPanelWidget.h",
+				"module": "DWO_Proj_01",
+				"nativeParent": "/Script/DWO_Proj_01.AttributeLeftPanelWidget"
+			},
+			"/Script/UMG.CanvasPanel":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UCanvasPanel",
+				"include": "Components/CanvasPanel.h",
+				"module": "UMG",
+				"nativeParent": "/Script/UMG.CanvasPanel"
+			},
+			"/Script/UMG.Border":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UBorder",
+				"include": "Components/Border.h",
+				"module": "UMG",
+				"nativeParent": "/Script/UMG.Border"
+			},
+			"/Script/UMG.VerticalBox":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UVerticalBox",
+				"include": "Components/VerticalBox.h",
+				"module": "UMG",
+				"nativeParent": "/Script/UMG.VerticalBox"
+			},
+			"/Script/UMG.TextBlock":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UTextBlock",
+				"include": "Components/TextBlock.h",
+				"module": "UMG",
+				"nativeParent": "/Script/UMG.TextBlock"
+			},
+			"/Script/UMG.HorizontalBox":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UHorizontalBox",
+				"include": "Components/HorizontalBox.h",
+				"module": "UMG",
+				"nativeParent": "/Script/UMG.HorizontalBox"
+			},
+			"/Script/UMG.Button":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UButton",
+				"include": "Components/Button.h",
+				"module": "UMG",
+				"nativeParent": "/Script/UMG.Button"
+			},
+			"/Game/AttributeSample/UI/WBP_AttributeList.WBP_AttributeList_C":
+			{
+				"kind": "class",
+				"native": false,
+				"cpp": "UWBP_AttributeList_C",
+				"nativeParent": "/Script/DWO_Proj_01.AttributeListWidget"
+			},
+			"/Script/UMG.UserWidget":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UUserWidget",
+				"include": "Blueprint/UserWidget.h",
+				"module": "UMG",
+				"nativeParent": "/Script/UMG.UserWidget",
+				"abstract": true
+			},
+			"/Script/SlateCore.Geometry":
+			{
+				"kind": "struct",
+				"native": true,
+				"cpp": "FGeometry",
+				"include": "Layout/Geometry.h",
+				"module": "SlateCore"
+			}
+		},
+		"enums":
+		{
+		},
+		"functions":
+		{
+			"/Script/UMG.UserWidget:PreConstruct":
+			{
+				"name": "PreConstruct",
+				"owner": "/Script/UMG.UserWidget",
+				"flags": [
+					"Event",
+					"BlueprintEvent"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "IsDesignTime",
+						"cpp": "bool"
+					}
+				]
+			},
+			"/Script/UMG.UserWidget:Construct":
+			{
+				"name": "Construct",
+				"owner": "/Script/UMG.UserWidget",
+				"flags": [
+					"Event",
+					"BlueprintEvent"
+				],
+				"native": true,
+				"access": "public",
+				"params": []
+			},
+			"/Script/UMG.UserWidget:Tick":
+			{
+				"name": "Tick",
+				"owner": "/Script/UMG.UserWidget",
+				"flags": [
+					"Event",
+					"BlueprintEvent"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "MyGeometry",
+						"cpp": "FGeometry"
+					},
+					{
+						"name": "InDeltaTime",
+						"cpp": "float"
+					}
+				]
+			}
+		},
+		"parentMembers": [
+			"AttributeListClass",
+			"AttributeList",
+			"StatusText",
+			"Layer",
+			"BuildingTab",
+			"LoadTab",
+			"CurrentLayer",
+			"ColorAndOpacity",
+			"ColorAndOpacityDelegate",
+			"ForegroundColor",
+			"ForegroundColorDelegate",
+			"OnVisibilityChanged",
+			"Padding",
+			"Priority",
+			"bIsFocusable",
+			"bStopAction",
+			"bAutomaticallyRegisterInputOnConstruction",
+			"QueuedWidgetAnimationTransitions",
+			"ActiveSequencePlayers",
+			"AnimationTickManager",
+			"StoppedSequencePlayers",
+			"NamedSlotBindings",
+			"Extensions",
+			"WidgetTree",
+			"DesignTimeSize",
+			"DesignSizeMode",
+			"PaletteCategory",
+			"PreviewBackground",
+			"bHasScriptImplementedTick",
+			"bHasScriptImplementedPaint",
+			"TickFrequency",
+			"DesiredFocusWidget",
+			"InputComponent",
+			"AnimationCallbacks",
+			"Slot",
+			"bIsEnabledDelegate",
+			"ToolTipTextDelegate",
+			"ToolTipText",
+			"ToolTipWidget",
+			"ToolTipWidgetDelegate",
+			"VisibilityDelegate",
+			"RenderTransform",
+			"RenderTransformPivot",
+			"FlowDirectionPreference",
+			"bIsVariable",
+			"bCreatedByConstructionScript",
+			"bIsEnabled",
+			"bOverride_Cursor",
+			"bOverrideAccessibleDefaults",
+			"bCanChildrenBeAccessible",
+			"AccessibleBehavior",
+			"AccessibleSummaryBehavior",
+			"AccessibleText",
+			"AccessibleTextDelegate",
+			"AccessibleSummaryText",
+			"AccessibleSummaryTextDelegate",
+			"bIsVolatile",
+			"bWrappedByComponent",
+			"bHiddenInDesigner",
+			"bExpandedInDesigner",
+			"bLockedInDesigner",
+			"Cursor",
+			"Clipping",
+			"Visibility",
+			"PixelSnapping",
+			"RenderOpacity",
+			"AccessibleWidgetData",
+			"Navigation",
+			"NativeBindings",
+			"DesignerFlags",
+			"DisplayLabel",
+			"CategoryName",
+			"RefreshList",
+			"SetLayer",
+			"HandleLoadTabClicked",
+			"HandleBuildingTabClicked",
+			"GetLayer",
+			"UnregisterInputComponent",
+			"UnbindFromAnimationStarted",
+			"UnbindFromAnimationFinished",
+			"UnbindAllFromAnimationStarted",
+			"UnbindAllFromAnimationFinished",
+			"Tick",
+			"StopListeningForInputAction",
+			"StopListeningForAllInputActions",
+			"StopAnimationsAndLatentActions",
+			"StopAnimation",
+			"StopAllAnimations",
+			"SetPositionInViewport",
+			"SetPlaybackSpeed",
+			"SetPadding",
+			"SetOwningPlayer",
+			"SetNumLoopsToPlay",
+			"SetInputActionPriority",
+			"SetInputActionBlocking",
+			"SetForegroundColor",
+			"SetDesiredSizeInViewport",
+			"SetDesiredFocusWidget",
+			"SetColorAndOpacity",
+			"SetAnimationCurrentTime",
+			"SetAnchorsInViewport",
+			"SetAlignmentInViewport",
+			"ReverseAnimation",
+			"RemoveFromViewport",
+			"RemoveExtensions",
+			"RemoveExtension",
+			"RegisterInputComponent",
+			"QueueStopAnimation",
+			"QueueStopAllAnimations",
+			"QueuePlayAnimationTimeRange",
+			"QueuePlayAnimationReverse",
+			"QueuePlayAnimationForward",
+			"QueuePlayAnimation",
+			"QueuePauseAnimation",
+			"PreConstruct",
+			"PlaySound",
+			"PlayAnimationTimeRange",
+			"PlayAnimationReverse",
+			"PlayAnimationForward",
+			"PlayAnimation",
+			"PauseAnimation",
+			"OnTouchStarted",
+			"OnTouchMoved",
+			"OnTouchGesture",
+			"OnTouchForceChanged",
+			"OnTouchFirstMove",
+			"OnTouchEnded",
+			"OnRemovedFromFocusPath",
+			"OnPreviewMouseButtonDown",
+			"OnPreviewKeyDown",
+			"OnPaint",
+			"OnMouseWheel",
+			"OnMouseMove",
+			"OnMouseLeave",
+			"OnMouseEnter",
+			"OnMouseCaptureLost",
+			"OnMouseButtonUp",
+			"OnMouseButtonDown",
+			"OnMouseButtonDoubleClick",
+			"OnMotionDetected",
+			"OnKeyUp",
+			"OnKeyDown",
+			"OnKeyChar",
+			"OnInitialized",
+			"OnFocusReceived",
+			"OnFocusLost",
+			"OnDrop",
+			"OnDragOver",
+			"OnDragLeave",
+			"OnDragEnter",
+			"OnDragDetected",
+			"OnDragCancelled",
+			"OnAnimationStarted",
+			"OnAnimationFinished",
+			"OnAnalogValueChanged",
+			"OnAddedToFocusPath",
+			"ListenForInputAction",
+			"IsPlayingAnimation",
+			"IsListeningForInputAction",
+			"IsInteractable",
+			"IsAnyAnimationPlaying",
+			"IsAnimationPlayingForward",
+			"IsAnimationPlaying",
+			"GetOwningPlayerPawn",
+			"GetOwningPlayerCameraManager",
+			"GetIsVisible",
+			"GetExtensions",
+			"GetExtension",
+			"GetAnimationCurrentTime",
+			"GetAnchorsInViewport",
+			"GetAlignmentInViewport",
+			"FlushAnimations",
+			"Destruct",
+			"Construct",
+			"CancelLatentActions",
+			"BindToAnimationStarted",
+			"BindToAnimationFinished",
+			"BindToAnimationEvent",
+			"AddToViewport",
+			"AddToPlayerScreen",
+			"AddExtension",
+			"SetVisibility",
+			"SetUserFocus",
+			"SetToolTipText",
+			"SetToolTip",
+			"SetRenderTranslation",
+			"SetRenderTransformPivot",
+			"SetRenderTransformAngle",
+			"SetRenderTransform",
+			"SetRenderShear",
+			"SetRenderScale",
+			"SetRenderOpacity",
+			"SetNavigationRuleExplicit",
+			"SetNavigationRuleCustomBoundary",
+			"SetNavigationRuleCustom",
+			"SetNavigationRuleBase",
+			"SetNavigationRule",
+			"SetKeyboardFocus",
+			"SetIsEnabled",
+			"SetFocus",
+			"SetCursor",
+			"SetClipping",
+			"SetAllNavigationRules",
+			"ResetCursor",
+			"RemoveFromParent",
+			"OnReply__DelegateSignature",
+			"OnPointerEvent__DelegateSignature",
+			"K2_RemoveFieldValueChangedDelegate",
+			"K2_BroadcastFieldValueChanged",
+			"K2_AddFieldValueChangedDelegate",
+			"IsVisible",
+			"IsRendered",
+			"IsInViewport",
+			"IsHovered",
+			"InvalidateLayoutAndVolatility",
+			"HasUserFocusedDescendants",
+			"HasUserFocus",
+			"HasMouseCaptureByUser",
+			"HasMouseCapture",
+			"HasKeyboardFocus",
+			"HasFocusedDescendants",
+			"HasAnyUserFocus",
+			"GetWidget__DelegateSignature",
+			"GetVisibility",
+			"GetTickSpaceGeometry",
+			"GetText__DelegateSignature",
+			"GetSlateVisibility__DelegateSignature",
+			"GetSlateColor__DelegateSignature",
+			"GetSlateBrush__DelegateSignature",
+			"GetRenderTransformAngle",
+			"GetRenderOpacity",
+			"GetParent",
+			"GetPaintSpaceGeometry",
+			"GetOwningPlayer",
+			"GetOwningLocalPlayer",
+			"GetMouseCursor__DelegateSignature",
+			"GetLinearColor__DelegateSignature",
+			"GetIsEnabled",
+			"GetInt32__DelegateSignature",
+			"GetGameInstance",
+			"GetFloat__DelegateSignature",
+			"GetDesiredSize",
+			"GetClipping",
+			"GetCheckBoxState__DelegateSignature",
+			"GetCachedGeometry",
+			"GetBool__DelegateSignature",
+			"GetAccessibleText",
+			"GetAccessibleSummaryText",
+			"GenerateWidgetForString__DelegateSignature",
+			"GenerateWidgetForObject__DelegateSignature",
+			"ForceVolatile",
+			"ForceLayoutPrepass",
+			"ExecuteUbergraph"
+		]
+	}
+}

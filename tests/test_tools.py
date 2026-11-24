@@ -980,6 +980,100 @@ class BlueprintPartsTests(TempDir):
         self.assertIn("on BeginPlay():", (door / "BP_DoorFrame.md").read_text(encoding="utf-8"))
 
 
+NL, TAB = chr(10), chr(9)
+
+
+class NativeMigrationTests(TempDir):
+    """lens_native.py: Blueprint -> C++ base class, from real exports of the UE 5.7 sample project."""
+    FIX = Path(__file__).resolve().parent / "fixtures" / "native"
+
+    def plan(self, name, mutate=None):
+        import lens_native
+        doc = json.loads((self.FIX / f"{name}.json").read_text(encoding="utf-8"))
+        if mutate:
+            mutate(doc)
+        return lens_native.Plan(doc, module="Game").build()
+
+    def generate(self, name, mutate=None):
+        import lens_native
+        plan = self.plan(name, mutate)
+        out = self.tmp / name
+        summary = lens_native.write(plan, out)
+        files = {f: (out / f).read_text(encoding="utf-8") for f in summary["files"]}
+        return plan, summary, files
+
+    def test_actor_moves_whole_with_same_names_and_values(self):
+        plan, s, files = self.generate("BP_JumpPad")
+        h, cpp = files["JumpPadBase.h"], files["JumpPadBase.cpp"]
+        self.assertEqual(s["coverage"]["migrated"], s["coverage"]["nodes"])
+        self.assertEqual(s["modules"], ["Niagara"])                                  # Build.cs needs it
+        self.assertIn("class GAME_API AJumpPadBase : public AActor", h)
+        self.assertIn("TObjectPtr<UNiagaraComponent> NS_JumpDemo;", h)               # component keeps its name
+        self.assertIn('meta = (DisplayName = "Color Target"))', h)                  # renamed variable, old name shown
+        self.assertIn("FVector Velocity = FVector(0.0, 0.0, 800.0);", h)
+        self.assertIn('FName ExclusionTag = FName(TEXT("Dead"));', h)
+        self.assertIn("virtual void NotifyActorBeginOverlap(AActor* OtherActor) override;", h)
+        self.assertIn("virtual void OnConstruction(const FTransform& Transform) override;", h)
+        self.assertIn('Cylinder1->SetupAttachment(DefaultSceneRoot);', cpp)
+        self.assertIn("Super::NotifyActorBeginOverlap(OtherActor);", cpp)
+        # a None target is skipped and outputs are defaults, as in Blueprint (no crash in C++)
+        self.assertIn("if (Target_", cpp)
+        self.assertIn("->LaunchCharacter(Velocity, false, true);", cpp)
+        # a pure node with several used outputs runs once
+        self.assertEqual(cpp.count("UKismetMathLibrary::BreakColor("), 1)
+
+    def test_one_unknown_node_keeps_the_whole_event_in_blueprint(self):
+        def mutate(doc):
+            for g in doc["graphs"]:
+                for n in g["nodes"]:
+                    if n.get("member") == "LaunchCharacter":
+                        n["class"] = "K2Node_SomethingNew"
+        plan, s, files = self.generate("BP_JumpPad", mutate)
+        ev = next(e for e in s["events"] if e["bp"] == "ReceiveActorBeginOverlap")
+        self.assertFalse(ev["migrated"])
+        self.assertIn("SomethingNew", ev["reason"])
+        self.assertNotIn("NotifyActorBeginOverlap", files["JumpPadBase.h"])
+        self.assertLess(s["coverage"]["migrated"], s["coverage"]["nodes"])
+
+    def test_implementable_events_and_their_callers_stay(self):
+        plan = self.plan("BP_SideScrollingMovingPlatform")
+        s = plan.summary()
+        ev = {e["bp"]: e for e in s["events"]}
+        self.assertFalse(ev["BP_MoveToTarget"]["migrated"])
+        self.assertIn("BlueprintImplementableEvent", ev["BP_MoveToTarget"]["reason"])
+        self.assertFalse(ev["OnComponentBeginOverlap"]["migrated"])
+        self.assertIn("BP_MoveToTarget", ev["OnComponentBeginOverlap"]["reason"])
+
+    def test_anim_blueprint_uses_native_overrides_and_public_getters(self):
+        plan, s, files = self.generate("ABP_Unarmed")
+        ev = {e["bp"]: e for e in s["events"]}
+        self.assertTrue(ev["BlueprintInitializeAnimation"]["migrated"], ev["BlueprintInitializeAnimation"]["reason"])
+        cpp = files["UnarmedBase.cpp"]
+        self.assertIn("void UUnarmedBase::NativeInitializeAnimation()", cpp)
+        self.assertIn("GetCharacterMovement()", cpp)                                 # private member -> public getter
+        self.assertNotIn("->CharacterMovement", cpp)
+
+    def test_widget_members_the_parent_already_binds_are_not_redeclared(self):
+        plan = self.plan("WBP_LeftPanel")
+        s = plan.summary()
+        widgets = {w["bp"]: w for w in s["widgets"]}
+        self.assertFalse(widgets["BuildingTab"]["migrated"])                       # UAttributeLeftPanelWidget binds it
+        self.assertIn("already declares", widgets["BuildingTab"]["reason"])
+        empty = [e for e in s["events"] if "empty" in e["reason"]]
+        self.assertTrue(empty)                                                      # unwired Event Construct etc.
+        self.assertEqual(s["coverage"]["nodes"], 0)                                 # nothing real to move
+
+    def test_build_cs_modules_are_added_once(self):
+        import lens_native
+        body = "public class Game : ModuleRules {" + NL + TAB + "public Game(ReadOnlyTargetRules T) : base(T) {" + NL + TAB * 2 + 'PublicDependencyModuleNames.AddRange(new string[] { "Core", "Engine" });' + NL + TAB + "}" + NL + "}" + NL
+        cs = write(self.tmp / "Game.Build.cs", body)
+        self.assertEqual(lens_native.add_modules(cs, ["Niagara", "Engine"]), ["Niagara"])
+        self.assertEqual(lens_native.add_modules(cs, ["Niagara", "UMG"]), ["UMG"])
+        text = cs.read_text(encoding="utf-8")
+        self.assertEqual(text.count("// dwookit native migration"), 1)
+        self.assertIn('{ "Niagara", "UMG" }', text)
+
+
 class LibraryTests(TempDir):
     """lens_library.py: the instruction and skill library, and what a project gets for Claude Code and Copilot."""
 

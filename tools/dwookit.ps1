@@ -13,7 +13,7 @@ param(
     [Parameter(Mandatory = $true)]
     [ValidateSet('connect', 'tool', 'attach', 'update', 'status', 'analyze', 'verify', 'logs', 'smoke', 'perf', 'sizes', 'trace', 'play', 'tools', 'gui',
                  'sm-install', 'sm-remove', 'canvas-install', 'canvas-remove', 'canvas-import', 'canvas-validate',
-                 'doctor', 'uninstall', 'detach', 'compile', 'package', 'bp', 'agent', 'live', 'live-ingest', 'library',
+                 'doctor', 'uninstall', 'detach', 'compile', 'package', 'bp', 'agent', 'live', 'live-ingest', 'library', 'native',
                  'ci-job', 'ci-trigger', 'ci-hook', 'ci-hooks', 'ci-status', 'ci-install', 'ci-start', 'ci-stop', 'ci-remove', 'ci-bundle')]
     [string]$Command,
     [Parameter(Mandatory = $true)]
@@ -2036,6 +2036,149 @@ function Invoke-Bp {
     }
 }
 
+# ---------------------------------------------------------------- native migration (native)
+# Blueprint -> C++ base class (tools\lens_native.py), then the Blueprint is rebased onto it by the DwoLensInspector
+# commandlet (DwoLensNativeRebase.cpp), which verifies every class default and component value and saves only when
+# nothing differs. Steps, editor closed:
+#   native plan <bp>                 export it and show what moves to C++, and why the rest stays in Blueprint
+#   native generate <bp> [--module M] [--class-name N]
+#                                    Source\<Module>\DwoNative\<Name>\ (your code from now on: commit it) and the
+#                                    modules it needs in <Module>.Build.cs (a backup is kept)
+#   compile                          build the editor target with the new class
+#   native rebase <bp> [--dry-run] [--force]
+#                                    back up the .uasset, rebase, verify; the backup goes back when it fails
+#   native restore <bp>              put the last backup of the .uasset back (and of Build.cs)
+#   native status                    what was generated and rebased
+$NativeDir = Join-Path $ForgeDir 'native'
+
+function Get-NativeArg([string]$Name, [string]$Default = '') {
+    $i = [array]::IndexOf(@($Rest), $Name)
+    if ($i -ge 0 -and $i + 1 -lt @($Rest).Count) { return $Rest[$i + 1] }
+    return $Default
+}
+
+function Get-GameModule($UProject) {
+    $chosen = Get-NativeArg '--module'
+    if ($chosen) { return $chosen }
+    $m = @($UProject.Json.Modules | Where-Object { "$($_.Type)" -eq 'Runtime' } | Select-Object -First 1)
+    if (-not $m.Count) { Fail 'This project has no runtime C++ module. Add C++ to it first (File > New C++ Class in the editor), then try again.' }
+    return $m[0].Name
+}
+
+function Get-NativeTarget([string]$Arg) {
+    $entry = ConvertTo-BpEntry $Arg
+    if ($entry.EndsWith('/')) { Fail 'native works on one Blueprint at a time, not a folder.' }
+    if (-not (Test-BpEntryExists $entry)) { Fail "No asset at $entry" }
+    $name = Split-Path -Leaf $entry
+    return [pscustomobject]@{ Entry = $entry; Name = $name
+                              Export = Join-Path $BpDir ($entry.TrimStart('/') + '/' + $name + '.json')
+                              Asset = Join-Path $Project ('Content' + $entry.Substring(5).Replace('/', '\') + '.uasset')
+                              Map = Join-Path $NativeDir "$name.native.json" }
+}
+
+function Update-NativeExport($Target) {
+    $tracked = @(Get-BpTracked)
+    if ($tracked -notcontains $Target.Entry) { Set-BpTracked ($tracked + $Target.Entry); Say "tracking: $($Target.Entry)" }
+    Invoke-BpExport
+    if (-not (Test-Path $Target.Export)) { Fail "The export of $($Target.Entry) is missing: $($Target.Export)" }
+}
+
+function Invoke-NativeRebase($Target, $UProject) {
+    if (-not (Test-Path $Target.Map)) { Fail "Generate first: __dwookit.bat native generate $($Target.Entry)" }
+    $engine = Resolve-Engine $UProject.Json.EngineAssociation
+    Assert-ModulesBuilt $UProject
+    $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+    $backup = Join-Path $NativeDir "backup\$stamp"
+    New-Item -ItemType Directory -Force $backup | Out-Null
+    Copy-Item $Target.Asset (Join-Path $backup (Split-Path -Leaf $Target.Asset)) -Force
+    [IO.File]::WriteAllText((Join-Path $NativeDir "$($Target.Name).last-backup.txt"), $backup, $Utf8)
+    $report = Join-Path $NativeDir "$($Target.Name).rebase.json"
+    Remove-Item -Force (Join-Path $NativeDir "$($Target.Name).restored.json") -ErrorAction SilentlyContinue
+    Remove-Item -Force $report -ErrorAction SilentlyContinue
+    $flags = @()
+    if ($Rest -contains '--dry-run') { $flags += '-LensDryRun' }
+    if ($Rest -contains '--force') { $flags += '-LensForce' }
+    $logDir = Join-Path $DataDir 'logs'
+    New-Item -ItemType Directory -Force $logDir | Out-Null
+    $log = Join-Path $logDir "native-rebase-$($Target.Name).log"
+    Say "native rebase: $($Target.Entry) (backup $backup)"
+    & cmd /c "`"$($engine.Cmd)`" `"$($UProject.Path)`" -run=DwoLensInspector -EnablePlugins=DwoLensInspector -LensRebase=`"$($Target.Map)`" -LensRebaseReport=`"$report`" $($flags -join ' ') -unattended -nullrhi -nosplash -nopause -NoSound -stdout -FullStdOutLogOutput > `"$log`" 2>&1"
+    if (-not (Test-Path $report)) { Fail "The rebase wrote no report (see $log). The Blueprint was not saved." }
+    $r = Get-Content -Raw -Encoding UTF8 $report | ConvertFrom-Json
+    foreach ($s_ in @($r.steps)) { Write-Host "  $s_" }
+    foreach ($p_ in @($r.problems)) { if ($p_) { Write-Host "  [problem] $p_" -ForegroundColor Yellow } }
+    $diffs = @($r.diffs)
+    foreach ($d in ($diffs | Select-Object -First 20)) { if ($d) { Write-Host "  [differs] $($d.scope) $($d.property): $($d.before) -> $($d.after)" -ForegroundColor Yellow } }
+    if ($diffs.Count -gt 20) { Write-Host "  ... $($diffs.Count - 20) more in $report" }
+    if ($r.ok -and $r.saved) { Say "native rebase: $($Target.Name) now derives from $($r.class). Backup: $backup"; return }
+    if ($r.ok -and $r.dryRun) { Say 'native rebase: dry run passed; nothing was saved. Run it again without --dry-run.'; return }
+    # not saved: the file on disk is the original; put the backup back anyway in case a save happened half-way
+    Copy-Item (Join-Path $backup (Split-Path -Leaf $Target.Asset)) $Target.Asset -Force
+    Fail "native rebase failed; the Blueprint is unchanged (report: $report)."
+}
+
+function Invoke-Native {
+    if (-not (Read-State)) { Fail 'Not connected. Connect the project first: __dwookit.bat connect' }
+    $action = if ($Rest.Count) { $Rest[0] } else { 'status' }
+    $uproject = Get-UProject
+    New-Item -ItemType Directory -Force $NativeDir | Out-Null
+    $py = Join-Path $SystemDir 'tools\lens_native.py'
+    if ($action -eq 'status') {
+        $maps = @(Get-ChildItem $NativeDir -Filter '*.native.json' -ErrorAction SilentlyContinue)
+        if (-not $maps.Count) { Say 'native: nothing generated yet. Start with: __dwookit.bat native plan <Blueprint>'; return }
+        foreach ($m in $maps) {
+            $j = Get-Content -Raw -Encoding UTF8 $m.FullName | ConvertFrom-Json
+            $rb = Join-Path $NativeDir ($m.Name -replace '\.native\.json$', '.rebase.json')
+            $state = if (Test-Path (Join-Path $NativeDir ($m.Name -replace '\.native\.json$', '.restored.json')))  { 'restored' } elseif (Test-Path $rb) { $r = Get-Content -Raw -Encoding UTF8 $rb | ConvertFrom-Json; if ($r.saved) { 'rebased' } elseif ($r.dryRun -and $r.ok) { 'dry run passed' } else { 'rebase failed' } } else { 'generated' }
+            Write-Host ("  {0,-34} {1,-30} {2}/{3} nodes  {4}" -f $j.name, $j.class, $j.coverage.migrated, $j.coverage.nodes, $state)
+        }
+        return
+    }
+    if ($Rest.Count -lt 2) { Fail "Usage: native $action <Blueprint: /Game/... or Content\...\X.uasset>" }
+    $target = Get-NativeTarget $Rest[1]
+    switch ($action) {
+        'plan' {
+            Update-NativeExport $target
+            & python $py plan $target.Export --module (Get-GameModule $uproject)
+        }
+        'generate' {
+            Update-NativeExport $target
+            $module = Get-GameModule $uproject
+            $out = Join-Path $Project "Source\$module\DwoNative\$($target.Name)"
+            $pyArgs = @($py, 'generate', $target.Export, '--module', $module, '--out', $out)
+            $cls = Get-NativeArg '--class-name'
+            if ($cls) { $pyArgs += @('--class-name', $cls) }
+            & python @pyArgs
+            if ($LASTEXITCODE -ne 0) { Fail 'native generate failed (see above).' }
+            Copy-Item (Join-Path $out "$($target.Name).native.json") $target.Map -Force
+            $j = Get-Content -Raw -Encoding UTF8 $target.Map | ConvertFrom-Json
+            $mods = @($j.modules | Where-Object { $_ })
+            if ($mods.Count) {
+                $buildCs = Join-Path $Project "Source\$module\$module.Build.cs"
+                $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+                $bk = Join-Path $NativeDir "backup\$stamp"
+                New-Item -ItemType Directory -Force $bk | Out-Null
+                Copy-Item $buildCs (Join-Path $bk "$module.Build.cs") -Force
+                & python $py modules $buildCs ($mods -join ',')
+            }
+            Say "native generate: $out"
+            Say "  report: $(Join-Path $out "$($target.Name).native.md")"
+            Say "  next: __dwookit.bat compile (editor closed), then __dwookit.bat native rebase $($target.Entry) [--dry-run]"
+        }
+        'rebase' { Invoke-NativeRebase $target $uproject }
+        'restore' {
+            $last = Join-Path $NativeDir "$($target.Name).last-backup.txt"
+            if (-not (Test-Path $last)) { Fail "No backup of $($target.Name)." }
+            $dir = (Get-Content -Raw $last).Trim()
+            Copy-Item (Join-Path $dir (Split-Path -Leaf $target.Asset)) $target.Asset -Force
+            $rb = Join-Path $NativeDir "$($target.Name).rebase.json"
+            if (Test-Path $rb) { Move-Item -Force $rb (Join-Path $NativeDir "$($target.Name).restored.json") }
+            Say "native restore: $($target.Asset) is back as it was before the rebase ($dir). The generated C++ stays; delete Source\...\DwoNative\$($target.Name) yourself if you no longer want it."
+        }
+        default { Fail "Unknown native action '$action'. Use: native plan | generate | rebase | restore | status" }
+    }
+}
+
 # ---------------------------------------------------------------- agent context (agent)
 # __dwookit\context\AGENT.md tells coding agents what dwookit knows and how to work here (read the tracked
 # Blueprints' pseudocode cheaply, deliver C++ or an editor checklist, short output).
@@ -2712,6 +2855,7 @@ switch ($Command) {
     'doctor'  { if (-not (Invoke-Doctor)) { exit 1 } }
     'analyze' { Invoke-Analyze }
     'bp'      { Invoke-Bp }
+    'native'  { Invoke-Native }
     'agent'   { Invoke-Agent }
     'library' { Invoke-Library }
     'live'    { Invoke-Live }

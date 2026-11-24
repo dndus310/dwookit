@@ -1,0 +1,1414 @@
+{
+	"schema": "lens.bp/1",
+	"name": "BP_SideScrollingMovingPlatform",
+	"asset": "/Game/Variant_SideScrolling/Blueprints/Items/BP_SideScrollingMovingPlatform.BP_SideScrollingMovingPlatform",
+	"package": "/Game/Variant_SideScrolling/Blueprints/Items/BP_SideScrollingMovingPlatform",
+	"assetClass": "Blueprint",
+	"blueprintType": "BPTYPE_Normal",
+	"status": "BS_UpToDate",
+	"engineVersion": "5.7.4-51494982+++UE5+Release-5.7",
+	"exportedAtUtc": "2026-11-24T17:02:56.699Z",
+	"source":
+	{
+		"file": "Content/Variant_SideScrolling/Blueprints/Items/BP_SideScrollingMovingPlatform.uasset",
+		"bytes": 68777,
+		"modifiedUtc": "2026-11-07T10:01:32.000Z"
+	},
+	"parent": "/Script/DWO_Proj_01.SideScrollingMovingPlatform",
+	"parentChain": [
+		"/Script/DWO_Proj_01.SideScrollingMovingPlatform"
+	],
+	"generatedClass": "/Game/Variant_SideScrolling/Blueprints/Items/BP_SideScrollingMovingPlatform.BP_SideScrollingMovingPlatform_C",
+	"interfaces": [],
+	"variables": [],
+	"components": [
+		{
+			"name": "Cube",
+			"class": "StaticMeshComponent",
+			"classPath": "/Script/Engine.StaticMeshComponent",
+			"parent": "Root",
+			"root": true,
+			"changed": [
+				{
+					"name": "StaticMesh",
+					"value": "/Script/Engine.StaticMesh'/Game/LevelPrototyping/Meshes/SM_Cylinder.SM_Cylinder'",
+					"owner": "StaticMeshComponent"
+				},
+				{
+					"name": "OverrideMaterials",
+					"value": "(\"/Script/Engine.MaterialInstanceConstant'/Game/ThirdPerson/MI_ThirdPersonColWay.MI_ThirdPersonColWay'\")",
+					"owner": "MeshComponent"
+				},
+				{
+					"name": "BodyInstance",
+					"value": "(bEnableGravity=False)",
+					"owner": "PrimitiveComponent"
+				},
+				{
+					"name": "RelativeScale3D",
+					"value": "(X=6.000000,Y=6.000000,Z=0.500000)",
+					"owner": "SceneComponent"
+				}
+			]
+		},
+		{
+			"name": "Sphere",
+			"class": "SphereComponent",
+			"classPath": "/Script/Engine.SphereComponent",
+			"parent": "Cube",
+			"changed": [
+				{
+					"name": "SphereRadius",
+					"value": "512.556396",
+					"owner": "SphereComponent"
+				},
+				{
+					"name": "BodyInstance",
+					"value": "(CollisionProfileName=\"Custom\",CollisionResponses=(ResponseArray=((Channel=\"WorldStatic\",Response=ECR_Ignore),(Channel=\"WorldDynamic\",Response=ECR_Ignore),(Channel=\"Pawn\",Response=ECR_Overlap),(Channel=\"Visibility\",Response=ECR_Ignore),(Channel=\"Camera\",Response=ECR_Ignore),(Channel=\"PhysicsBody\",Response=ECR_Ignore),(Channel=\"Vehicle\",Response=ECR_Ignore),(Channel=\"Destructible\",Response=ECR_Ignore))))",
+					"owner": "PrimitiveComponent"
+				}
+			]
+		}
+	],
+	"graphs": [
+		{
+			"name": "UserConstructionScript",
+			"kind": "function",
+			"nodes": [
+				{
+					"id": "5E1F1A724B087070249457BFB1FCAD2F",
+					"class": "K2Node_FunctionEntry",
+					"title": "Construction Script",
+					"member": "UserConstructionScript",
+					"role": "other",
+					"kind": "entry",
+					"pos": [
+						0,
+						0
+					],
+					"functionFlags": [
+						"Event",
+						"BlueprintEvent"
+					],
+					"pins": [
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "EventGraph",
+			"kind": "event",
+			"nodes": [
+				{
+					"id": "13B188A1442A7858DAD226BC8B418FF4",
+					"class": "K2Node_Event",
+					"title": "Move to Target 이벤트",
+					"member": "BP_MoveToTarget",
+					"memberOwner": "/Script/DWO_Proj_01.SideScrollingMovingPlatform",
+					"override": true,
+					"role": "event",
+					"kind": "event",
+					"pos": [
+						0,
+						256
+					],
+					"pins": [
+						{
+							"name": "OutputDelegate",
+							"dir": "out",
+							"type":
+							{
+								"text": "delegate",
+								"category": "delegate"
+							}
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "70BDFE5B4A1BF0E43BFEFC816FBE04E8",
+									"pin": "None"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "90BA7C85447D62D6171E398EDD8E6B19",
+					"class": "K2Node_CallFunction",
+					"title": "Move Component To",
+					"member": "MoveComponentTo",
+					"memberOwner": "/Script/Engine.KismetSystemLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Static"
+					],
+					"latent": true,
+					"role": "call",
+					"kind": "call",
+					"pos": [
+						1392,
+						256
+					],
+					"pins": [
+						{
+							"name": "Move",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "70BDFE5B4A1BF0E43BFEFC816FBE04E8",
+									"pin": "A"
+								},
+								{
+									"node": "C00DE44C441373696631C19AE33E2A51",
+									"pin": "OutputPin"
+								}
+							]
+						},
+						{
+							"name": "Stop",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "Return",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "then",
+							"label": "Completed",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "746DCD414E9001300AB15FB610E95886",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "KismetSystemLibrary",
+								"category": "object",
+								"object": "/Script/Engine.KismetSystemLibrary"
+							},
+							"defaultObject": "/Script/Engine.Default__KismetSystemLibrary",
+							"hidden": true
+						},
+						{
+							"name": "Component",
+							"dir": "in",
+							"type":
+							{
+								"text": "SceneComponent",
+								"category": "object",
+								"object": "/Script/Engine.SceneComponent"
+							},
+							"links": [
+								{
+									"node": "17683AD64C5A6517F344BB903C0B0353",
+									"pin": "Cube"
+								}
+							]
+						},
+						{
+							"name": "TargetRelativeLocation",
+							"dir": "in",
+							"type":
+							{
+								"text": "Vector",
+								"category": "struct",
+								"object": "/Script/CoreUObject.Vector"
+							},
+							"default": "0, 0, 0",
+							"autoDefault": "0, 0, 0",
+							"links": [
+								{
+									"node": "22DCDA9441A08D63815A02AA0DF39AF5",
+									"pin": "ReturnValue"
+								}
+							]
+						},
+						{
+							"name": "TargetRelativeRotation",
+							"dir": "in",
+							"type":
+							{
+								"text": "Rotator",
+								"category": "struct",
+								"object": "/Script/CoreUObject.Rotator"
+							},
+							"default": "0, 0, 0",
+							"autoDefault": "0, 0, 0"
+						},
+						{
+							"name": "bEaseOut",
+							"dir": "in",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "true",
+							"autoDefault": "false"
+						},
+						{
+							"name": "bEaseIn",
+							"dir": "in",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "true",
+							"autoDefault": "false"
+						},
+						{
+							"name": "OverTime",
+							"dir": "in",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "float"
+							},
+							"default": "0.2",
+							"autoDefault": "0.2",
+							"links": [
+								{
+									"node": "11E5C2004F3B6B57B9E2C3B2F5BF1CD2",
+									"pin": "MoveDuration"
+								}
+							]
+						},
+						{
+							"name": "bForceShortestRotationPath",
+							"dir": "in",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false"
+						},
+						{
+							"name": "MoveAction",
+							"dir": "in",
+							"type":
+							{
+								"text": "EMoveComponentAction",
+								"category": "byte",
+								"object": "/Script/Engine.EMoveComponentAction"
+							},
+							"default": "Move",
+							"hidden": true
+						},
+						{
+							"name": "LatentInfo",
+							"dir": "in",
+							"type":
+							{
+								"text": "LatentActionInfo",
+								"category": "struct",
+								"object": "/Script/Engine.LatentActionInfo"
+							},
+							"default": "(Linkage=-1,UUID=-1,ExecutionFunction=\"\",CallbackTarget=None)",
+							"autoDefault": "LatentInfo",
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "17683AD64C5A6517F344BB903C0B0353",
+					"class": "K2Node_VariableGet",
+					"title": "Get Cube",
+					"member": "Cube",
+					"memberOwner": "/Game/Variant_SideScrolling/Blueprints/Items/BP_SideScrollingMovingPlatform.SKEL_BP_SideScrollingMovingPlatform_C",
+					"memberCpp": "UStaticMeshComponent*",
+					"memberName": "Cube",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						1232,
+						368
+					],
+					"pins": [
+						{
+							"name": "Cube",
+							"dir": "out",
+							"type":
+							{
+								"text": "StaticMeshComponent",
+								"category": "object",
+								"object": "/Script/Engine.StaticMeshComponent"
+							},
+							"links": [
+								{
+									"node": "90BA7C85447D62D6171E398EDD8E6B19",
+									"pin": "Component"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BP_SideScrollingMovingPlatform",
+								"category": "object",
+								"object": "/Game/Variant_SideScrolling/Blueprints/Items/BP_SideScrollingMovingPlatform.BP_SideScrollingMovingPlatform_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "70BDFE5B4A1BF0E43BFEFC816FBE04E8",
+					"class": "K2Node_MacroInstance",
+					"title": "Flip Flop",
+					"member": "FlipFlop",
+					"memberOwner": "/Engine/EditorBlueprintResources/StandardMacros.StandardMacros",
+					"role": "macro",
+					"kind": "macro",
+					"pos": [
+						640,
+						256
+					],
+					"pins": [
+						{
+							"name": "None",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "13B188A1442A7858DAD226BC8B418FF4",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "A",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "90BA7C85447D62D6171E398EDD8E6B19",
+									"pin": "Move"
+								}
+							]
+						},
+						{
+							"name": "B",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "C00DE44C441373696631C19AE33E2A51",
+									"pin": "InputPin"
+								}
+							]
+						},
+						{
+							"name": "IsA",
+							"dir": "out",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"links": [
+								{
+									"node": "C56CB2FB4FA12BF906FB508F5DD8F47E",
+									"pin": "InputPin"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "22DCDA9441A08D63815A02AA0DF39AF5",
+					"class": "K2Node_CallFunction",
+					"title": "Select Vector",
+					"member": "SelectVector",
+					"memberOwner": "/Script/Engine.KismetMathLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						1040,
+						428
+					],
+					"pins": [
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "KismetMathLibrary",
+								"category": "object",
+								"object": "/Script/Engine.KismetMathLibrary"
+							},
+							"defaultObject": "/Script/Engine.Default__KismetMathLibrary",
+							"hidden": true
+						},
+						{
+							"name": "A",
+							"dir": "in",
+							"type":
+							{
+								"text": "Vector",
+								"category": "struct",
+								"object": "/Script/CoreUObject.Vector"
+							},
+							"default": "0, 0, 0",
+							"autoDefault": "0, 0, 0",
+							"links": [
+								{
+									"node": "47194F474CECBFC11B959796FB723F0B",
+									"pin": "PlatformTarget"
+								}
+							]
+						},
+						{
+							"name": "B",
+							"dir": "in",
+							"type":
+							{
+								"text": "Vector",
+								"category": "struct",
+								"object": "/Script/CoreUObject.Vector"
+							},
+							"default": "0, 0, 0",
+							"autoDefault": "0, 0, 0"
+						},
+						{
+							"name": "bPickA",
+							"dir": "in",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false",
+							"links": [
+								{
+									"node": "C56CB2FB4FA12BF906FB508F5DD8F47E",
+									"pin": "OutputPin"
+								}
+							]
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "Vector",
+								"category": "struct",
+								"object": "/Script/CoreUObject.Vector"
+							},
+							"default": "0, 0, 0",
+							"autoDefault": "0, 0, 0",
+							"links": [
+								{
+									"node": "90BA7C85447D62D6171E398EDD8E6B19",
+									"pin": "TargetRelativeLocation"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "C56CB2FB4FA12BF906FB508F5DD8F47E",
+					"class": "K2Node_Knot",
+					"title": "경유 노드",
+					"role": "other",
+					"kind": "knot",
+					"pure": true,
+					"pos": [
+						896,
+						544
+					],
+					"pins": [
+						{
+							"name": "InputPin",
+							"dir": "in",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"links": [
+								{
+									"node": "70BDFE5B4A1BF0E43BFEFC816FBE04E8",
+									"pin": "IsA"
+								}
+							]
+						},
+						{
+							"name": "OutputPin",
+							"dir": "out",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"links": [
+								{
+									"node": "22DCDA9441A08D63815A02AA0DF39AF5",
+									"pin": "bPickA"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "C00DE44C441373696631C19AE33E2A51",
+					"class": "K2Node_Knot",
+					"title": "경유 노드",
+					"role": "other",
+					"kind": "knot",
+					"pure": true,
+					"pos": [
+						1296,
+						320
+					],
+					"pins": [
+						{
+							"name": "InputPin",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "70BDFE5B4A1BF0E43BFEFC816FBE04E8",
+									"pin": "B"
+								}
+							]
+						},
+						{
+							"name": "OutputPin",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "90BA7C85447D62D6171E398EDD8E6B19",
+									"pin": "Move"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "746DCD414E9001300AB15FB610E95886",
+					"class": "K2Node_CallFunction",
+					"title": "Reset Interaction\n타깃은 Side Scrolling Moving Platform",
+					"member": "ResetInteraction",
+					"memberOwner": "/Script/DWO_Proj_01.SideScrollingMovingPlatform",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable"
+					],
+					"role": "call",
+					"kind": "call",
+					"pos": [
+						1792,
+						240
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "90BA7C85447D62D6171E398EDD8E6B19",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "SideScrollingMovingPlatform",
+								"category": "object",
+								"object": "/Script/DWO_Proj_01.SideScrollingMovingPlatform"
+							}
+						}
+					]
+				},
+				{
+					"id": "11E5C2004F3B6B57B9E2C3B2F5BF1CD2",
+					"class": "K2Node_VariableGet",
+					"title": "Get MoveDuration",
+					"member": "MoveDuration",
+					"memberOwner": "/Game/Variant_SideScrolling/Blueprints/Items/BP_SideScrollingMovingPlatform.SKEL_BP_SideScrollingMovingPlatform_C",
+					"memberCpp": "float",
+					"memberName": "MoveDuration",
+					"memberAccess": "protected",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						1392,
+						672
+					],
+					"pins": [
+						{
+							"name": "MoveDuration",
+							"label": "Move Duration",
+							"dir": "out",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "float"
+							},
+							"default": "0.0",
+							"autoDefault": "0.0",
+							"links": [
+								{
+									"node": "90BA7C85447D62D6171E398EDD8E6B19",
+									"pin": "OverTime"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "SideScrollingMovingPlatform",
+								"category": "object",
+								"object": "/Script/DWO_Proj_01.SideScrollingMovingPlatform"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "47194F474CECBFC11B959796FB723F0B",
+					"class": "K2Node_VariableGet",
+					"title": "Get PlatformTarget",
+					"member": "PlatformTarget",
+					"memberOwner": "/Game/Variant_SideScrolling/Blueprints/Items/BP_SideScrollingMovingPlatform.SKEL_BP_SideScrollingMovingPlatform_C",
+					"memberCpp": "FVector",
+					"memberName": "PlatformTarget",
+					"memberAccess": "protected",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						864,
+						480
+					],
+					"pins": [
+						{
+							"name": "PlatformTarget",
+							"label": "Platform Target",
+							"dir": "out",
+							"type":
+							{
+								"text": "Vector",
+								"category": "struct",
+								"object": "/Script/CoreUObject.Vector"
+							},
+							"default": "0, 0, 0",
+							"autoDefault": "0, 0, 0",
+							"links": [
+								{
+									"node": "22DCDA9441A08D63815A02AA0DF39AF5",
+									"pin": "A"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "SideScrollingMovingPlatform",
+								"category": "object",
+								"object": "/Script/DWO_Proj_01.SideScrollingMovingPlatform"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "A3EA128A450DCB082A2217B72CFD1332",
+					"class": "K2Node_ComponentBoundEvent",
+					"title": "On Component Begin Overlap (Sphere)",
+					"member": "OnComponentBeginOverlap",
+					"component": "Sphere",
+					"role": "event",
+					"kind": "boundEvent",
+					"pos": [
+						0,
+						-256
+					],
+					"pins": [
+						{
+							"name": "OutputDelegate",
+							"dir": "out",
+							"type":
+							{
+								"text": "delegate",
+								"category": "delegate"
+							}
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "B8CA8629403D0D2078E78A90DD3F2473",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "OverlappedComponent",
+							"dir": "out",
+							"type":
+							{
+								"text": "PrimitiveComponent",
+								"category": "object",
+								"object": "/Script/Engine.PrimitiveComponent"
+							}
+						},
+						{
+							"name": "OtherActor",
+							"dir": "out",
+							"type":
+							{
+								"text": "Actor",
+								"category": "object",
+								"object": "/Script/Engine.Actor"
+							},
+							"links": [
+								{
+									"node": "B8CA8629403D0D2078E78A90DD3F2473",
+									"pin": "Object"
+								}
+							]
+						},
+						{
+							"name": "OtherComp",
+							"dir": "out",
+							"type":
+							{
+								"text": "PrimitiveComponent",
+								"category": "object",
+								"object": "/Script/Engine.PrimitiveComponent"
+							}
+						},
+						{
+							"name": "OtherBodyIndex",
+							"dir": "out",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0"
+						},
+						{
+							"name": "bFromSweep",
+							"dir": "out",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false"
+						},
+						{
+							"name": "SweepResult",
+							"dir": "out",
+							"type":
+							{
+								"text": "HitResult&",
+								"category": "struct",
+								"object": "/Script/Engine.HitResult",
+								"ref": true,
+								"const": true
+							}
+						}
+					]
+				},
+				{
+					"id": "7CC44C964DF3D0F58C782CBE8406C228",
+					"class": "K2Node_CallFunction",
+					"title": "Move to Target\n타깃은 BP Side Scrolling Moving Platform",
+					"member": "BP_MoveToTarget",
+					"memberOwner": "/Game/Variant_SideScrolling/Blueprints/Items/BP_SideScrollingMovingPlatform.SKEL_BP_SideScrollingMovingPlatform_C",
+					"memberFlags": [
+						"Event",
+						"BlueprintCallable",
+						"BlueprintEvent",
+						"Protected"
+					],
+					"role": "call",
+					"kind": "call",
+					"pos": [
+						688,
+						-272
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "B8CA8629403D0D2078E78A90DD3F2473",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "SideScrollingMovingPlatform",
+								"category": "object",
+								"object": "/Script/DWO_Proj_01.SideScrollingMovingPlatform"
+							}
+						}
+					]
+				},
+				{
+					"id": "B8CA8629403D0D2078E78A90DD3F2473",
+					"class": "K2Node_DynamicCast",
+					"title": "Cast To SideScrollingCharacter",
+					"member": "/Script/DWO_Proj_01.SideScrollingCharacter",
+					"role": "cast",
+					"kind": "cast",
+					"pos": [
+						352,
+						-256
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "A3EA128A450DCB082A2217B72CFD1332",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "7CC44C964DF3D0F58C782CBE8406C228",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "CastFailed",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "Object",
+							"dir": "in",
+							"type":
+							{
+								"text": "Object",
+								"category": "object",
+								"object": "/Script/CoreUObject.Object"
+							},
+							"links": [
+								{
+									"node": "A3EA128A450DCB082A2217B72CFD1332",
+									"pin": "OtherActor"
+								}
+							]
+						},
+						{
+							"name": "AsSide Scrolling Character",
+							"dir": "out",
+							"type":
+							{
+								"text": "SideScrollingCharacter",
+								"category": "object",
+								"object": "/Script/DWO_Proj_01.SideScrollingCharacter"
+							}
+						},
+						{
+							"name": "bSuccess",
+							"dir": "out",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"hidden": true
+						}
+					]
+				}
+			]
+		}
+	],
+	"native":
+	{
+		"types":
+		{
+			"/Script/DWO_Proj_01.SideScrollingMovingPlatform":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "ASideScrollingMovingPlatform",
+				"include": "Variant_SideScrolling/Gameplay/SideScrollingMovingPlatform.h",
+				"module": "DWO_Proj_01",
+				"nativeParent": "/Script/DWO_Proj_01.SideScrollingMovingPlatform",
+				"abstract": true,
+				"actor": true
+			},
+			"/Script/Engine.StaticMeshComponent":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UStaticMeshComponent",
+				"include": "Components/StaticMeshComponent.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.StaticMeshComponent",
+				"component": true
+			},
+			"/Script/Engine.SphereComponent":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "USphereComponent",
+				"include": "Components/SphereComponent.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.SphereComponent",
+				"component": true
+			},
+			"/Script/Engine.KismetSystemLibrary":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UKismetSystemLibrary",
+				"include": "Kismet/KismetSystemLibrary.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.KismetSystemLibrary"
+			},
+			"/Script/Engine.SceneComponent":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "USceneComponent",
+				"include": "Components/SceneComponent.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.SceneComponent",
+				"component": true
+			},
+			"/Script/CoreUObject.Vector":
+			{
+				"kind": "struct",
+				"native": true,
+				"cpp": "FVector",
+				"include": "UObject/NoExportTypes.h",
+				"module": "CoreUObject"
+			},
+			"/Script/CoreUObject.Rotator":
+			{
+				"kind": "struct",
+				"native": true,
+				"cpp": "FRotator",
+				"include": "UObject/NoExportTypes.h",
+				"module": "CoreUObject"
+			},
+			"/Script/Engine.LatentActionInfo":
+			{
+				"kind": "struct",
+				"native": true,
+				"cpp": "FLatentActionInfo",
+				"include": "Engine/LatentActionManager.h",
+				"module": "Engine"
+			},
+			"/Game/Variant_SideScrolling/Blueprints/Items/BP_SideScrollingMovingPlatform.BP_SideScrollingMovingPlatform_C":
+			{
+				"kind": "class",
+				"native": false,
+				"cpp": "ABP_SideScrollingMovingPlatform_C",
+				"nativeParent": "/Script/DWO_Proj_01.SideScrollingMovingPlatform",
+				"actor": true
+			},
+			"/Script/Engine.KismetMathLibrary":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UKismetMathLibrary",
+				"include": "Kismet/KismetMathLibrary.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.KismetMathLibrary"
+			},
+			"/Script/Engine.PrimitiveComponent":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UPrimitiveComponent",
+				"include": "Components/PrimitiveComponent.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.PrimitiveComponent",
+				"abstract": true,
+				"component": true
+			},
+			"/Script/Engine.Actor":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "AActor",
+				"include": "GameFramework/Actor.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.Actor",
+				"actor": true
+			},
+			"/Script/Engine.HitResult":
+			{
+				"kind": "struct",
+				"native": true,
+				"cpp": "FHitResult",
+				"include": "Engine/HitResult.h",
+				"module": "Engine"
+			},
+			"/Game/Variant_SideScrolling/Blueprints/Items/BP_SideScrollingMovingPlatform.SKEL_BP_SideScrollingMovingPlatform_C":
+			{
+				"kind": "class",
+				"native": false,
+				"cpp": "ASKEL_BP_SideScrollingMovingPlatform_C",
+				"nativeParent": "/Script/DWO_Proj_01.SideScrollingMovingPlatform",
+				"actor": true
+			},
+			"/Script/CoreUObject.Object":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UObject",
+				"include": "UObject/Object.h",
+				"module": "CoreUObject",
+				"nativeParent": "/Script/CoreUObject.Object",
+				"abstract": true
+			},
+			"/Script/DWO_Proj_01.SideScrollingCharacter":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "ASideScrollingCharacter",
+				"include": "Variant_SideScrolling/SideScrollingCharacter.h",
+				"module": "DWO_Proj_01",
+				"nativeParent": "/Script/DWO_Proj_01.SideScrollingCharacter",
+				"abstract": true,
+				"actor": true
+			}
+		},
+		"enums":
+		{
+			"/Script/Engine.EMoveComponentAction":
+			{
+				"native": true,
+				"cpp": "EMoveComponentAction::Type",
+				"form": "namespaced",
+				"include": "Kismet/KismetSystemLibrary.h",
+				"values":
+				{
+					"Move": "EMoveComponentAction::Move",
+					"Stop": "EMoveComponentAction::Stop",
+					"Return": "EMoveComponentAction::Return"
+				}
+			}
+		},
+		"functions":
+		{
+			"/Script/DWO_Proj_01.SideScrollingMovingPlatform:BP_MoveToTarget":
+			{
+				"name": "BP_MoveToTarget",
+				"owner": "/Script/DWO_Proj_01.SideScrollingMovingPlatform",
+				"flags": [
+					"Event",
+					"BlueprintCallable",
+					"BlueprintEvent",
+					"Protected"
+				],
+				"native": true,
+				"access": "protected",
+				"params": []
+			},
+			"/Script/Engine.KismetSystemLibrary:MoveComponentTo":
+			{
+				"name": "MoveComponentTo",
+				"owner": "/Script/Engine.KismetSystemLibrary",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Static"
+				],
+				"native": true,
+				"access": "public",
+				"latent": true,
+				"worldContext": "WorldContextObject",
+				"params": [
+					{
+						"name": "Component",
+						"cpp": "USceneComponent*"
+					},
+					{
+						"name": "TargetRelativeLocation",
+						"cpp": "FVector"
+					},
+					{
+						"name": "TargetRelativeRotation",
+						"cpp": "FRotator"
+					},
+					{
+						"name": "bEaseOut",
+						"cpp": "bool"
+					},
+					{
+						"name": "bEaseIn",
+						"cpp": "bool"
+					},
+					{
+						"name": "OverTime",
+						"cpp": "float"
+					},
+					{
+						"name": "bForceShortestRotationPath",
+						"cpp": "bool"
+					},
+					{
+						"name": "MoveAction",
+						"cpp": "TEnumAsByte<EMoveComponentAction::Type>"
+					},
+					{
+						"name": "LatentInfo",
+						"cpp": "FLatentActionInfo"
+					}
+				]
+			},
+			"/Script/Engine.KismetMathLibrary:SelectVector":
+			{
+				"name": "SelectVector",
+				"owner": "/Script/Engine.KismetMathLibrary",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Pure",
+					"Static"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "A",
+						"cpp": "FVector"
+					},
+					{
+						"name": "B",
+						"cpp": "FVector"
+					},
+					{
+						"name": "bPickA",
+						"cpp": "bool"
+					},
+					{
+						"name": "ReturnValue",
+						"cpp": "FVector",
+						"return": true
+					}
+				]
+			},
+			"/Script/DWO_Proj_01.SideScrollingMovingPlatform:ResetInteraction":
+			{
+				"name": "ResetInteraction",
+				"owner": "/Script/DWO_Proj_01.SideScrollingMovingPlatform",
+				"flags": [
+					"Native",
+					"BlueprintCallable"
+				],
+				"native": true,
+				"access": "public",
+				"params": []
+			},
+			":ComponentBeginOverlapSignature__DelegateSignature":
+			{
+				"name": "ComponentBeginOverlapSignature__DelegateSignature",
+				"owner": "",
+				"flags": [],
+				"native": false,
+				"access": "public",
+				"params": [
+					{
+						"name": "OverlappedComponent",
+						"cpp": "UPrimitiveComponent*"
+					},
+					{
+						"name": "OtherActor",
+						"cpp": "AActor*"
+					},
+					{
+						"name": "OtherComp",
+						"cpp": "UPrimitiveComponent*"
+					},
+					{
+						"name": "OtherBodyIndex",
+						"cpp": "int32"
+					},
+					{
+						"name": "bFromSweep",
+						"cpp": "bool"
+					},
+					{
+						"name": "SweepResult",
+						"cpp": "FHitResult",
+						"ref": true,
+						"const": true
+					}
+				]
+			},
+			"/Game/Variant_SideScrolling/Blueprints/Items/BP_SideScrollingMovingPlatform.SKEL_BP_SideScrollingMovingPlatform_C:BP_MoveToTarget":
+			{
+				"name": "BP_MoveToTarget",
+				"owner": "/Game/Variant_SideScrolling/Blueprints/Items/BP_SideScrollingMovingPlatform.SKEL_BP_SideScrollingMovingPlatform_C",
+				"flags": [
+					"Event",
+					"BlueprintCallable",
+					"BlueprintEvent",
+					"Protected"
+				],
+				"native": false,
+				"access": "protected",
+				"params": []
+			}
+		}
+	}
+}

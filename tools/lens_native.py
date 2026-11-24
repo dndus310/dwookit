@@ -157,6 +157,7 @@ class Export:
         self.types = self.native.get("types", {})
         self.enums = self.native.get("enums", {})
         self.functions = self.native.get("functions", {})
+        self.parent_members = set(self.native.get("parentMembers", []))
         self.generated = strip_skel(doc.get("generatedClass", ""))
         self.graphs = [g for g in doc.get("graphs", [])]
         self.nodes: dict[str, dict] = {}
@@ -462,7 +463,8 @@ class Fn:
         if len(p["links"]) > 1:
             raise Unsupported("one exec output wired to several inputs", node)
         n = self.node(p["links"][0]["node"])
-        while n["class"] == "K2Node_Knot":       # reroute
+        while n["class"] == "K2Node_Knot":       # reroute: part of the flow it carries
+            self.used_nodes.add(n["id"])
             n = self.node(self.exec_out_links(n, "OutputPin"))
         return n
 
@@ -1159,6 +1161,10 @@ class Plan:
     def plan_variables(self):
         for v in self.ex.doc.get("variables", []):
             item = Item(v["name"], ident(v["name"]))
+            if item.cpp in self.ex.parent_members:
+                item.reason = f"the native parent already has a member named {item.cpp}"
+                self.vars[v["name"]] = item
+                continue
             try:
                 t = self.types.of(v["type"], header=True, as_property=True)
                 item.extra["type"] = t
@@ -1177,7 +1183,9 @@ class Plan:
             item = Item(c["name"], ident(c["name"]), extra=dict(c))
             path = c.get("classPath", "")
             t = self.ex.type_info(path)
-            if not t.get("native"):
+            if c["name"] in self.ex.parent_members:
+                item.reason = f"the native parent already has a member named {c['name']}"
+            elif not t.get("native"):
                 item.reason = f"component class {c.get('class')} is not native"
             elif item.cpp != c["name"]:
                 item.reason = "component name is not a C++ identifier (rename it in the Blueprint first)"
@@ -1202,7 +1210,9 @@ class Plan:
                 continue
             item = Item(w["name"], w["name"], extra=dict(w))
             t = next((v for k, v in self.ex.types.items() if short(k) == w["class"] and v.get("native")), None)
-            if not t:
+            if w["name"] in self.ex.parent_members:
+                item.reason = "the native parent already declares it (BindWidget there)"
+            elif not t:
                 item.reason = f"widget class {w['class']} is not described or not native"
             elif ident(w["name"]) != w["name"]:
                 item.reason = "widget name is not a C++ identifier (BindWidget needs the same name)"
@@ -1241,6 +1251,10 @@ class Plan:
             if not entry:
                 continue
             item = Item(g["name"], ident(g["name"]), extra={"graph": g, "entry": entry})
+            if item.cpp in self.ex.parent_members and g["name"] != "UserConstructionScript":
+                item.reason = f"the native parent already has a member named {item.cpp} (an override: kept in Blueprint for now)"
+                self.funcs[g["name"]] = item
+                continue
             flags = set(entry.get("functionFlags", []))
             item.extra["flags"] = sorted(flags)
             # an override of a native function (BlueprintNativeEvent implemented in Blueprint)
@@ -1343,6 +1357,12 @@ class Plan:
         events = []
         for g, n in self.event_roots():
             item = Item(n.get("member") or n.get("title", ""), "", extra={"node": n["id"], "class": n["class"]})
+            wired = any(p.get("links") for p in n["pins"] if p["dir"] == "out")
+            if not wired and n["class"] in ("K2Node_Event",):
+                item.reason = "empty (nothing is wired to it): nothing to migrate"
+                item.extra["empty"] = True
+                events.append(item)
+                continue
             try:
                 self.translate_event(g, n, item)
                 item.migrated = True
@@ -1437,6 +1457,7 @@ class Plan:
                for f in self.funcs.values() if not f.extra.get("customEvent")]
         graph_nodes = {n["id"] for g in self.ex.graphs if g["kind"] in ("event", "function") for n in g["nodes"]
                        if n["class"] not in ("EdGraphNode_Comment",)}
+        graph_nodes -= {e.extra["node"] for e in self.events if e.extra.get("empty")}   # unwired template events
         moved = set()
         for e in self.events:
             if e.migrated:
@@ -1821,7 +1842,14 @@ def main(argv=None) -> int:
         p.add_argument("--api")
         if name == "generate":
             p.add_argument("--out", type=Path, required=True)
+    p = sub.add_parser("modules")
+    p.add_argument("build_cs", type=Path)
+    p.add_argument("modules")
     args = ap.parse_args(argv)
+    if args.cmd == "modules":
+        added = add_modules(args.build_cs, [m for m in args.modules.split(",") if m])
+        print(f"native: {args.build_cs.name}: " + (f"added {', '.join(added)}" if added else "already has every module"))
+        return 0
     doc = json.loads(args.export.read_text(encoding="utf-8-sig"))
     plan = Plan(doc, args.class_name, args.module, args.api).build()
     if args.cmd == "plan":
