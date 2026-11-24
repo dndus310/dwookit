@@ -1378,6 +1378,55 @@ class ReportTests(GameFlowTests):
         self.assertTrue(any(r["kind"] == "map" for r in data["flow"]["roots"]))
 
 
+class RunReportTests(TempDir):
+    """lens_report_runs.py: interactive verify / logs / smoke reports."""
+
+    @staticmethod
+    def embedded(html: str) -> dict:
+        start = html.index("const DATA = ") + len("const DATA = ")
+        return json.loads(html[start:html.index(";\nconst $ =")])
+
+    def run_dir(self, name: str) -> Path:
+        project = self.tmp / "Proj"
+        write(project / "__dwo-forge" / "state.json", json.dumps({"project": "MyGame"}))
+        run = project / "__dwo-forge" / "data" / "runs" / name
+        (run / "out").mkdir(parents=True)
+        return run
+
+    def test_each_kind_embeds_its_result(self):
+        import lens_report_runs
+        group = {"fingerprint": "ab", "severity": "Error", "category": "LogTemp", "sample": "bad </script>", "count": 2,
+                 "where": ["Game.log:3"], "detail": [], "new": True}
+        logs = {"verdict": "fail", "counts": {"Fatal": 0, "Error": 2, "Warning": 0}, "groups": [group], "crashes": [],
+                "newGroups": 1, "newCrashes": 0, "files": ["Game.log"]}
+        verify = {"verdict": "fail", "steps": [
+            {"id": "V1", "name": "compile", "verdict": "fail", "summary": logs},
+            {"id": "V3", "name": "tests", "verdict": "fail", "automation": {
+                "summary": {"succeeded": 1, "succeededWithWarnings": 0, "failed": 1, "notRun": 0},
+                "tests": [{"name": "Project.A.Ok", "state": "Success", "errors": [], "warnings": []},
+                          {"name": "Project.A.Bad", "state": "Fail", "errors": ["expected 1"], "warnings": []}]}}]}
+        smoke = {"verdict": "pass", "seconds": 15, "maxErrors": 0, "maxWarnings": 200, "maps": [
+            {"map": "/Game/Maps/L_A", "verdict": "pass", "seconds": 15, "errors": 0, "warnings": 0, "ensures": 0,
+             "fatal": False, "exitCode": None, "killed": True, "crashes": [], "groups": [], "reasons": [], "log": "a.log"}]}
+        for kind, result in (("verify", verify), ("logs", logs), ("smoke", smoke)):
+            run = self.run_dir(f"{kind}-1")
+            path = lens_report_runs.write(run, kind, result)
+            html = path.read_text(encoding="utf-8")
+            self.assertNotIn("bad </script>", html)                 # data cannot close the script tag
+            data = self.embedded(html)
+            self.assertEqual((data["kind"], data["project"], data["runId"]), (kind, "MyGame", f"{kind}-1"))
+            self.assertEqual(data["result"]["verdict"], result["verdict"])
+            self.assertIn(f"<title>MyGame · {lens_report_runs.TITLES[kind]}</title>", html)
+
+    def test_reads_the_json_and_works_outside_a_project(self):
+        import lens_report_runs
+        run = self.tmp / "loose" / "logs-2"
+        write(run / "out" / "logs.json", json.dumps({"verdict": "pass", "counts": {"Fatal": 0, "Error": 0, "Warning": 0},
+                                                      "groups": [], "crashes": [], "newGroups": 0, "newCrashes": 0, "files": []}))
+        data = self.embedded(lens_report_runs.write(run, "logs").read_text(encoding="utf-8"))
+        self.assertEqual(data["project"], "")
+
+
 class CatalogAndConfigTests(unittest.TestCase):
     def test_catalog_is_consistent(self):
         catalog = json.loads((TOOLS / "catalog.json").read_text(encoding="utf-8"))

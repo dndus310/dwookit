@@ -111,11 +111,7 @@ def build_data(out: Path, project: Path | None) -> dict:
     }
 
 
-TEMPLATE = r"""<!doctype html>
-<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>__TITLE__</title>
-<style>
-:root{--bg:#f3f5f8;--panel:#fff;--sunk:#e9edf3;--fg:#18202c;--muted:#5a6577;--line:#d3dae4;--accent:#2f5bd3;--accent-soft:#e3eafb;
+CSS = r""":root{--bg:#f3f5f8;--panel:#fff;--sunk:#e9edf3;--fg:#18202c;--muted:#5a6577;--line:#d3dae4;--accent:#2f5bd3;--accent-soft:#e3eafb;
 --ok:#1f8a4c;--warn:#b7791f;--fail:#c2413a;--info:#4b6a88;
 --r-map:#0f8a7e;--r-mode:#7a3fc4;--r-ctrl:#2f5bd3;--r-pawn:#c06a12;--r-ui:#c2417a;--r-comp:#8a6a3a;--r-gas:#a08a12;--r-data:#557a1f;--r-ai:#c2413a;--r-other:#6b7280;
 --font:"Malgun Gothic","Apple SD Gothic Neo","Segoe UI",system-ui,sans-serif;--mono:"Cascadia Code",Consolas,ui-monospace,monospace;--side:310px}
@@ -157,7 +153,13 @@ ul.steps{list-style:none;padding-left:16px;margin:4px 0}ul.steps li{margin:2px 0
 .beh{border-left:3px solid var(--accent);padding:6px 12px;margin:10px 0;background:var(--panel);border-radius:0 8px 8px 0}
 .split{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:900px){.app{grid-template-columns:1fr}.side{max-height:45vh}.split{grid-template-columns:1fr}}
 .theme{position:fixed;right:14px;top:10px}
-</style></head><body>
+"""
+
+TEMPLATE = r"""<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>__TITLE__</title>
+<style>
+__CSS__</style></head><body>
 <div class="app">
  <nav class="side"><div class="brand"><span id="sub"></span><b id="pname"></b></div>
   <input class="search" id="search" type="search" placeholder="검색: 클래스, 문제, 파일, 맵">
@@ -506,7 +508,7 @@ def write(out: Path, project: Path | None) -> Path:
     data = build_data(out, project)
     payload = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
     title = f"{data['project']} · DwoLens 리포트"
-    html = TEMPLATE.replace("__TITLE__", title.replace("<", "")).replace("__DATA__", payload)
+    html = TEMPLATE.replace("__CSS__", CSS).replace("__TITLE__", title.replace("<", "")).replace("__DATA__", payload)
     path = out / "report.html"
     path.write_text(html, encoding="utf-8")
     return path

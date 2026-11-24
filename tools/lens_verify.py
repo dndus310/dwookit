@@ -118,6 +118,16 @@ def render_verify(result: dict, run_id: str) -> str:
 
 # --------------------------------------------------------------------------- main
 
+def interactive_report(run: Path, kind: str, result: dict) -> None:
+    """report.html: the interactive page (lens_report_runs.py); the single page above stays as report-classic.html."""
+    try:
+        import lens_report_runs
+        lens_report_runs.write(run, kind, result)
+    except Exception as exc:                                   # never lose the report
+        print(f"[dwo-forge] interactive report skipped ({exc}); see report-classic.html")
+        (run / "out" / "report.html").write_bytes((run / "out" / "report-classic.html").read_bytes())
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -142,7 +152,8 @@ def main() -> int:
     if args.cmd == "verify":
         result = verify(args.run, baseline)
         (out / "verify.json").write_text(json.dumps(result, ensure_ascii=False, indent=1), encoding="utf-8")
-        (out / "report.html").write_text(render_verify(result, run_id), encoding="utf-8")
+        (out / "report-classic.html").write_text(render_verify(result, run_id), encoding="utf-8")
+        interactive_report(args.run, "verify", result)
         print(f"[dwo-forge] verify: " + ", ".join(f"{s['id']}={s['verdict']}" for s in result["steps"]) + f" -> {result['verdict']}")
     else:
         summary = lens_logs.run(args.files, args.crashes, set(args.ignore), baseline)
@@ -153,7 +164,8 @@ def main() -> int:
                 f"Warning {c['Warning']} · 그룹 {len(summary['groups'])} · 새 그룹 {summary['newGroups']} · 크래시 {len(summary['crashes'])} (새 크래시 {summary['newCrashes']})</p>"
                 f"<code>{'<br>'.join(html.escape(f) for f in summary['files'])}</code></section>"
                 f"<section><h2>오류 · 경고 그룹</h2>{log_groups_html(summary, 80)}</section>")
-        (out / "report.html").write_text(page("로그 분석", summary["verdict"], run_id, body), encoding="utf-8")
+        (out / "report-classic.html").write_text(page("로그 분석", summary["verdict"], run_id, body), encoding="utf-8")
+        interactive_report(args.run, "logs", summary)
         print(f"[dwo-forge] logs: {c} groups={len(summary['groups'])} new={summary['newGroups']} "
               f"crashes={len(summary['crashes'])} newCrashes={summary['newCrashes']} verdict={summary['verdict']}")
     return 0

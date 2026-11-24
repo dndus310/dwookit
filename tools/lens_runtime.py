@@ -408,7 +408,17 @@ def write_outputs(run: Path, name: str, result: dict, report: str) -> None:
     out = run / "out"
     out.mkdir(parents=True, exist_ok=True)
     (out / f"{name}.json").write_text(json.dumps(result, ensure_ascii=False, indent=1), encoding="utf-8")
-    (out / "report.html").write_text(report, encoding="utf-8")
+    if name != "smoke":
+        (out / "report.html").write_text(report, encoding="utf-8")
+        return
+    # smoke: the interactive page (lens_report_runs.py); the single page stays as report-classic.html
+    (out / "report-classic.html").write_text(report, encoding="utf-8")
+    try:
+        import lens_report_runs
+        lens_report_runs.write(run, "smoke", result)
+    except Exception as exc:
+        print(f"[dwo-forge] interactive report skipped ({exc}); see report-classic.html")
+        (out / "report.html").write_text(report, encoding="utf-8")
 
 
 def main() -> int:
