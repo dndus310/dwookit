@@ -6,6 +6,7 @@
 #include "Components/ActorComponent.h"
 #include "Components/PanelWidget.h"
 #include "Components/Widget.h"
+#include "GameFramework/Actor.h"
 #include "Dom/JsonObject.h"
 #include "EdGraph/EdGraph.h"
 #include "EdGraph/EdGraphNode.h"
@@ -48,6 +49,8 @@
 #include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonWriter.h"
 #include "WidgetBlueprint.h"
+#include "UObject/UnrealType.h"
+#include "UObject/EnumProperty.h"
 #include "Animation/WidgetAnimation.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDwoLensBp, Log, All);
@@ -151,6 +154,7 @@ namespace DwoLensInspector::BpExport
 	}
 
 	static FString NodeId(const UEdGraphNode* Node) { return Node->NodeGuid.ToString(EGuidFormats::Digits); }
+	static FString CppTypeOf(const FProperty* Property);
 
 	static FJsonRef DescribePin(const UEdGraphPin* Pin)
 	{
@@ -284,6 +288,14 @@ namespace DwoLensInspector::BpExport
 			Kind = Cast<UK2Node_VariableSet>(Node) ? TEXT("set") : TEXT("get");
 			Out->SetStringField(TEXT("member"), Variable->GetVarNameString());
 			Out->SetStringField(TEXT("memberOwner"), PathOf(Variable->GetVariableSourceClass()));
+			if (const FProperty* Property = Variable->GetPropertyForVariable())
+			{
+				Out->SetStringField(TEXT("memberCpp"), CppTypeOf(Property));
+				Out->SetStringField(TEXT("memberName"), Property->GetName());
+				if (Property->HasAnyPropertyFlags(CPF_NativeAccessSpecifierProtected)) { Out->SetStringField(TEXT("memberAccess"), TEXT("protected")); }
+				else if (Property->HasAnyPropertyFlags(CPF_NativeAccessSpecifierPrivate)) { Out->SetStringField(TEXT("memberAccess"), TEXT("private")); }
+				if (Property->HasMetaData(TEXT("BlueprintGetter")) || Property->HasMetaData(TEXT("BlueprintSetter"))) { Out->SetBoolField(TEXT("memberAccessor"), true); }
+			}
 		}
 		else if (const UK2Node_MacroInstance* Macro = Cast<UK2Node_MacroInstance>(Node))
 		{
@@ -633,6 +645,213 @@ namespace DwoLensInspector::BpExport
 		if (Animations.Num() > 0) { Out->SetArrayField(TEXT("animations"), Animations); }
 	}
 
+
+	// ------------------------------------------------------------------ native reflection (lens.bp/1 "native")
+	// What a C++ translation needs and the graph alone does not say: the exact C++ type and order of every
+	// parameter of each called or overridden function, include paths, class prefixes (A/U/F/E), enum spellings,
+	// and whether a function can be called from C++ at all (CustomThunk, BlueprintInternalUseOnly, access).
+	struct FNativeCollector
+	{
+		TSet<const UFunction*> Functions;
+		TSet<const UStruct*> Types;            // UClass and UScriptStruct
+		TSet<const UEnum*> Enums;
+
+		void AddObject(const UObject* Object)
+		{
+			if (const UClass* Class = Cast<UClass>(Object)) { Types.Add(Class); }
+			else if (const UScriptStruct* Struct = Cast<UScriptStruct>(Object)) { Types.Add(Struct); }
+			else if (const UEnum* Enum = Cast<UEnum>(Object)) { Enums.Add(Enum); }
+		}
+		void AddPinType(const FEdGraphPinType& Type)
+		{
+			AddObject(Type.PinSubCategoryObject.Get());
+			AddObject(Type.PinValueType.TerminalSubCategoryObject.Get());
+		}
+		void AddProperty(const FProperty* Property)
+		{
+			if (!Property) { return; }
+			if (const FObjectPropertyBase* Object = CastField<FObjectPropertyBase>(Property)) { AddObject(Object->PropertyClass); }
+			if (const FClassProperty* ClassProperty = CastField<FClassProperty>(Property)) { AddObject(ClassProperty->MetaClass); }
+			if (const FSoftClassProperty* SoftClass = CastField<FSoftClassProperty>(Property)) { AddObject(SoftClass->MetaClass); }
+			if (const FStructProperty* Struct = CastField<FStructProperty>(Property)) { AddObject(Struct->Struct); }
+			if (const FEnumProperty* Enum = CastField<FEnumProperty>(Property)) { AddObject(Enum->GetEnum()); }
+			if (const FByteProperty* Byte = CastField<FByteProperty>(Property)) { AddObject(Byte->Enum); }
+			if (const FArrayProperty* Array = CastField<FArrayProperty>(Property)) { AddProperty(Array->Inner); }
+			if (const FSetProperty* Set = CastField<FSetProperty>(Property)) { AddProperty(Set->ElementProp); }
+			if (const FMapProperty* Map = CastField<FMapProperty>(Property)) { AddProperty(Map->KeyProp); AddProperty(Map->ValueProp); }
+		}
+		void AddFunction(const UFunction* Function)
+		{
+			if (!Function) { return; }
+			Functions.Add(Function);
+			Types.Add(Function->GetOwnerClass());
+			for (TFieldIterator<FProperty> It(Function); It && It->HasAnyPropertyFlags(CPF_Parm); ++It) { AddProperty(*It); }
+		}
+	};
+
+	static FString CppTypeOf(const FProperty* Property)
+	{
+		FString Extended;
+		FString Type = Property->GetCPPType(&Extended, CPPF_None);
+		return Type + Extended;
+	}
+
+	static FString IncludeOf(const UStruct* Type)
+	{
+		FString Include = Type->GetMetaData(TEXT("IncludePath"));
+		if (Include.IsEmpty())
+		{
+			Include = Type->GetMetaData(TEXT("ModuleRelativePath"));
+			for (const TCHAR* Prefix : { TEXT("Public/"), TEXT("Classes/"), TEXT("Private/") })
+			{
+				if (Include.RemoveFromStart(Prefix)) { break; }
+			}
+		}
+		return Include;
+	}
+
+	static FString ModuleOf(const UObject* Object)
+	{
+		const FString Package = Object->GetOutermost()->GetName();
+		return Package.StartsWith(TEXT("/Script/")) ? Package.RightChop(8) : FString();
+	}
+
+	static FJsonRef DescribeNativeFunction(const UFunction* Function)
+	{
+		FJsonRef Out = MakeShared<FJsonObject>();
+		const UClass* Owner = Function->GetOwnerClass();
+		Out->SetStringField(TEXT("name"), Function->GetName());
+		Out->SetStringField(TEXT("owner"), PathOf(Owner));
+		Out->SetArrayField(TEXT("flags"), FunctionFlagNames(Function->FunctionFlags));
+		const bool bNative = Function->HasAnyFunctionFlags(FUNC_Native) || (Owner && Owner->HasAnyClassFlags(CLASS_Native) && !Cast<UBlueprintGeneratedClass>(Owner));
+		Out->SetBoolField(TEXT("native"), bNative);
+		Out->SetStringField(TEXT("access"), Function->HasAnyFunctionFlags(FUNC_Private) ? TEXT("private") : Function->HasAnyFunctionFlags(FUNC_Protected) ? TEXT("protected") : TEXT("public"));
+		if (Function->HasMetaData(TEXT("CustomThunk"))) { Out->SetBoolField(TEXT("customThunk"), true); }
+		if (Function->HasMetaData(TEXT("BlueprintInternalUseOnly"))) { Out->SetBoolField(TEXT("internalOnly"), true); }
+		if (Function->HasMetaData(TEXT("Latent"))) { Out->SetBoolField(TEXT("latent"), true); }
+		SetIf(Out, TEXT("worldContext"), Function->GetMetaData(TEXT("WorldContext")));
+		SetIf(Out, TEXT("deterministic"), Function->HasMetaData(TEXT("NativeMakeFunc")) ? TEXT("make") : Function->HasMetaData(TEXT("NativeBreakFunc")) ? TEXT("break") : FString());
+		SetIf(Out, TEXT("scriptName"), Function->GetMetaData(TEXT("ScriptName")));
+		FJsonValues Params;
+		for (TFieldIterator<FProperty> It(Function); It && It->HasAnyPropertyFlags(CPF_Parm); ++It)
+		{
+			const FProperty* Param = *It;
+			FJsonRef P = MakeShared<FJsonObject>();
+			P->SetStringField(TEXT("name"), Param->GetName());
+			P->SetStringField(TEXT("cpp"), CppTypeOf(Param));
+			if (Param->HasAnyPropertyFlags(CPF_ReturnParm)) { P->SetBoolField(TEXT("return"), true); }
+			else if (Param->HasAnyPropertyFlags(CPF_OutParm) && !Param->HasAnyPropertyFlags(CPF_ReferenceParm)) { P->SetBoolField(TEXT("out"), true); }
+			else if (Param->HasAnyPropertyFlags(CPF_ReferenceParm)) { P->SetBoolField(TEXT("ref"), true); }
+			if (Param->HasAnyPropertyFlags(CPF_ConstParm)) { P->SetBoolField(TEXT("const"), true); }
+			const FString AutoDefault = Function->GetMetaData(*FString::Printf(TEXT("CPP_Default_%s"), *Param->GetName()));
+			SetIf(P, TEXT("cppDefault"), AutoDefault);
+			PushObject(Params, P);
+		}
+		Out->SetArrayField(TEXT("params"), Params);
+		return Out;
+	}
+
+	static FJsonRef DescribeNative(FNativeCollector& Collector)
+	{
+		// Owners and parameter types pull in more types: widen once before writing.
+		for (const UFunction* Function : Collector.Functions)
+		{
+			for (TFieldIterator<FProperty> It(Function); It && It->HasAnyPropertyFlags(CPF_Parm); ++It) { Collector.AddProperty(*It); }
+		}
+		FJsonRef Out = MakeShared<FJsonObject>();
+		FJsonRef Types = MakeShared<FJsonObject>();
+		for (const UStruct* Type : Collector.Types)
+		{
+			if (!Type) { continue; }
+			FJsonRef T = MakeShared<FJsonObject>();
+			const UClass* Class = Cast<UClass>(Type);
+			const UScriptStruct* AsStruct = Cast<UScriptStruct>(Type);
+			const bool bNative = Class ? Class->HasAnyClassFlags(CLASS_Native) : (AsStruct && (AsStruct->StructFlags & STRUCT_Native) != 0);
+			T->SetStringField(TEXT("kind"), Class ? (Class->HasAnyClassFlags(CLASS_Interface) ? TEXT("interface") : TEXT("class")) : TEXT("struct"));
+			T->SetBoolField(TEXT("native"), bNative);
+			T->SetStringField(TEXT("cpp"), Class ? FString(Class->GetPrefixCPP()) + Class->GetName() : FString(TEXT("F")) + Type->GetName());
+			if (const UScriptStruct* Struct = Cast<UScriptStruct>(Type)) { T->SetStringField(TEXT("cpp"), Struct->GetStructCPPName()); }
+			SetIf(T, TEXT("include"), IncludeOf(Type));
+			SetIf(T, TEXT("module"), ModuleOf(Type));
+			if (Class)
+			{
+				const UClass* NativeParent = Class;
+				while (NativeParent && !NativeParent->HasAnyClassFlags(CLASS_Native)) { NativeParent = NativeParent->GetSuperClass(); }
+				SetIf(T, TEXT("nativeParent"), PathOf(NativeParent));
+				if (Class->HasAnyClassFlags(CLASS_Abstract)) { T->SetBoolField(TEXT("abstract"), true); }
+				if (Class->IsChildOf(AActor::StaticClass())) { T->SetBoolField(TEXT("actor"), true); }
+				if (Class->IsChildOf(UActorComponent::StaticClass())) { T->SetBoolField(TEXT("component"), true); }
+			}
+			Types->SetObjectField(PathOf(Type), T);
+		}
+		Out->SetObjectField(TEXT("types"), Types);
+
+		FJsonRef Enums = MakeShared<FJsonObject>();
+		for (const UEnum* Enum : Collector.Enums)
+		{
+			if (!Enum) { continue; }
+			FJsonRef E = MakeShared<FJsonObject>();
+			const bool bNative = ModuleOf(Enum).Len() > 0;
+			E->SetBoolField(TEXT("native"), bNative);
+			E->SetStringField(TEXT("cpp"), Enum->CppType.IsEmpty() ? Enum->GetName() : Enum->CppType);
+			E->SetStringField(TEXT("form"), Enum->GetCppForm() == UEnum::ECppForm::EnumClass ? TEXT("enumClass") : Enum->GetCppForm() == UEnum::ECppForm::Namespaced ? TEXT("namespaced") : TEXT("regular"));
+			SetIf(E, TEXT("include"), Enum->GetMetaData(TEXT("ModuleRelativePath")).Replace(TEXT("Public/"), TEXT("")).Replace(TEXT("Classes/"), TEXT("")));
+			FJsonRef Values = MakeShared<FJsonObject>();
+			for (int32 Index = 0; Index < Enum->NumEnums() - 1; ++Index)
+			{
+				// key: the short name a pin default uses; value: how C++ spells it
+				Values->SetStringField(Enum->GetNameStringByIndex(Index), Enum->GetNameByIndex(Index).ToString());
+			}
+			E->SetObjectField(TEXT("values"), Values);
+			Enums->SetObjectField(PathOf(Enum), E);
+		}
+		Out->SetObjectField(TEXT("enums"), Enums);
+
+		FJsonRef Functions = MakeShared<FJsonObject>();
+		for (const UFunction* Function : Collector.Functions)
+		{
+			if (Function) { Functions->SetObjectField(PathOf(Function->GetOwnerClass()) + TEXT(":") + Function->GetName(), DescribeNativeFunction(Function)); }
+		}
+		Out->SetObjectField(TEXT("functions"), Functions);
+		return Out;
+	}
+
+	static void CollectNative(const UBlueprint* Blueprint, FNativeCollector& Collector)
+	{
+		for (const UClass* Class = Blueprint->ParentClass; Class; Class = Class->GetSuperClass())
+		{
+			Collector.Types.Add(Class);
+			if (Class->HasAnyClassFlags(CLASS_Native)) { break; }
+		}
+		for (const FBPVariableDescription& Variable : Blueprint->NewVariables) { Collector.AddPinType(Variable.VarType); }
+		if (const USimpleConstructionScript* Scs = Blueprint->SimpleConstructionScript)
+		{
+			for (const USCS_Node* Node : Scs->GetAllNodes()) { if (Node) { Collector.AddObject(Node->ComponentClass); } }
+		}
+		TArray<UEdGraph*> Graphs;
+		Blueprint->GetAllGraphs(Graphs);
+		for (const UEdGraph* Graph : Graphs)
+		{
+			if (!Graph) { continue; }
+			for (const UEdGraphNode* Node : Graph->Nodes)
+			{
+				if (!Node) { continue; }
+				for (const UEdGraphPin* Pin : Node->Pins) { if (Pin) { Collector.AddPinType(Pin->PinType); } }
+				if (const UK2Node_CallFunction* Call = Cast<UK2Node_CallFunction>(Node)) { Collector.AddFunction(Call->GetTargetFunction()); }
+				else if (const UK2Node_ComponentBoundEvent* Bound = Cast<UK2Node_ComponentBoundEvent>(Node))
+				{
+					if (const FMulticastDelegateProperty* Delegate = Bound->GetTargetDelegateProperty()) { Collector.AddFunction(Delegate->SignatureFunction); }
+				}
+				else if (const UK2Node_Event* Event = Cast<UK2Node_Event>(Node)) { Collector.AddFunction(Event->FindEventSignatureFunction()); }
+				else if (const UK2Node_DynamicCast* CastNode = Cast<UK2Node_DynamicCast>(Node)) { Collector.AddObject(CastNode->TargetType.Get()); }
+				else if (const UK2Node_FunctionEntry* Entry = Cast<UK2Node_FunctionEntry>(Node))
+				{
+					for (const FBPVariableDescription& Local : Entry->LocalVariables) { Collector.AddPinType(Local.VarType); }
+				}
+			}
+		}
+	}
+
 	static FJsonRef DescribeBlueprint(const UBlueprint* Blueprint, const FAssetData& Asset)
 	{
 		FJsonRef Out = MakeShared<FJsonObject>();
@@ -709,6 +928,10 @@ namespace DwoLensInspector::BpExport
 			if (Graph) { PushObject(GraphValues, DescribeGraph(Blueprint, Graph)); }
 		}
 		Out->SetArrayField(TEXT("graphs"), GraphValues);
+
+		FNativeCollector Collector;
+		CollectNative(Blueprint, Collector);
+		Out->SetObjectField(TEXT("native"), DescribeNative(Collector));
 		return Out;
 	}
 
