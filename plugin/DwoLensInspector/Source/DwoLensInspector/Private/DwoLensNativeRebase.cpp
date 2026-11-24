@@ -165,6 +165,11 @@ namespace DwoLensInspector::NativeRebase
 			const FString Name = Renamed ? *Renamed : Pair.Key;
 			FProperty* Property = FindFProperty<FProperty>(Object->GetClass(), *Name);
 			if (!Property) { continue; }
+			if (const FObjectPropertyBase* ObjectProperty = CastField<FObjectPropertyBase>(Property))
+			{
+				const UObject* Current = ObjectProperty->GetObjectPropertyValue_InContainer(Object);
+				if (Current && Current->IsIn(Object)) { continue; }      // native component: set by the C++ constructor
+			}
 			FString Now;
 			Property->ExportTextItem_InContainer(Now, Object, nullptr, Object, PPF_None);
 			if (Now == Pair.Value) { continue; }
@@ -442,9 +447,20 @@ int32 DwoLensInspector::RebaseBlueprint(const FString& MappingFile, const FStrin
 
 	// 4. restore
 	UObject* Defaults = Blueprint->GeneratedClass->GetDefaultObject();
+	// Recompiling copies old class-default values onto properties with the same name. The Blueprint's component
+	// variables were None there (it fills them at construction), so the C++ members that took their names lost their
+	// components: point them back at the native subobjects, or every spawned actor gets null members.
+	for (const TPair<FString, FString>& Pair : Map.Components)
+	{
+		FObjectPropertyBase* Pointer = FindFProperty<FObjectPropertyBase>(Blueprint->GeneratedClass, *Pair.Value);
+		UObject* Native = Defaults->GetDefaultSubobjectByName(FName(*Pair.Value));
+		if (Pointer && Native) { Pointer->SetObjectPropertyValue_InContainer(Defaults, Native); }
+	}
 	TMap<FString, FString> Renames;
 	for (const TPair<FString, FString>& Pair : Map.Variables) { if (Pair.Key != Pair.Value) { Renames.Add(Pair.Key, Pair.Value); } }
-	for (const FString& Name : Restore(Defaults, BeforeDefaults, Renames)) { Problem(TEXT("could not restore ") + Name); }
+	FProps DefaultsToRestore = BeforeDefaults;
+	for (const TPair<FString, FString>& Pair : Map.Components) { DefaultsToRestore.Remove(Pair.Key); }
+	for (const FString& Name : Restore(Defaults, DefaultsToRestore, Renames)) { Problem(TEXT("could not restore ") + Name); }
 	for (const TPair<FString, FProps>& Pair : BeforeComponents)
 	{
 		UObject* Native = Defaults->GetDefaultSubobjectByName(FName(*Map.Components[Pair.Key]));
@@ -465,9 +481,18 @@ int32 DwoLensInspector::RebaseBlueprint(const FString& MappingFile, const FStrin
 	const FProps AfterDefaults = Snapshot(Defaults);
 	for (const TPair<FString, FString>& Pair : BeforeDefaults)
 	{
+		if (Map.Components.Contains(Pair.Key)) { continue; }   // component pointers: checked below, not as values
 		const FString* Renamed = Renames.Find(Pair.Key);
 		const FString* After = AfterDefaults.Find(Renamed ? *Renamed : Pair.Key);
-		if (!After) { Diffs.Add(MakeShared<FJsonValueObject>(Diff(TEXT("defaults"), Pair.Key, Pair.Value, TEXT("(missing)")))); }
+		if (!After)
+		{
+			// None before, now a native component of this class (RootComponent, a moved component): the expected
+			// result of moving components to C++, not a changed value
+			const FObjectPropertyBase* Pointer = FindFProperty<FObjectPropertyBase>(Blueprint->GeneratedClass, *(Renamed ? *Renamed : Pair.Key));
+			const UObject* Now = Pointer ? Pointer->GetObjectPropertyValue_InContainer(Defaults) : nullptr;
+			if (Pair.Value == TEXT("None") && Now && Now->IsIn(Defaults)) { continue; }
+			Diffs.Add(MakeShared<FJsonValueObject>(Diff(TEXT("defaults"), Pair.Key, Pair.Value, TEXT("(missing)"))));
+		}
 		else if (*After != Pair.Value) { Diffs.Add(MakeShared<FJsonValueObject>(Diff(TEXT("defaults"), Pair.Key, Pair.Value, *After))); }
 	}
 	for (const TPair<FString, FProps>& Pair : BeforeComponents)
@@ -482,6 +507,16 @@ int32 DwoLensInspector::RebaseBlueprint(const FString& MappingFile, const FStrin
 			{
 				Diffs.Add(MakeShared<FJsonValueObject>(Diff(*(TEXT("component ") + Pair.Key), Value.Key, Value.Value, Now ? *Now : FString(TEXT("(missing)")))));
 			}
+		}
+	}
+	// every moved component must still be reachable through its C++ member on the class default
+	for (const TPair<FString, FString>& Pair : Map.Components)
+	{
+		const FObjectPropertyBase* Pointer = FindFProperty<FObjectPropertyBase>(Blueprint->GeneratedClass, *Pair.Value);
+		const UObject* Target = Pointer ? Pointer->GetObjectPropertyValue_InContainer(Defaults) : nullptr;
+		if (!Target || !Target->IsIn(Defaults))
+		{
+			Problem(FString::Printf(TEXT("the C++ member %s does not point to its component after the rebase"), *Pair.Value));
 		}
 	}
 	Step(FString::Printf(TEXT("verified: %d value difference(s)"), Diffs.Num()));

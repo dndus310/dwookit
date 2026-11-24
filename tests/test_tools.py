@@ -1063,6 +1063,34 @@ class NativeMigrationTests(TempDir):
         self.assertTrue(empty)                                                      # unwired Event Construct etc.
         self.assertEqual(s["coverage"]["nodes"], 0)                                 # nothing real to move
 
+    def trace(self, launch="X=0.000 Y=0.000 Z=800.000", var_name="Color Target", extra=None):
+        step = {"name": "probe", "frame": 21, "subjectAlive": True,
+                "subject": {"props": {var_name: "(R=1.000000,G=1.000000,B=1.000000,A=1.000000)", "ActorGuid": "AB12",
+                                      "Owner": "/Temp/Untitled_3.Untitled_3:PersistentLevel.Thing", **(extra or {})},
+                            "transform": "0,0,0|0,0,0|1,1,1", "components": {"Cylinder1": {"@world": "0.000001,0,0"}}},
+                "probe": {"pendingLaunch": launch}}
+        return {"ok": True, "steps": [step]}
+
+    def test_behaviour_compare_same_with_float_noise_and_volatile_names(self):
+        import lens_native
+        before = self.trace()
+        after = self.trace(var_name="ColorTarget")                               # renamed in C++
+        after["steps"][0]["subject"]["props"]["ActorGuid"] = "CD34"               # new for every spawn
+        after["steps"][0]["subject"]["props"]["Owner"] = "/Temp/Untitled_9.Untitled_9:PersistentLevel.Thing"
+        after["steps"][0]["subject"]["components"]["Cylinder1"]["@world"] = "0.0000004,0,0"
+        r = lens_native.compare_traces(before, after, {"Color Target": "ColorTarget"})
+        self.assertEqual(r["verdict"], "same", r["differences"])
+
+    def test_behaviour_compare_reports_a_changed_effect(self):
+        import lens_native
+        r = lens_native.compare_traces(self.trace(), self.trace(launch="X=0.000 Y=0.000 Z=400.000",
+                                                               extra={"NativeLiteral_0": "/Game/M.M"}))
+        self.assertEqual(r["verdict"], "different")
+        self.assertEqual([d["value"] for d in r["differences"]], ["probe.pendingLaunch"])
+        self.assertIn("actor.NativeLiteral_0", r["onlyOneSide"])                  # members only C++ has: listed, not counted
+        self.assertIn("400", lens_native.behaviour_md("BP_JumpPad", r))
+        self.assertEqual(lens_native.compare_traces({"ok": False, "error": "x"}, self.trace())["verdict"], "error")
+
     def test_build_cs_modules_are_added_once(self):
         import lens_native
         body = "public class Game : ModuleRules {" + NL + TAB + "public Game(ReadOnlyTargetRules T) : base(T) {" + NL + TAB * 2 + 'PublicDependencyModuleNames.AddRange(new string[] { "Core", "Engine" });' + NL + TAB + "}" + NL + "}" + NL

@@ -2048,6 +2048,9 @@ function Invoke-Bp {
 #   native rebase <bp> [--dry-run] [--force]
 #                                    back up the .uasset, rebase, verify; the backup goes back when it fails
 #   native restore <bp>              put the last backup of the .uasset back (and of Build.cs)
+#   native verify <bp> [--frames N] [--no-probe]
+#                                    behaviour check: runs the rebased Blueprint and its pre-migration backup through
+#                                    the same scenario in a headless world (DwoLensBehaviour.cpp) and compares them
 #   native status                    what was generated and rebased
 $NativeDir = Join-Path $ForgeDir 'native'
 
@@ -2117,6 +2120,54 @@ function Invoke-NativeRebase($Target, $UProject) {
     Fail "native rebase failed; the Blueprint is unchanged (report: $report)."
 }
 
+function Invoke-BehaviourRun($UProject, $Engine, [string]$Scenario, [string]$Out, [string]$Log) {
+    Remove-Item -Force $Out -ErrorAction SilentlyContinue
+    & cmd /c "`"$($Engine.Cmd)`" `"$($UProject.Path)`" -run=DwoLensInspector -EnablePlugins=DwoLensInspector -LensBehave=`"$Scenario`" -LensBehaveOut=`"$Out`" -unattended -nullrhi -nosplash -nopause -NoSound -stdout -FullStdOutLogOutput > `"$Log`" 2>&1"
+    if (-not (Test-Path $Out)) { return $false }
+    return $true
+}
+
+function Invoke-NativeVerify($Target, $UProject) {
+    $last = Join-Path $NativeDir "$($Target.Name).last-backup.txt"
+    $rb = Join-Path $NativeDir "$($Target.Name).rebase.json"
+    if (-not (Test-Path $last) -or -not (Test-Path $rb)) { Fail "Rebase it first: __dwookit.bat native rebase $($Target.Entry)" }
+    $r = Get-Content -Raw -Encoding UTF8 $rb | ConvertFrom-Json
+    if (-not $r.saved) { Fail "The last rebase of $($Target.Name) was not saved; nothing to compare." }
+    $original = Join-Path ((Get-Content -Raw $last).Trim()) (Split-Path -Leaf $Target.Asset)
+    if (-not (Test-Path $original)) { Fail "The pre-migration backup is missing: $original" }
+    $engine = Resolve-Engine $UProject.Json.EngineAssociation
+    Assert-ModulesBuilt $UProject
+    $frames = [int](Get-NativeArg '--frames' '90')
+    $dir = Join-Path $NativeDir "behaviour\$($Target.Name)"
+    New-Item -ItemType Directory -Force $dir | Out-Null
+    $scenario = Join-Path $dir 'scenario.json'
+    $j = Get-Content -Raw -Encoding UTF8 $Target.Map | ConvertFrom-Json
+    $doc = [ordered]@{ blueprint = $j.blueprint; frames = $frames; dt = 0.0333333; recordEvery = 10
+                       probe = $(if ($Rest -contains '--no-probe') { 'none' } else { 'character' }); probeFrame = 20; probeOffset = @(0, 0, 0) }
+    Write-Json $scenario $doc
+    $logDir = Join-Path $DataDir 'logs'
+    New-Item -ItemType Directory -Force $logDir | Out-Null
+    Say "native verify: $($Target.Name), $frames frames, probe $($doc.probe)"
+    $after = Join-Path $dir 'after.json'
+    $before = Join-Path $dir 'before.json'
+    if (-not (Invoke-BehaviourRun $UProject $engine $scenario $after (Join-Path $logDir "native-verify-after-$($Target.Name).log"))) { Fail "The migrated run wrote no trace (see $logDir)." }
+    # the original: its backup in place of the migrated asset for one run, then the migrated asset back no matter what
+    $keep = Join-Path $dir 'migrated.uasset'
+    Copy-Item $Target.Asset $keep -Force
+    try {
+        Copy-Item $original $Target.Asset -Force
+        $ok = Invoke-BehaviourRun $UProject $engine $scenario $before (Join-Path $logDir "native-verify-before-$($Target.Name).log")
+    } finally {
+        Copy-Item $keep $Target.Asset -Force
+        Remove-Item -Force $keep -ErrorAction SilentlyContinue
+    }
+    if (-not $ok) { Fail "The original run wrote no trace (see $logDir)." }
+    & python (Join-Path $SystemDir 'tools\lens_native.py') compare $before $after --map $Target.Map --out (Join-Path $NativeDir "$($Target.Name).behaviour")
+    $code = $LASTEXITCODE
+    Say "  report: $(Join-Path $NativeDir "$($Target.Name).behaviour.md")"
+    if ($code -ne 0) { exit 1 }
+}
+
 function Invoke-Native {
     if (-not (Read-State)) { Fail 'Not connected. Connect the project first: __dwookit.bat connect' }
     $action = if ($Rest.Count) { $Rest[0] } else { 'status' }
@@ -2166,6 +2217,7 @@ function Invoke-Native {
             Say "  next: __dwookit.bat compile (editor closed), then __dwookit.bat native rebase $($target.Entry) [--dry-run]"
         }
         'rebase' { Invoke-NativeRebase $target $uproject }
+        'verify' { Invoke-NativeVerify $target $uproject }
         'restore' {
             $last = Join-Path $NativeDir "$($target.Name).last-backup.txt"
             if (-not (Test-Path $last)) { Fail "No backup of $($target.Name)." }
@@ -2175,7 +2227,7 @@ function Invoke-Native {
             if (Test-Path $rb) { Move-Item -Force $rb (Join-Path $NativeDir "$($target.Name).restored.json") }
             Say "native restore: $($target.Asset) is back as it was before the rebase ($dir). The generated C++ stays; delete Source\...\DwoNative\$($target.Name) yourself if you no longer want it."
         }
-        default { Fail "Unknown native action '$action'. Use: native plan | generate | rebase | restore | status" }
+        default { Fail "Unknown native action '$action'. Use: native plan | generate | rebase | verify | restore | status" }
     }
 }
 

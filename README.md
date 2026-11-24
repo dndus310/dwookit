@@ -445,6 +445,7 @@ __dwookit.bat native generate /Game/Props/BP_JumpPad        :: Source\<모듈>\D
 __dwookit.bat compile                                        :: 에디터 대상 빌드 (에디터 닫고)
 __dwookit.bat native rebase   /Game/Props/BP_JumpPad --dry-run   :: 검증만
 __dwookit.bat native rebase   /Game/Props/BP_JumpPad        :: 백업 후 상속 전환, 검증 통과 시에만 저장
+__dwookit.bat native verify   /Game/Props/BP_JumpPad        :: 동작 비교: 원본과 마이그레이션본을 같은 시나리오로 실행
 __dwookit.bat native restore  /Game/Props/BP_JumpPad        :: 마지막 백업으로 되돌리기
 ```
 
@@ -461,6 +462,14 @@ __dwookit.bat native restore  /Game/Props/BP_JumpPad        :: 마지막 백업�
 3. 부모 클래스를 생성된 클래스로 바꾸고, 옮긴 컴포넌트에 붙어 있던 남은 컴포넌트는 네이티브 컴포넌트에 다시 붙입니다.
 4. 기록한 값을 새 기본값과 네이티브 컴포넌트에 되돌려 씁니다.
 5. 컴파일 오류가 없고, 다시 기록한 값이 처음과 하나도 다르지 않을 때만 저장합니다. 실패하면 저장하지 않고 백업을 되돌립니다. 결과는 `__dwookit/native/<이름>.rebase.json`.
+
+동작 비교(`native verify`, 액터 블루프린트):
+- 같은 시나리오를 두 번 실행합니다. 한 번은 전환한 에셋으로, 한 번은 전환 전 백업을 잠시 제자리에 두고(끝나면 전환한 에셋을 반드시 되돌림).
+- 시나리오: 엔진 테스트 월드(게임 인스턴스, 프로젝트 게임 모드, 고정 시간 간격)에 블루프린트를 놓고 90프레임 실행합니다. 20프레임에 프로브 캐릭터를 위에서 쓸어내리듯 내려 겹침, 캐스트, 발사 같은 상호작용을 일으킵니다.
+- 기록: 10프레임마다 액터와 각 컴포넌트의 편집 가능·블루프린트에서 보이는 모든 값과 월드 변환, 프로브의 위치·속도·이동 모드·발사 요청.
+- 비교: 숫자는 부동소수 오차(1e-3)까지 같으면 같음으로 봅니다. 스폰마다 바뀌는 GUID와 임시 월드 이름은 제외하고, C++에만 있는 멤버는 따로 나열합니다. 결과는 `__dwookit/native/<이름>.behaviour.md`.
+- 같은 원본을 두 번 돌린 결과가 같음(결정적)을 확인했습니다. 생성된 C++에 일부러 넣은 오류(발사 속도 절반)는 바로 "다름"으로 잡힙니다.
+- 한계: 액터만 대상입니다(위젯·애니메이션은 아직). 무작위 값이나 실제 시간을 쓰는 로직은 차이로 나올 수 있습니다. 시나리오가 건드리지 않는 경로(특정 입력, 다른 액터와의 상호작용)는 검증되지 않습니다.
 
 현재 범위: 액터·컴포넌트·위젯·애니메이션 블루프린트의 변수, 컴포넌트(SCS), BindWidget 위젯, 이벤트 디스패처, 함수, 엔진 이벤트·커스텀 이벤트·컴포넌트 바운드 이벤트, Construction Script(`OnConstruction`), 분기·시퀀스·스위치·캐스트·For/ForEach/While·IsValid·FlipFlop·DoOnce. 블루프린트에 남는 것: 지연·타임라인·입력 이벤트, 복제 함수, 부모 C++의 BlueprintImplementableEvent 구현, 블루프린트 매크로·구조체·열거형을 쓰는 코드, AnimGraph(상태 머신), 비헤이비어 트리 노드 블루프린트(계획 중). 비헤이비어 트리 에셋 자체는 데이터라 옮길 대상이 아닙니다.
 

@@ -1,6 +1,7 @@
 #include "DwoLensInspectorCommandlet.h"
 #include "DwoLensBlueprintExport.h"
 #include "DwoLensNativeRebase.h"
+#include "DwoLensBehaviour.h"
 
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetRegistry/IAssetRegistry.h"
@@ -462,6 +463,18 @@ UDwoLensInspectorCommandlet::UDwoLensInspectorCommandlet()
 int32 UDwoLensInspectorCommandlet::Main(const FString& Params)
 {
 	using namespace DwoLensInspector;
+
+	// Native migration, behaviour check: -LensBehave=<scenario.json> -LensBehaveOut=<trace.json>
+	FString BehaveScenario;
+	if (FParse::Value(*Params, TEXT("LensBehave="), BehaveScenario) && !BehaveScenario.IsEmpty())
+	{
+		FString BehaveOut;
+		if (!FParse::Value(*Params, TEXT("LensBehaveOut="), BehaveOut) || BehaveOut.IsEmpty())
+		{
+			BehaveOut = FPaths::ChangeExtension(BehaveScenario, TEXT("trace.json"));
+		}
+		return RunBehaviour(BehaveScenario, BehaveOut);
+	}
 
 	// Native migration: -LensRebase=<Name.native.json> -LensRebaseReport=<file> [-LensDryRun] [-LensForce]
 	FString RebaseMap;

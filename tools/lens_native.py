@@ -1806,6 +1806,89 @@ def report_md(s: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
+# ------------------------------------------------------------------------------------------------ behaviour compare
+
+NUM = re.compile(r"[-+]?(?:\d+\.\d*|\.\d+|\d+)(?:[eE][-+]?\d+)?")
+PER_SPAWN = {"ActorGuid", "ActorInstanceGuid", "ContentBundleGuid"}   # new for every spawned actor
+VOLATILE = re.compile(r"/Temp/[^.:'\" ]+|Untitled_\d+|DwoBehaviour(_\d+)?")
+
+
+def _norm(text: str) -> str:
+    return VOLATILE.sub("<world>", str(text))
+
+
+def same_value(a, b, tol: float = 1e-3) -> bool:
+    """Equal as text once world names are normalized; numbers inside may differ by float noise."""
+    a, b = _norm(a), _norm(b)
+    if a == b:
+        return True
+    if NUM.sub("#", a) != NUM.sub("#", b):
+        return False
+    for x, y in zip(NUM.findall(a), NUM.findall(b)):
+        fx, fy = float(x), float(y)
+        if abs(fx - fy) > tol + 1e-5 * max(abs(fx), abs(fy)):
+            return False
+    return True
+
+
+def _flatten(step: dict, renames: dict) -> dict:
+    out = {"subjectAlive": step.get("subjectAlive")}
+    subject = step.get("subject") or {}
+    for k, v in (subject.get("props") or {}).items():
+        out[f"actor.{renames.get(k, k)}"] = v
+    if "transform" in subject:
+        out["actor.@transform"] = subject["transform"]
+    for comp, props in (subject.get("components") or {}).items():
+        for k, v in props.items():
+            out[f"{comp}.{k}"] = v
+    for k, v in (step.get("probe") or {}).items():
+        out[f"probe.{k}"] = v
+    return out
+
+
+def compare_traces(before: dict, after: dict, renames: dict | None = None, ignore: set | None = None) -> dict:
+    """Differences between a run of the original Blueprint and of the migrated one, step by step. Values only one side
+    has (members the generated class adds, like asset references it holds) are listed apart, not counted."""
+    renames = renames or {}
+    ignore = (ignore or set()) | PER_SPAWN
+    if not before.get("ok") or not after.get("ok"):
+        return {"verdict": "error", "error": before.get("error") or after.get("error"), "differences": [], "onlyOneSide": []}
+    diffs, one_side = [], set()
+    steps_a, steps_b = before.get("steps", []), after.get("steps", [])
+    if [s["name"] for s in steps_a] != [s["name"] for s in steps_b]:
+        diffs.append({"step": "-", "value": "steps", "before": [s["name"] for s in steps_a], "after": [s["name"] for s in steps_b]})
+    compared = 0
+    for sa, sb in zip(steps_a, steps_b):
+        fa, fb = _flatten(sa, renames), _flatten(sb, renames)
+        for key in sorted(set(fa) | set(fb)):
+            if key in ignore or key.split(".", 1)[-1] in ignore:
+                continue
+            if key not in fa or key not in fb:
+                one_side.add(key)
+                continue
+            compared += 1
+            if not same_value(fa[key], fb[key]):
+                diffs.append({"step": sa["name"], "value": key, "before": str(fa[key])[:300], "after": str(fb[key])[:300]})
+    return {"verdict": "same" if not diffs else "different", "compared": compared, "differences": diffs,
+            "onlyOneSide": sorted(one_side)}
+
+
+def behaviour_md(name: str, result: dict) -> str:
+    lines = [f"# {name}: behaviour before and after the migration", ""]
+    if result["verdict"] == "error":
+        return "\n".join(lines + [f"The check could not run: {result.get('error')}", ""])
+    lines.append(f"Verdict: **{result['verdict']}**. {result['compared']} values compared, {len(result['differences'])} differ.")
+    lines.append("")
+    if result["differences"]:
+        lines += ["| Step | Value | Before (Blueprint) | After (C++) |", "|---|---|---|---|"]
+        for d in result["differences"][:200]:
+            lines.append(f"| {d['step']} | `{d['value']}` | {d['before']} | {d['after']} |")
+        lines.append("")
+    if result["onlyOneSide"]:
+        lines += ["Only on one side (not compared): " + ", ".join(f"`{k}`" for k in result["onlyOneSide"][:40]), ""]
+    return "\n".join(lines)
+
+
 def add_modules(build_cs: Path, modules: list[str]) -> list[str]:
     """Adds the modules the generated code needs to the game module's Build.cs, on one marked line, so they are easy
     to see and remove. Returns the ones added (already listed anywhere in the file: skipped)."""
@@ -1845,7 +1928,26 @@ def main(argv=None) -> int:
     p = sub.add_parser("modules")
     p.add_argument("build_cs", type=Path)
     p.add_argument("modules")
+    p = sub.add_parser("compare")
+    p.add_argument("before", type=Path)
+    p.add_argument("after", type=Path)
+    p.add_argument("--map", type=Path, help="<Name>.native.json: renamed variables")
+    p.add_argument("--out", type=Path, help="write <out>.json and <out>.md")
     args = ap.parse_args(argv)
+    if args.cmd == "compare":
+        renames, name = {}, args.after.stem
+        if args.map:
+            m = json.loads(args.map.read_text(encoding="utf-8"))
+            name = m["name"]
+            renames = {v["bp"]: v["cpp"] for v in m["variables"] if v["migrated"] and v["bp"] != v["cpp"]}
+        result = compare_traces(json.loads(args.before.read_text(encoding="utf-8")), json.loads(args.after.read_text(encoding="utf-8")), renames)
+        if args.out:
+            Path(str(args.out) + ".json").write_text(json.dumps(result, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+            Path(str(args.out) + ".md").write_text(behaviour_md(name, result), encoding="utf-8")
+        print(f"behaviour: {result['verdict']}" + (f" ({result['compared']} values compared, {len(result['differences'])} differ)" if result["verdict"] != "error" else f": {result.get('error')}"))
+        for d in result["differences"][:15]:
+            print(f"  {d['step']}: {d['value']}: {d['before'][:80]} -> {d['after'][:80]}")
+        return 0 if result["verdict"] == "same" else 1
     if args.cmd == "modules":
         added = add_modules(args.build_cs, [m for m in args.modules.split(",") if m])
         print(f"native: {args.build_cs.name}: " + (f"added {', '.join(added)}" if added else "already has every module"))
