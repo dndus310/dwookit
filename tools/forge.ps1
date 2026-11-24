@@ -13,7 +13,7 @@ param(
     [Parameter(Mandatory = $true)]
     [ValidateSet('connect', 'tool', 'attach', 'update', 'status', 'analyze', 'verify', 'logs', 'smoke', 'perf', 'sizes', 'trace', 'play', 'tools', 'gui',
                  'sm-install', 'sm-remove', 'canvas-install', 'canvas-remove', 'canvas-import', 'canvas-validate',
-                 'doctor', 'uninstall', 'detach', 'compile', 'package', 'bp', 'agent',
+                 'doctor', 'uninstall', 'detach', 'compile', 'package', 'bp', 'agent', 'live', 'live-ingest',
                  'ci-job', 'ci-trigger', 'ci-hook', 'ci-hooks', 'ci-status', 'ci-install', 'ci-start', 'ci-stop', 'ci-remove', 'ci-bundle')]
     [string]$Command,
     [Parameter(Mandatory = $true)]
@@ -365,7 +365,8 @@ function Install-Plugin($Build) {
     # for its own commandlet runs (-EnablePlugins=DwoLensInspector), so the project needs no .uproject entry.
     $upluginPath = Join-Path $PluginDest 'DwoLensInspector.uplugin'
     $uplugin = Get-Content -Raw -Encoding UTF8 $upluginPath | ConvertFrom-Json
-    $uplugin | Add-Member -NotePropertyName EnabledByDefault -NotePropertyValue $false -Force
+    # Live Lens on: the editor loads it too (still no .uproject entry; this copy is git-excluded).
+    $uplugin | Add-Member -NotePropertyName EnabledByDefault -NotePropertyValue (Test-LiveEnabled) -Force
     [IO.File]::WriteAllText($upluginPath, ($uplugin | ConvertTo-Json -Depth 10), $Utf8)
     Copy-Item -Recurse (Join-Path $Build.Dir 'Binaries') $PluginDest
     if (Test-Path (Join-Path $Build.Dir 'Resources')) { Copy-Item -Recurse (Join-Path $Build.Dir 'Resources') $PluginDest }
@@ -2001,6 +2002,160 @@ function Invoke-Agent {
     }
 }
 
+# ---------------------------------------------------------------- Live Lens (live)
+# The DwoLensInspector plugin also runs inside the editor (DwoLensLive.cpp) and collects raw data per editor
+# session; after the editor closes, live-ingest merges it into __dwo-forge\live\base and analyses it like
+# 'analyze' (a run with source 'live'). Settings: __dwo-forge\live-lens.json.
+$LiveDir = Join-Path $ForgeDir 'live'
+$LiveConfigPath = Join-Path $ForgeDir 'live-lens.json'
+$LiveTimings = @('changes', 'exit', 'save')
+$LiveKeeps = @('latest', 'history', 'snapshot')
+$LiveCollect = @('structure', 'logs', 'pie', 'work')
+
+function Get-LiveConfig {
+    $c = [ordered]@{ enabled = $false; timing = 'changes'; keep = 'history'
+                     collect = [ordered]@{ structure = $true; logs = $true; pie = $true; work = $true } }
+    if (Test-Path $LiveConfigPath) {
+        try {
+            $j = Get-Content -Raw -Encoding UTF8 $LiveConfigPath | ConvertFrom-Json
+            if ($j.PSObject.Properties['enabled']) { $c.enabled = [bool]$j.enabled }
+            if ($LiveTimings -contains "$($j.timing)") { $c.timing = "$($j.timing)" }
+            if ($LiveKeeps -contains "$($j.keep)") { $c.keep = "$($j.keep)" }
+            if ($j.collect) { foreach ($k in $LiveCollect) { if ($j.collect.PSObject.Properties[$k]) { $c.collect[$k] = [bool]$j.collect.$k } } }
+        } catch { }
+    }
+    return $c
+}
+
+function Test-LiveEnabled { return [bool](Get-LiveConfig).enabled }
+
+function Set-LivePluginEnabled([bool]$On) {
+    $path = Join-Path $PluginDest 'DwoLensInspector.uplugin'
+    if (-not (Test-Path $path)) { return $false }
+    $u = Get-Content -Raw -Encoding UTF8 $path | ConvertFrom-Json
+    $u | Add-Member -NotePropertyName EnabledByDefault -NotePropertyValue $On -Force
+    [IO.File]::WriteAllText($path, ($u | ConvertTo-Json -Depth 10), $Utf8)
+    return $true
+}
+
+function Invoke-Live {
+    $action = if ($Rest.Count) { $Rest[0] } else { 'status' }
+    if (-not (Read-State)) { Fail 'Not connected. Connect the project first: __dwo-forge.bat connect' }
+    $c = Get-LiveConfig
+    # options: --timing changes|exit|save  --keep latest|history|snapshot  --collect structure,logs,pie,work
+    for ($i = 1; $i -lt $Rest.Count; $i++) {
+        switch ($Rest[$i]) {
+            '--timing'  { $v = $Rest[++$i]; if ($LiveTimings -notcontains $v) { Fail "--timing: $($LiveTimings -join ' | ')" }; $c.timing = $v }
+            '--keep'    { $v = $Rest[++$i]; if ($LiveKeeps -notcontains $v) { Fail "--keep: $($LiveKeeps -join ' | ')" }; $c.keep = $v }
+            '--collect' { $v = @("$($Rest[++$i])".Split(',') | Where-Object { $_ }); foreach ($k in $LiveCollect) { $c.collect[$k] = $v -contains $k } }
+        }
+    }
+    switch ($action) {
+        'on' {
+            if (-not (Test-Path (Join-Path $PluginDest 'DwoLensInspector.uplugin'))) { Fail 'DwoLens is not installed. Install it first: __dwo-forge.bat tool install lens' }
+            $c.enabled = $true
+            Write-Json $LiveConfigPath $c
+            $null = Set-LivePluginEnabled $true
+            Say "Live Lens on (collect: $(@($LiveCollect | Where-Object { $c.collect[$_] }) -join ', '); timing: $($c.timing); keep: $($c.keep))."
+            Say 'Restart the Unreal Editor. Every editor run is collected; results are processed in the background after it closes.'
+            if (-not (Test-Path (Join-Path $LiveDir 'base\meta.json'))) { Say 'The first session collects everything when the editor closes (this takes longer once).' }
+        }
+        'off' {
+            $c.enabled = $false
+            Write-Json $LiveConfigPath $c
+            $null = Set-LivePluginEnabled $false
+            Say 'Live Lens off. The editor stops loading DwoLens after its next restart; the cache stays.'
+        }
+        'config' { Write-Json $LiveConfigPath $c; Say "Live Lens settings saved (timing: $($c.timing); keep: $($c.keep)). They apply from the next editor start." }
+        'rebuild' {
+            Remove-Item -Recurse -Force (Join-Path $LiveDir 'base') -ErrorAction SilentlyContinue
+            Say 'Live Lens cache dropped: the next editor session collects everything again.'
+        }
+        'status' {
+            Say "Live Lens: $(if ($c.enabled) { 'on' } else { 'off' })  timing=$($c.timing)  keep=$($c.keep)  collect=$(@($LiveCollect | Where-Object { $c.collect[$_] }) -join ',')"
+            Say "cache: $(if (Test-Path (Join-Path $LiveDir 'base\meta.json')) { 'ready' } else { 'empty (next session collects everything)' })"
+            $sessions = @(Get-ChildItem (Join-Path $LiveDir 'sessions') -Directory -ErrorAction SilentlyContinue | Sort-Object Name -Descending | Select-Object -First 8)
+            foreach ($d in $sessions) {
+                $j = $null
+                if (Test-Path (Join-Path $d.FullName 'session.json')) { $j = Get-Content -Raw -Encoding UTF8 (Join-Path $d.FullName 'session.json') | ConvertFrom-Json }
+                $state = if (-not $j) { 'running' } elseif ($j.ingested) { "-> $($j.ingested)" } elseif ($j.ended -eq 'crashed') { 'crashed' } else { 'waiting for processing' }
+                Write-Host ("  {0}  {1}  collected={2}  exit={3:N1}s  {4}" -f $d.Name, $(if ($j) { $j.ended } else { '' }), $(if ($j) { $j.collected } else { '' }), $(if ($j -and $j.exitSeconds) { [double]$j.exitSeconds } else { 0 }), $state)
+            }
+        }
+        default { Fail "Unknown live action '$action'. Use: live on | off | status | config | rebuild  [--timing changes|exit|save] [--keep latest|history|snapshot] [--collect structure,logs,pie,work]" }
+    }
+}
+
+function Invoke-LiveIngest {
+    # Started by the editor plugin at exit (hidden, detached): wait for the editor, then process every session.
+    $waitPid = 0
+    for ($i = 0; $i -lt $Rest.Count; $i++) { if ($Rest[$i] -eq '--wait-pid') { $waitPid = [int]$Rest[++$i] } }
+    New-Item -ItemType Directory -Force $LiveDir | Out-Null
+    $log = Join-Path $LiveDir 'ingest.log'
+    $lock = Join-Path $LiveDir 'ingest.lock'
+    try { $lockStream = [IO.File]::Open($lock, 'OpenOrCreate', 'ReadWrite', 'None') } catch { Say 'live-ingest: already running.'; return }
+    try {
+        Start-Transcript -Path $log -Append | Out-Null
+        if ($waitPid) { try { Wait-Process -Id $waitPid -Timeout 900 -ErrorAction Stop } catch { } }
+        $c = Get-LiveConfig
+        $uproject = Get-UProject
+        $engine = Resolve-Engine $uproject.Json.EngineAssociation
+        $sessions = @(Get-ChildItem (Join-Path $LiveDir 'sessions') -Directory -ErrorAction SilentlyContinue | Sort-Object Name)
+        foreach ($d in $sessions) {
+            $sj = Join-Path $d.FullName 'session.json'
+            if (-not (Test-Path $sj)) { continue }                       # still running (or crashed and not yet closed)
+            $summary = Get-Content -Raw -Encoding UTF8 $sj | ConvertFrom-Json
+            if ($summary.PSObject.Properties['ingested'] -and $summary.ingested) { continue }
+            Say "live-ingest: session $($d.Name) ($($summary.ended))"
+            $base = Join-Path $LiveDir 'base'
+            & python (Join-Path $SystemDir 'tools\lens_live.py') merge --session $d.FullName --base $base
+            $merged = $LASTEXITCODE
+            if ($merged -ne 0 -or -not (Test-Path (Join-Path $base 'meta.json'))) {
+                # nothing structural to process (crashed session, structure off): keep the activity record only
+                $summary | Add-Member -NotePropertyName ingested -NotePropertyValue 'activity-only' -Force
+                Write-Json $sj $summary
+                continue
+            }
+            $startedAt = Get-Date
+            $runId = 'run-' + $startedAt.ToString('yyyyMMdd-HHmmss')
+            $runDir = Join-Path $DataDir "runs\$runId"
+            $rawDir = Join-Path $runDir 'raw'
+            $outDir = Join-Path $runDir 'out'
+            New-Item -ItemType Directory -Force $rawDir, $outDir | Out-Null
+            Copy-Item (Join-Path $base '*') $rawDir
+            $sw = [Diagnostics.Stopwatch]::StartNew()
+            & python (Join-Path $SystemDir 'tools\lens_analyze.py') --raw $rawDir --project $uproject.Path --out $outDir --run-id $runId --config @(Get-ConfigFiles)
+            $pyCode = $LASTEXITCODE
+            $sw.Stop()
+            $verdict = 'fail'
+            $findings = Join-Path $outDir 'findings.json'
+            if ($pyCode -eq 0 -and (Test-Path $findings)) { $verdict = (Get-Content -Raw -Encoding UTF8 $findings | ConvertFrom-Json).verdict }
+            $state = Read-State
+            Write-Json (Join-Path $runDir 'run.json') ([ordered]@{
+                schema = 'lens.run/0.1'; runId = $runId; line = 'architecture-report'; source = 'live'; session = $d.Name
+                project = $state.project; engineVersion = $engine.Version; systemCommit = Get-SystemCommit
+                startedAt = $startedAt.ToString('o'); finishedAt = (Get-Date).ToString('o'); final = $verdict
+                stations = @([ordered]@{ id = 'ST-1'; name = "collect (Live Lens, $($summary.collected))"; verdict = 'pass'; ms = [int]([double]$summary.exitSeconds * 1000) },
+                             [ordered]@{ id = 'ST-2'; name = 'analyze+gate'; verdict = $verdict; exitCode = $pyCode; ms = $sw.ElapsedMilliseconds })
+            })
+            Complete-RunOutputs $runDir
+            & python (Join-Path $SystemDir 'tools\lens_live.py') accumulate --project $Project --run $runDir --session $d.FullName --keep $c.keep
+            # the flow again, now with this session's play-tested classes (runtime.json was just updated)
+            & python (Join-Path $SystemDir 'tools\lens_flow.py') --raw $rawDir --out $outDir --project $Project | Out-Null
+            Invoke-BpMarkdown
+            Update-AgentContext
+            Say "live-ingest: $runId ($verdict)"
+        }
+        # session logs and crashes, compared with the previous logs run (its own process: it may stop on errors)
+        if ($c.collect.logs -and $sessions.Count) {
+            & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $SystemDir 'tools\forge.ps1') -Command logs -Project $Project
+        }
+    } finally {
+        try { Stop-Transcript | Out-Null } catch { }
+        $lockStream.Dispose()
+    }
+}
+
 # ---------------------------------------------------------------- uninstall
 # One command removes everything dwo-Forge put into the project or caused there. Nothing has to be removed
 # first (no sm-remove / canvas-remove step). It works in two passes: a scan that lists every trace, grouped by
@@ -2462,6 +2617,8 @@ switch ($Command) {
     'analyze' { Invoke-Analyze }
     'bp'      { Invoke-Bp }
     'agent'   { Invoke-Agent }
+    'live'    { Invoke-Live }
+    'live-ingest' { Invoke-LiveIngest }
     'compile' { Invoke-Compile }
     'package' { Invoke-Package }
     { $_ -like 'ci-*' } {

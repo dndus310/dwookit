@@ -332,12 +332,29 @@ __dwo-forge/blueprints/
 
 | 알고 싶은 것 | 보는 곳 |
 |---|---|
+| 결과를 자동으로 쌓기 | **Live Lens**: 에디터를 쓰는 동안 수집, 닫으면 백그라운드 분석 |
+| 실행 중인 게임의 값 | **실행 중 관찰** (DwoStateMonitor 플러그인) |
 | 이 게임이 어떤 순서로 돌아가나 (전체 지도) | **게임 흐름**: 맵 → 게임 모드 → 컨트롤러·폰·HUD → 그들이 만들고 가지고 쓰는 객체 |
 | 이 객체(클래스)가 무엇을 하나 | **아키텍처 › 기능**: 진입점별 기능과 그 전개 (게임 흐름의 객체에서 `기능 보기`) |
 | 이 파일을 깊게 이해하기 | **파일 분석**: 구성 → 행동 → 흐름 → 논리, C++ 본문까지 (게임 흐름의 객체에서 `파일 분석`) |
 | 구조 문제 | 문제, 아키텍처 › 품질 점검 (순환 참조, 하드 참조 체인, 미사용 에셋, 이름 규칙) |
 | 깨지는지 | 검증(`verify`), 맵 스모크(`smoke`), 로그(`logs`) |
 | 성능·용량 | 성능·용량(`perf`, `sizes`, `trace`) |
+
+### Live Lens (에디터를 쓰는 동안 자동 수집)
+
+에디터를 닫고 `analyze`를 돌리는 대신, **에디터를 쓰는 동안 DwoLens가 원본을 모으고 에디터를 닫으면 백그라운드에서 분석해 결과를 쌓습니다.** 창의 **DwoLens › 대시보드 › Live Lens**에서 켜거나 명령줄로 켭니다.
+
+```bat
+__dwo-forge.bat live on [--timing changes|exit|save] [--keep latest|history|snapshot] [--collect structure,logs,pie,work]
+__dwo-forge.bat live off | status | rebuild
+```
+
+- 수집 시점: `changes`(기본, 바뀐 것만 종료 때, 종료 지연 거의 없음) / `exit`(종료 때 전체) / `save`(저장할 때마다).
+- 쌓는 방식: `latest` / `history`(기본, 결과와 세션별 변경 기록) / `snapshot`(원본까지 전부).
+- 모을 것: 구조, 세션 로그·오류, PIE 실행 기록(실제로 존재한 클래스 → 게임 흐름에 "플레이에서 확인"), 작업 기록(연 에셋, 저장한 에셋).
+- 결과는 분석 실행과 같은 형식이라 모든 화면이 그대로 씁니다. 세션별 변경은 실행의 `out/changes.json`과 `__dwo-forge/live/history.jsonl`에 있습니다.
+- `.uproject`는 바꾸지 않습니다(설치된 플러그인 사본만 켬). 자세한 구조, 비슷한 도구와의 비교, DwoStateMonitor와의 관계는 [docs/LIVE-LENS.md](docs/LIVE-LENS.md).
 
 ### 게임 흐름 (프로젝트 전체 지도)
 

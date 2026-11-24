@@ -487,6 +487,22 @@ int32 UDwoLensInspectorCommandlet::Main(const FString& Params)
 	OutDir = FPaths::ConvertRelativePathToFull(OutDir);
 	IFileManager::Get().MakeDirectory(*OutDir, true);
 
+	// Live Lens: -LensPackages=<file> loads only these Blueprints (one package per line); reflection and the asset
+	// list stay complete, so the result can be merged into an earlier full collection.
+	TSet<FString> OnlyPackages;
+	FString PackagesFile;
+	const bool bPartial = FParse::Value(*Params, TEXT("LensPackages="), PackagesFile) && !PackagesFile.IsEmpty();
+	if (bPartial)
+	{
+		TArray<FString> Lines;
+		FFileHelper::LoadFileToStringArray(Lines, *PackagesFile);
+		for (FString Line : Lines)
+		{
+			Line.TrimStartAndEndInline();
+			if (!Line.IsEmpty()) { OnlyPackages.Add(Line); }
+		}
+	}
+
 	TArray<FString> ContentRoots = { TEXT("/Game") };
 	const TSet<FString> ProjectModules = CollectProjectModules(ContentRoots);
 	FString RootsOverride;
@@ -518,8 +534,10 @@ int32 UDwoLensInspectorCommandlet::Main(const FString& Params)
 	IAssetRegistry& Registry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry")).Get();
 	Registry.SearchAllAssets(true);
 
+	// -LensSkipAssets (Live Lens save-time export): the asset list is refreshed at editor exit instead.
+	const bool bSkipAssets = FParse::Param(*Params, TEXT("LensSkipAssets"));
 	FJsonValues Assets;
-	for (const FString& Root : ContentRoots)
+	for (const FString& Root : bSkipAssets ? TArray<FString>() : ContentRoots)
 	{
 		TArray<FAssetData> Found;
 		Registry.GetAssetsByPath(FName(*Root), Found, true);
@@ -544,6 +562,10 @@ int32 UDwoLensInspectorCommandlet::Main(const FString& Params)
 	for (const FAssetData& Asset : BlueprintAssets)
 	{
 		if (!IsUnderRoots(Asset.PackageName.ToString(), ContentRoots))
+		{
+			continue;
+		}
+		if (bPartial && !OnlyPackages.Contains(Asset.PackageName.ToString()))
 		{
 			continue;
 		}
@@ -580,6 +602,17 @@ int32 UDwoLensInspectorCommandlet::Main(const FString& Params)
 	}
 	Meta->SetArrayField(TEXT("contentRoots"), RootValues);
 	Meta->SetNumberField(TEXT("blueprintLoadFailures"), Failed);
+	Meta->SetBoolField(TEXT("partial"), bPartial);
+	Meta->SetBoolField(TEXT("assetsSkipped"), bSkipAssets);
+	if (bPartial)
+	{
+		FJsonValues PackageValues;
+		for (const FString& Package : OnlyPackages)
+		{
+			PushString(PackageValues, Package);
+		}
+		Meta->SetArrayField(TEXT("packages"), PackageValues);
+	}
 
 	FJsonRef Reflection = MakeShared<FJsonObject>();
 	Reflection->SetArrayField(TEXT("native"), NativeClasses);

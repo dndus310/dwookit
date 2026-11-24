@@ -18,7 +18,8 @@ public class DwoLensInspector : ModuleRules
 			"Projects",
 			"Json",
 			"UMG",
-			"UMGEditor"
+			"UMGEditor",
+			"EditorSubsystem"
 		});
 	}
 }

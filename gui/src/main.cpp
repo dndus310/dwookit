@@ -43,12 +43,14 @@ static const ActivityDef kActivities[] = {
 	{ Activity::Architecture, ICON_LAYERS, "아키텍처", "architecture", "Ctrl+2", ImGuiKey_2, "DwoLens" },
 	{ Activity::Flow, ICON_LINK, "게임 흐름", "flow", "", ImGuiKey_None, "DwoLens" },
 	{ Activity::Files, ICON_PAGE, "파일 분석", "files", "", ImGuiKey_None, "DwoLens" },
+	// DwoStateMonitor is DwoLens' runtime view: the plugin stays separate (a runtime module that can ship in games),
+	// the screen belongs with the other ways of looking at the project.
+	{ Activity::Live, ICON_EYE, "실행 중 관찰", "live", "Ctrl+7", ImGuiKey_7, "DwoLens" },
 	{ Activity::Problems, ICON_WARNING, "문제", "problems", "Ctrl+3", ImGuiKey_3, "DwoLens" },
 	{ Activity::Tests, ICON_CHECKLIST, "검증", "tests", "Ctrl+4", ImGuiKey_4, "DwoLens" },
 	{ Activity::Logs, ICON_LIST, "로그", "logs", "Ctrl+5", ImGuiKey_5, "DwoLens" },
 	{ Activity::Performance, ICON_SPEED, "성능·용량", "performance", "Ctrl+6", ImGuiKey_6, "DwoLens" },
 	{ Activity::History, ICON_HISTORY, "실행 기록", "history", "Ctrl+8", ImGuiKey_8, "DwoLens" },
-	{ Activity::Live, ICON_EYE, "DwoStateMonitor", "live", "Ctrl+7", ImGuiKey_7, "DwoStateMonitor" },
 	{ Activity::Canvas, ICON_CANVAS, "DwoCanvas", "canvas", "Ctrl+0", ImGuiKey_0, "DwoCanvas" },
 	{ Activity::Ci, ICON_SYNC, "DwoBuilder", "ci", "", ImGuiKey_None, "CI" },
 };
@@ -661,6 +663,7 @@ static void DrawActivityBar(App& app)
 		const ToolMeta& m = kToolMeta[i];
 		const ToolView& v = views[i];
 		std::string id = m.id;
+		if (id == "statemonitor" && v.state != "update" && v.state != "legacy") continue;   // its screen is under DwoLens
 		bool active = activeTool == id;
 		if (!ToolPresent(v) && !active) continue;
 		anyTool = true;
@@ -697,6 +700,7 @@ static void DrawActivityBar(App& app)
 				std::string sb;
 				if (a.id == Activity::Problems && newProblems) { sc = col::Fail; sb = newProblems > 99 ? "99+" : std::to_string(newProblems); }
 				if (a.id == Activity::Overview && app.runner.running) sc = col::Info;
+				if (a.id == Activity::Live && connected) { sc = col::Pass; sb = Fmt("연결 %d", connected); }
 				if (row(a.key, a.icon, nullptr, a.name, app.activity == a.id, 1, sc, sb, collapsed ? a.shortcut : "")) app.requestActivity = a.id;
 			}
 		}

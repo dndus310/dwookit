@@ -427,6 +427,8 @@ def build(raw: Path, out: Path, project: Path | None) -> dict:
     maps = m.maps(ini)
     behaviors = m.behaviors()
     tracked = tracked_packages(project)
+    # Live Lens: classes that existed while the game ran in the editor (PIE), over all sessions
+    runtime = (load(project / "__dwo-forge" / "live" / "runtime.json") or {}).get("classes", {}) if project else {}
     gamemodes = sorted({k for k in m.symbols if m.project_class(k) and m.role(k) == "gamemode"},
                        key=lambda k: (k != ini.get("gamemode"), short(k)))
     # one GameMode per Blueprint/C++ pair is enough as a root: prefer the Blueprint child that is used
@@ -458,6 +460,9 @@ def build(raw: Path, out: Path, project: Path | None) -> dict:
             "behaviors": behaviors.get(key, [])[:8],
             "tracked": bool(s.get("package") and s.get("package") in tracked),
         }
+        seen = runtime.get(key.split(":", 1)[1])
+        if seen:
+            nodes[key]["inPlay"] = {"sessions": seen.get("sessions", 0), "maxCount": seen.get("maxCount", 0)}
     edges = sorted(m.edges.values(), key=lambda e: (EDGE_RANK[e["kind"]], e["from"], e["to"]))
     for e in edges:
         e["words"] = EDGE_WORDS[e["kind"]]

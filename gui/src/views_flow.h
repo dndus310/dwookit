@@ -183,6 +183,7 @@ static void BuildFlowGraph(const json& doc)
 		}
 		if (Arr(d, "behaviors").size() > 4) n.footer = Fmt("하는 일 %d가지", (int)Arr(d, "behaviors").size());
 		if (d.value("tracked", false)) n.footer += (n.footer.empty() ? "" : " · ") + std::string("파일 분석 있음");
+		if (d.contains("inPlay")) n.footer += (n.footer.empty() ? "" : " · ") + Fmt("플레이에서 확인 (%d세션)", d["inPlay"].value("sessions", 0));
 		n.layer = level[k];
 		index[k] = (int)nodes.size();
 		nodes.push_back(std::move(n));
@@ -384,6 +385,23 @@ static void DrawFlowInspector(App& app)
 		}
 	}
 	if (ImGui::Button((std::string(ICON_RIGHT) + "  여기서 시작").c_str(), ImVec2(-FLT_MIN, 0))) g_flow.root = key;
+	if (isClass)
+	{
+		// the runtime class name DwoStateMonitor matches: BP_X_C for Blueprints, the class without A/U for C++
+		std::string cls = key.substr(key.find_last_of('.') + 1);
+		bool watched = std::find(app.liveSettings.watch.begin(), app.liveSettings.watch.end(), cls) != app.liveSettings.watch.end();
+		ImGui::BeginDisabled(watched || app.stateMonitor == 0);
+		if (ImGui::Button((std::string(ICON_EYE) + (watched ? "  실행 중 관찰 중" : "  실행 중 관찰에 추가")).c_str(), ImVec2(-FLT_MIN, 0)))
+		{
+			std::vector<std::string> next = app.liveSettings.watch;
+			next.push_back(cls);
+			SetSmWatch(app, next);
+			PushToast("실행 중 관찰에 추가", cls + " · 게임을 실행하면 값이 바뀌는 대로 보입니다", col::Pass);
+		}
+		ImGui::EndDisabled();
+		Tooltip(app.stateMonitor == 0 ? "DwoStateMonitor 플러그인을 설치하면 실행 중인 게임에서 이 객체의 값을 볼 수 있습니다."
+		                              : "게임(PIE)이 실행되는 동안 이 클래스의 객체와 그것이 가리키는 객체의 값을 '실행 중 관찰' 화면에서 봅니다.");
+	}
 
 	if (!Arr(d, "behaviors").empty())
 	{

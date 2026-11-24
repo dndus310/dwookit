@@ -33,6 +33,16 @@
       "output": "__dwo-forge/blueprints/<path>/<Name>.md (pseudocode; overview + parts/ when long), <Name>.json (lens.bp/1), index.md"
     },
     {
+      "id": "live-lens",
+      "tool": "lens",
+      "station": "ST-1",
+      "kind": "build",
+      "status": "ready",
+      "command": "live",
+      "invocation": "DwoLensInspector editor subsystem (DwoLensLive.cpp) per editor session; live-ingest after exit (lens_live.py + analyze)",
+      "output": "__dwo-forge/live/sessions/<id>/ (events, raw), live/base (raw cache), runs with source 'live', changes.json, history.jsonl, runtime.json"
+    },
+    {
       "id": "game-flow",
       "tool": "lens",
       "station": "ST-2",

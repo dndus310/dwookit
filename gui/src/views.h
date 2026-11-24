@@ -146,6 +146,99 @@ static void DeltaText(double now, double before, bool lowerIsBetter, std::string
 
 // ============================================================================ overview
 
+// Live Lens: DwoLens collecting inside the editor, per editor session (DwoLensLive.cpp, forge.ps1 live).
+struct LiveLensUi
+{
+	double readAt = -100;
+	json config;
+	std::vector<json> sessions;
+	bool enabled = false;
+	int timing = 0, keep = 1;
+	bool collect[4] = { true, true, true, true };
+};
+static LiveLensUi g_liveLens;
+
+static void DrawLiveLensPanel(App& app)
+{
+	static const char* kTimings[] = { "changes", "exit", "save" };
+	static const char* kTimingNames[] = { "변경분만 종료 시 (권장)", "종료 시 전체", "저장할 때마다" };
+	static const char* kTimingTips[] = {
+		"세션 중에는 저장·삭제·이름 변경만 기록하고, 에디터를 닫을 때 바뀐 블루프린트만 모읍니다. 종료가 거의 느려지지 않습니다.",
+		"에디터를 닫을 때마다 프로젝트 전체를 모읍니다. 가장 확실하지만 큰 프로젝트는 종료가 수십 초에서 1분 이상 늦어집니다.",
+		"블루프린트를 저장할 때마다 그 블루프린트를 바로 모읍니다. 에디터가 비정상 종료돼도 남지만 저장이 조금씩 느려집니다." };
+	static const char* kKeeps[] = { "latest", "history", "snapshot" };
+	static const char* kKeepNames[] = { "최신 상태만", "최신 + 세션별 변경 이력 (권장)", "세션마다 전체 스냅샷" };
+	static const char* kCollect[] = { "structure", "logs", "pie", "work" };
+	static const char* kCollectNames[] = { "구조 (클래스·BP·에셋 참조)", "세션 로그와 오류", "PIE 실행 기록", "작업 기록 (열고 저장한 에셋)" };
+	fs::path cfgPath = app.ForgeDir() / "live-lens.json";
+	if (NowSeconds() - g_liveLens.readAt > 2.0)
+	{
+		g_liveLens.readAt = NowSeconds();
+		auto c = ReadJson(cfgPath);
+		g_liveLens.config = c ? *c : json::object();
+		g_liveLens.enabled = g_liveLens.config.value("enabled", false);
+		std::string t = Str(g_liveLens.config, "timing", "changes"), k = Str(g_liveLens.config, "keep", "history");
+		for (int i = 0; i < 3; ++i) { if (t == kTimings[i]) g_liveLens.timing = i; if (k == kKeeps[i]) g_liveLens.keep = i; }
+		if (g_liveLens.config.contains("collect"))
+			for (int i = 0; i < 4; ++i) g_liveLens.collect[i] = g_liveLens.config["collect"].value(kCollect[i], true);
+		g_liveLens.sessions.clear();
+		std::error_code ec;
+		std::vector<fs::path> dirs;
+		for (auto& e : fs::directory_iterator(app.ForgeDir() / "live" / "sessions", ec)) if (e.is_directory()) dirs.push_back(e.path());
+		std::sort(dirs.rbegin(), dirs.rend());
+		for (size_t i = 0; i < dirs.size() && i < 5; ++i)
+		{
+			auto sj = ReadJson(dirs[i] / "session.json");
+			json row = sj ? *sj : json::object();
+			row["dir"] = PathUtf8(dirs[i].filename());
+			g_liveLens.sessions.push_back(row);
+		}
+	}
+	SectionHeader("Live Lens", g_liveLens.enabled ? "켜짐" : "꺼짐");
+	if (ImGui::IsItemHovered()) Tooltip("에디터를 쓰는 동안 DwoLens가 원본 데이터를 모으고, 에디터를 닫으면 백그라운드에서 분석해 결과를 쌓습니다. 분석을 따로 실행하지 않아도 됩니다.");
+	auto command = [&](const char* action) {
+		std::string collect;
+		for (int i = 0; i < 4; ++i) if (g_liveLens.collect[i]) collect += (collect.empty() ? "" : ",") + std::string(kCollect[i]);
+		app.Run(std::string("live ") + action + " --timing " + kTimings[g_liveLens.timing] + " --keep " + kKeeps[g_liveLens.keep] +
+		        " --collect " + (collect.empty() ? "none" : collect));
+		g_liveLens.readAt = -100;
+	};
+	ImGui::PushStyleColor(ImGuiCol_FrameBg, IM_COL32(0x3A, 0x3C, 0x41, 255));
+	bool on = g_liveLens.enabled;
+	if (ImGui::Checkbox("에디터 세션마다 수집", &on)) { g_liveLens.enabled = on; command(on ? "on" : "off"); }
+	Tooltip("켜면 다음 에디터 실행부터 DwoLens 플러그인이 에디터 안에서 동작합니다(.uproject는 바꾸지 않음).");
+	bool changed = false;
+	TextDim("수집 시점");
+	for (int i = 0; i < 3; ++i)
+	{
+		if (ImGui::RadioButton(kTimingNames[i], g_liveLens.timing == i)) { g_liveLens.timing = i; changed = true; }
+		Tooltip(kTimingTips[i]);
+	}
+	TextDim("쌓는 방식");
+	for (int i = 0; i < 3; ++i) if (ImGui::RadioButton((std::string(kKeepNames[i]) + "##keep").c_str(), g_liveLens.keep == i)) { g_liveLens.keep = i; changed = true; }
+	TextDim("모을 것");
+	for (int i = 0; i < 4; ++i) changed |= ImGui::Checkbox(kCollectNames[i], &g_liveLens.collect[i]);
+	ImGui::PopStyleColor();
+	if (changed) command(g_liveLens.enabled ? "on" : "config");
+	if (ImGui::SmallButton("지금 처리")) app.Run("live-ingest");
+	Tooltip("처리되지 않은 세션을 지금 분석합니다(보통은 에디터를 닫으면 자동).");
+	ImGui::SameLine();
+	if (ImGui::SmallButton("캐시 다시 만들기")) app.Run("live rebuild");
+	Tooltip("캐시를 버리고 다음 에디터 세션에서 전체를 다시 모읍니다.");
+	for (auto& r : g_liveLens.sessions)
+	{
+		std::string dir = Str(r, "dir");
+		std::string state = !r.contains("ended") ? "실행 중" : Str(r, "ended") == "crashed" ? "비정상 종료"
+		                    : r.contains("ingested") ? "처리됨" : "처리 대기";
+		std::string line = dir.substr(4, 4) + " " + dir.substr(9, 2) + ":" + dir.substr(11, 2) + "  " + state;
+		if (r.contains("exitSeconds")) line += Fmt("  · 종료 %.1fs", r.value("exitSeconds", 0.0));
+		TextDim(line);
+		std::string tip = "수집: " + Str(r, "collected", "-") + Fmt("\n바뀐 에셋 %d · PIE %d회 · 로그 오류 %d",
+		                  (int)Arr(r, "changed").size(), r.value("pieRuns", 0), r.value("logErrors", 0));
+		Tooltip(tip.c_str());
+	}
+}
+
 static void DrawOverviewNav(App& app)
 {
 	SectionHeader("프로젝트");
@@ -175,6 +268,7 @@ static void DrawOverviewNav(App& app)
 		if (PrimaryButton((std::string(ICON_HOME) + "  런처에서 연결").c_str(), ImVec2(-FLT_MIN, 0))) app.requestActivity = Activity::Launcher;
 		Tooltip("런처에서 프로젝트를 연결하고 설치할 도구를 고릅니다.");
 	}
+	if (app.attached && app.lensInstalled) DrawLiveLensPanel(app);
 	SectionHeader("최근 프로젝트");
 	for (auto& r : app.recent)
 	{

@@ -1276,6 +1276,86 @@ class GameFlowTests(TempDir):
         self.assertIn("flowchart LR", html_text)
 
 
+class LiveLensTests(TempDir):
+    """lens_live.py: editor-session raw data merged into the cache, change history and retention."""
+
+    @staticmethod
+    def raw(path: Path, bps: list[str], partial: bool, assets: list[str] | None = None, skipped: bool = False):
+        meta = {"schema": "archi.raw/0.1", "partial": partial, "assetsSkipped": skipped}
+        if partial:
+            meta["packages"] = bps
+        write(path / "meta.json", json.dumps(meta))
+        write(path / "blueprints.json", json.dumps({"blueprints": [{"package": p, "asset": f"{p}.X", "rev": str(path)} for p in bps]}))
+        write(path / "reflection.json", json.dumps({"native": [{"path": "/Script/Game.A"}],
+                                                    "blueprint": [{"path": f"{p}.X_C", "package": p} for p in bps]}))
+        write(path / "assets.json", json.dumps({"assets": [{"package": p} for p in (assets if assets is not None else bps)]}))
+
+    def test_full_then_partial_merge(self):
+        import lens_live
+        base = self.tmp / "live" / "base"
+        s1 = self.tmp / "live" / "sessions" / "1"
+        self.raw(s1 / "raw", ["/Game/A", "/Game/B", "/Game/C"], partial=False)
+        write(s1 / "session.json", json.dumps({"id": "1"}))
+        self.assertEqual(lens_live.cmd_merge(s1, base), 0)
+        # session 2: B saved twice (save timing), C removed, exit collection refreshes the asset list only
+        s2 = self.tmp / "live" / "sessions" / "2"
+        self.raw(s2 / "saves" / "0001", ["/Game/B"], partial=True, skipped=True)
+        self.raw(s2 / "saves" / "0002", ["/Game/B"], partial=True, skipped=True)
+        self.raw(s2 / "raw", [], partial=True, assets=["/Game/A", "/Game/B"])
+        write(s2 / "session.json", json.dumps({"id": "2", "removed": ["/Game/C"]}))
+        self.assertEqual(lens_live.cmd_merge(s2, base), 0)
+        bps = {b["package"]: b for b in json.loads((base / "blueprints.json").read_text(encoding="utf-8"))["blueprints"]}
+        self.assertEqual(sorted(bps), ["/Game/A", "/Game/B"])
+        self.assertTrue(bps["/Game/B"]["rev"].endswith("0002"))                 # the last save wins
+        self.assertTrue(bps["/Game/A"]["rev"].endswith("raw"))                  # untouched from the full collection
+        refl = json.loads((base / "reflection.json").read_text(encoding="utf-8"))
+        self.assertEqual(sorted(c["package"] for c in refl["blueprint"]), ["/Game/A", "/Game/B"])
+        self.assertFalse(json.loads((base / "meta.json").read_text(encoding="utf-8"))["partial"])
+        # a partial collection without a cache is refused (live rebuild collects everything again)
+        with self.assertRaises(SystemExit):
+            lens_live.cmd_merge(s2, self.tmp / "empty-base")
+
+    def make_live_run(self, runs: Path, name: str, classes: list[str]) -> Path:
+        run = runs / name
+        write(run / "run.json", json.dumps({"source": "live", "line": "architecture-report"}))
+        write(run / "raw" / "meta.json", "{}")
+        write(run / "out" / "graph.json", json.dumps({"symbols": [{"key": f"bp:/Game/{c}.{c}_C", "kind": "blueprint", "external": False} for c in classes]}))
+        write(run / "out" / "flow.json", json.dumps({"edges": [{"from": f"bp:/Game/{a}.{a}_C", "to": f"bp:/Game/{b}.{b}_C", "kind": "spawns"}
+                                                               for a, b in zip(classes, classes[1:])]}))
+        return run
+
+    def test_accumulate_changes_runtime_and_retention(self):
+        import lens_live
+        project = self.tmp / "Proj"
+        runs = project / "__dwo-forge" / "data" / "runs"
+        session = project / "__dwo-forge" / "live" / "sessions" / "2"
+        write(session / "session.json", json.dumps({"id": "2", "ended": "normal", "collected": "partial"}))
+        write(session / "events.jsonl", "\n".join(json.dumps(e) for e in [
+            {"type": "asset_saved", "package": "/Game/B"}, {"type": "asset_opened", "package": "/Game/B"},
+            {"type": "pie_end", "classes": {"/Game/A.A_C": 1, "/Game/B.B_C": 3}},
+            {"type": "log", "level": "error", "category": "LogBlueprint", "message": "bad"}]))
+        old = self.make_live_run(runs, "run-1", ["A", "B"])
+        new = self.make_live_run(runs, "run-2", ["A", "B", "C"])
+        self.assertEqual(lens_live.cmd_accumulate(project, new, session, "history"), 0)
+        changes = json.loads((new / "out" / "changes.json").read_text(encoding="utf-8"))
+        self.assertEqual(changes["classesAdded"], ["C"])
+        self.assertEqual(changes["flowAdded"], ["B -spawns-> C"])
+        self.assertEqual(changes["activity"]["saved"], ["/Game/B"])
+        self.assertEqual(changes["activity"]["pieRuns"], 1)
+        self.assertEqual(changes["activity"]["logErrors"], 1)
+        runtime = json.loads((project / "__dwo-forge" / "live" / "runtime.json").read_text(encoding="utf-8"))
+        self.assertEqual(runtime["classes"]["/Game/B.B_C"]["maxCount"], 3)
+        self.assertTrue((project / "__dwo-forge" / "live" / "history.jsonl").exists())
+        self.assertTrue(old.exists() and not (old / "raw").exists())           # history: results kept, raw dropped
+        self.assertEqual(json.loads((session / "session.json").read_text(encoding="utf-8"))["ingested"], "run-2")
+        newer = self.make_live_run(runs, "run-3", ["A"])
+        lens_live.cmd_accumulate(project, newer, session, "latest")
+        self.assertFalse(old.exists() or new.exists())                          # latest: only the newest run
+        snap = self.make_live_run(runs, "run-4", ["A"])
+        lens_live.cmd_accumulate(project, snap, session, "snapshot")
+        self.assertTrue((newer / "raw").exists())                               # snapshot: everything kept
+
+
 class CatalogAndConfigTests(unittest.TestCase):
     def test_catalog_is_consistent(self):
         catalog = json.loads((TOOLS / "catalog.json").read_text(encoding="utf-8"))

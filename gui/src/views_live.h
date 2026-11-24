@@ -341,7 +341,7 @@ static void LiveGuide(App& app)
 	step(3, false, "상태 보기", "GameMode, GameState, 플레이어, Pawn과 컴포넌트가 노드로 나타나고 값이 바뀌면 깜빡입니다. 열거형·bool 필드는 '상태 전이'에서 상태 머신으로 봅니다.");
 	ImGui::Unindent(S(24));
 	ImGui::Spacing();
-	step(4, false, "원하는 대상 추가 (선택)", "왼쪽 '관찰할 클래스'에 BP_Enemy_C 같은 클래스 이름을 넣거나, Blueprint에서 Watch State Object / Submit State Snapshot 노드를 호출합니다.");
+	step(4, false, "원하는 대상 추가 (선택)", "왼쪽 '관찰할 클래스 › 목록에서 고르기'로 고르거나, 게임 흐름에서 객체를 골라 '실행 중 관찰에 추가'를 누릅니다. Blueprint의 Watch State Object / Submit State Snapshot 노드도 됩니다.");
 	ImGui::Unindent(S(24));
 	ImGui::Spacing();
 	if (ImGui::Button((std::string(ICON_OPEN) + "  녹화 파일 열기...").c_str()))
@@ -356,7 +356,7 @@ static void LiveGuide(App& app)
 static void DrawLiveMain(App& app)
 {
 	LiveSession* s = LiveCurrentSession(app);
-	ViewHeader(ICON_EYE, "DwoStateMonitor", s ? s->name : "연결 대기");
+	ViewHeader(ICON_EYE, "실행 중 관찰 (DwoStateMonitor)", s ? s->name : "연결 대기");
 	// toolbar
 	ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - S(380));
 	bool live = ui.playhead < 0;

@@ -40,8 +40,8 @@ static const char* ToolOfActivity(Activity a)
 	switch (a)
 	{
 	case Activity::Overview: case Activity::Architecture: case Activity::Problems: case Activity::Tests:
-	case Activity::Logs: case Activity::Performance: case Activity::History: case Activity::Files: case Activity::Flow: return "lens";
-	case Activity::Live: return "statemonitor";
+	case Activity::Logs: case Activity::Performance: case Activity::History: case Activity::Files: case Activity::Flow:
+	case Activity::Live: return "lens";      // DwoLens' runtime view (the DwoStateMonitor plugin feeds it)
 	case Activity::Canvas: return "canvas";
 	case Activity::Ci: return "ci";
 	default: return "";
