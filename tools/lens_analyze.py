@@ -764,7 +764,7 @@ def render_report(out: Path, run_id: str, g: Graph, ctx: dict, result: dict, dia
 <script>mermaid.initialize({{startOnLoad:true,securityLevel:'strict',maxTextSize:200000,
 theme:matchMedia('(prefers-color-scheme: dark)').matches?'dark':'neutral'}});</script>
 </body></html>"""
-    (out / "report.html").write_text(doc, encoding="utf-8")
+    (out / "report-classic.html").write_text(doc, encoding="utf-8")   # the single-page report (report.html: lens_report)
     vendor_mermaid(out.parent.parent.parent / "vendor")
 
 
@@ -823,6 +823,14 @@ def main() -> int:
     write_sqlite(g, args.out / "index.db", ctx["meta"])
     render_report(args.out, args.run_id, g, ctx, result, diagrams, lens_quality.render_html(quality), flow_html + lens_features.render_html(features))
 
+    # the report to read: an interactive single file built from the outputs above (and tracked file analyses)
+    try:
+        import lens_report
+        lens_report.write(args.out, args.project.parent)
+    except Exception as exc:
+        print(f"[dwo-forge] interactive report skipped ({exc}); see report-classic.html")
+        import shutil
+        shutil.copy2(args.out / "report-classic.html", args.out / "report.html")
     print(f"[dwo-forge] symbols={len(g.symbols)} relations={len(g.relations)} verdict={result['verdict']} "
           f"findings={len(result['findings'])}")
     return 0

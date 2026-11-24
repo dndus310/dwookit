@@ -1356,6 +1356,28 @@ class LiveLensTests(TempDir):
         self.assertTrue((newer / "raw").exists())                               # snapshot: everything kept
 
 
+class ReportTests(GameFlowTests):
+    """lens_report.py: the interactive single-file report built from an analysis run."""
+
+    def test_report_embeds_the_run(self):
+        import lens_flow, lens_report
+        raw, out, project, bp = self.make_run()
+        (out / "flow.json").write_text(json.dumps(lens_flow.build(raw, out, project)), encoding="utf-8")
+        write(out / "findings.json", json.dumps({"verdict": "warn", "findings": [
+            {"rule": "tick-usage", "severity": "warn", "message": "Tick </script> 사용", "items": [f"/Game/X{i}" for i in range(400)]}]}))
+        write(out.parent / "run.json", json.dumps({"runId": "run-1", "source": "live"}))
+        path = lens_report.write(out, project)
+        html = path.read_text(encoding="utf-8")
+        self.assertIn("<title>", html)
+        self.assertNotIn("Tick </script>", html)                 # data cannot close the script tag
+        start = html.index("const DATA = ") + len("const DATA = ")
+        data = json.loads(html[start:html.index(";\nconst $ =")])
+        self.assertEqual(data["source"], "live")
+        self.assertEqual(data["problems"][0]["more"], 100)       # long lists are capped
+        self.assertEqual(data["classes"][bp("BP_Hero")]["role"], "character")
+        self.assertTrue(any(r["kind"] == "map" for r in data["flow"]["roots"]))
+
+
 class CatalogAndConfigTests(unittest.TestCase):
     def test_catalog_is_consistent(self):
         catalog = json.loads((TOOLS / "catalog.json").read_text(encoding="utf-8"))

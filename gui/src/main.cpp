@@ -478,24 +478,63 @@ static void DrawMenuBar(App& app, bool& quit)
 		if (ImGui::MenuItem("DwoCanvas 스키마 설계")) OpenWithShell(app.home / "canvas" / "docs" / "SchemaFirstArchitecture.md");
 		ImGui::EndMenu();
 	}
-	// right side: project chip and palette button
+	// the window title names the project too (taskbar, Alt+Tab)
+	{
+		static fs::path titled = "?";
+		if (titled != app.project)
+		{
+			titled = app.project;
+			std::wstring t = app.hasUProject ? L"dwo-Forge — " + ToWide(app.projectName) + L" — " + app.project.wstring() : L"dwo-Forge";
+			SetWindowTextW(g_hwnd, t.c_str());
+		}
+	}
+	// right side: the active project (name, engine, connection), open in Explorer, palette
 	float right = ImGui::GetWindowWidth();
 	float menusEnd = ImGui::GetCursorPosX();
-	std::string chip = app.hasUProject ? std::string(ICON_FOLDER) + "  " + app.projectName : std::string(ICON_FOLDER) + "  프로젝트 없음";
-	float chipW = ImMin(ImGui::CalcTextSize(chip.c_str()).x + S(24), S(220));
+	std::string state = !app.hasUProject ? "" : app.attached ? "  ·  연결됨" : "  ·  연결 안 됨";
+	std::string chip = app.hasUProject ? std::string(ICON_FOLDER) + "  " + app.projectName + (app.attached ? "  ·  UE " + app.Engine() : "") + state
+	                                   : std::string(ICON_FOLDER) + "  프로젝트 없음";
+	float chipW = ImMin(ImGui::CalcTextSize(chip.c_str()).x + S(24), S(380));
+	float folderW = ImGui::GetFrameHeight() + S(6);
 	// narrow window: the command search button becomes an icon so it never covers the menus
 	bool compact = right - menusEnd < chipW + S(240) + S(40);
 	float paletteW = compact ? ImGui::GetFrameHeight() + S(8) : S(240);
-	ImGui::SetCursorPosX(ImMax(menusEnd + S(8), right - chipW - paletteW - S(24)));
+	ImGui::SetCursorPosX(ImMax(menusEnd + S(8), right - chipW - folderW - paletteW - S(30)));
 	ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(255, 255, 255, 12));
 	if (ImGui::Button(compact ? ICON_COMMAND "##palette" : (std::string(ICON_COMMAND) + "  명령 검색        Ctrl+K").c_str(), ImVec2(paletteW, 0))) g_paletteOpen = true;
 	if (compact) Tooltip("명령 검색 (Ctrl+K)");
 	ImGui::PopStyleColor();
 	ImGui::SameLine();
+	ImGui::PushStyleColor(ImGuiCol_Button, app.attached ? WithAlpha(col::Accent, 0.28f) : IM_COL32(255, 255, 255, 18));
 	if (ImGui::Button(chip.c_str(), ImVec2(chipW, 0))) ImGui::OpenPopup("projects");
-	Tooltip(PathUtf8(app.project).c_str());
+	ImGui::PopStyleColor();
+	Tooltip((PathUtf8(app.project) + "\n클릭: 프로젝트 정보와 바꾸기").c_str());
+	ImGui::SameLine(0, S(4));
+	ImGui::BeginDisabled(!app.hasUProject);
+	if (ImGui::Button(ICON_OPEN "##explore", ImVec2(folderW - S(6), 0))) OpenWithShell(app.project);
+	ImGui::EndDisabled();
+	Tooltip("프로젝트 폴더를 탐색기로 열기");
 	if (ImGui::BeginPopup("projects"))
 	{
+		if (app.hasUProject)
+		{
+			ImGui::PushFont(g_fonts.bold);
+			ImGui::TextUnformatted(app.projectName.c_str());
+			ImGui::PopFont();
+			TextDim(PathUtf8(app.project));
+			TextDim(std::string(app.isCodeProject ? "C++ 프로젝트" : "블루프린트 전용") + (app.attached ? "  ·  UE " + app.Engine() + "  ·  dwo-Forge 연결됨" : "  ·  연결 안 됨"));
+			ImGui::Spacing();
+			if (ImGui::Selectable((std::string(ICON_OPEN) + "  탐색기로 열기").c_str())) OpenWithShell(app.project);
+			if (app.attached && ImGui::Selectable((std::string(ICON_FOLDER) + "  dwo-Forge 데이터 폴더 (__dwo-forge)").c_str())) OpenWithShell(app.ForgeDir());
+			if (const RunInfo* r = app.Latest(0))
+			{
+				if (ImGui::Selectable((std::string(ICON_PAGE) + "  최근 분석 리포트 열기").c_str())) OpenWithShell(r->dir / "out" / "report.html");
+				if (ImGui::Selectable((std::string(ICON_FOLDER) + "  최근 분석 결과 폴더").c_str())) OpenWithShell(r->dir / "out");
+			}
+			if (ImGui::Selectable((std::string(ICON_COPY) + "  경로 복사").c_str())) CopyToClipboard(PathUtf8(app.project));
+			ImGui::Separator();
+			TextDim("최근 프로젝트");
+		}
 		for (auto& r : app.recent)
 			if (ImGui::Selectable(r.c_str(), fs::u8path(r) == app.project)) { app.SetProject(fs::u8path(r)); break; }
 		ImGui::Separator();

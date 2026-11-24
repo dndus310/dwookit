@@ -2142,6 +2142,7 @@ function Invoke-LiveIngest {
             & python (Join-Path $SystemDir 'tools\lens_live.py') accumulate --project $Project --run $runDir --session $d.FullName --keep $c.keep
             # the flow again, now with this session's play-tested classes (runtime.json was just updated)
             & python (Join-Path $SystemDir 'tools\lens_flow.py') --raw $rawDir --out $outDir --project $Project | Out-Null
+            & python (Join-Path $SystemDir 'tools\lens_report.py') --out $outDir --project $Project | Out-Null
             Invoke-BpMarkdown
             Update-AgentContext
             Say "live-ingest: $runId ($verdict)"

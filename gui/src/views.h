@@ -2762,7 +2762,10 @@ static std::string WriteBundleReport(App& app, const fs::path& dest)
 			cover += std::string("<tr><td>") + kLines[i].name + "</td><td colspan='2'>실행 기록 없음</td></tr>";
 			continue;
 		}
-		std::string html = ReadText(r->dir / "out" / "report.html");
+		// the interactive report draws its page with script; the bundle takes the single-page version
+		std::error_code ec;
+		bool classic = fs::exists(r->dir / "out" / "report-classic.html", ec);
+		std::string html = ReadText(r->dir / "out" / (classic ? "report-classic.html" : "report.html"));
 		cover += std::string("<tr><td>") + kLines[i].name + "</td><td><code>" + HtmlEscape(r->id) + "</code></td><td><span class='badge " +
 		         HtmlEscape(r->verdict) + "'>" + HtmlEscape(r->verdict) + "</span></td></tr>";
 		if (html.empty()) continue;
