@@ -1,7 +1,7 @@
 #pragma once
 // DwoBuilder view: the private Jenkins on this PC (installed from an offline bundle) and this project's job.
 // Status and builds come from Jenkins' REST API on 127.0.0.1 (polled on a worker thread, HTTP/1.0 so no
-// chunked bodies); every action runs through forge.ps1 -> ci.ps1 in the runner like the other tools.
+// chunked bodies); every action runs through dwookit.ps1 -> ci.ps1 in the runner like the other tools.
 
 #include "views.h"
 
@@ -153,9 +153,9 @@ private:
 			project = projectDir;
 		}
 		Snapshot n;
-		const wchar_t* ciHome = _wgetenv(L"DWO_FORGE_CI_HOME");
+		const wchar_t* ciHome = _wgetenv(L"DWOOKIT_CI_HOME");
 		fs::path ciDir = (ciHome && *ciHome) ? fs::path(ciHome)
-			: fs::path(_wgetenv(L"LOCALAPPDATA") ? _wgetenv(L"LOCALAPPDATA") : L".") / "dwo-Forge" / "ci";
+			: fs::path(_wgetenv(L"LOCALAPPDATA") ? _wgetenv(L"LOCALAPPDATA") : L".") / "dwookit" / "ci";
 		std::error_code ec;
 		n.installed = fs::exists(ciDir / "runtime" / "jenkins.war", ec);
 		std::string auth;
@@ -172,7 +172,7 @@ private:
 			n.java = Str(*c, "java");
 		}
 		if (!project.empty())
-			if (auto p = ReadJson(project / "__dwo-forge" / "ci.json"))
+			if (auto p = ReadJson(project / "__dwookit" / "ci.json"))
 			{
 				n.job = Str(*p, "job");
 				for (auto& h : Arr(*p, "hooks")) if (h.is_string()) n.hooks.push_back(h.get<std::string>());
@@ -265,7 +265,7 @@ struct Ui
 	int tab = -1;              // 0 automatic builds (Jenkins), 1 local builds; -1 = pick from the project's state
 	std::string localRun;      // selected compile/package run (empty = the newest)
 	bool stageCompile = true, stageLens = true, stagePackage = false;
-	char reason[128] = "dwo-Forge 창에서 실행";
+	char reason[128] = "dwookit 창에서 실행";
 };
 static Ui& State()
 {
@@ -331,7 +331,7 @@ static void DrawCiNav(App& app)
 		KeyValue("git 훅", s.hooks.empty() ? std::string("없음 (git 저장소 아님)") : std::to_string(s.hooks.size()) + "개", 60);
 		ImGui::BeginDisabled(!idle);
 		if (ImGui::Button((std::string(ICON_SYNC) + "  설정 다시 적용").c_str(), ImVec2(w, 0))) app.Run("tool update ci");
-		Tooltip("__dwo-forge/config.json의 \"ci\" 설정(트리거, 보관 개수, DwoLens 검사 목록)과 이 dwo-Forge의 파이프라인을 작업과 훅에 다시 적용합니다.");
+		Tooltip("__dwookit/config.json의 \"ci\" 설정(트리거, 보관 개수, DwoLens 검사 목록)과 이 dwookit의 파이프라인을 작업과 훅에 다시 적용합니다.");
 		ImGui::EndDisabled();
 		if (!s.user.empty() && ImGui::Button((std::string(ICON_COPY) + "  계정 복사").c_str(), ImVec2(w, 0)))
 		{
@@ -353,7 +353,7 @@ static void DrawLocalBuilds(App& app)
 {
 	ci::Ui& u = ci::State();
 	ImGui::PushTextWrapPos(0);
-	TextDim("Jenkins 없이 이 PC에서 바로 실행합니다. 자동 빌드의 컴파일·패키지 단계와 같은 명령(__dwo-forge.bat compile / package)입니다. 에디터를 닫고 실행하세요.");
+	TextDim("Jenkins 없이 이 PC에서 바로 실행합니다. 자동 빌드의 컴파일·패키지 단계와 같은 명령(__dwookit.bat compile / package)입니다. 에디터를 닫고 실행하세요.");
 	ImGui::PopTextWrapPos();
 	ImGui::Spacing();
 	float avail = ImGui::GetContentRegionAvail().x;
@@ -589,9 +589,9 @@ static void DrawCiInspector(App& app)
 	SectionHeader("동작 방식");
 	ImGui::TextWrapped("내 PC 전용 Jenkins입니다. 127.0.0.1에서만 열리고 계정으로 보호됩니다.");
 	ImGui::Spacing();
-	ImGui::TextWrapped("자동 빌드: develop으로 push, develop에 merge, feature/* 브랜치 생성, develop·feature/* 커밋. 브랜치와 단계는 __dwo-forge/config.json의 \"ci\"에서 바꿉니다.");
+	ImGui::TextWrapped("자동 빌드: develop으로 push, develop에 merge, feature/* 브랜치 생성, develop·feature/* 커밋. 브랜치와 단계는 __dwookit/config.json의 \"ci\"에서 바꿉니다.");
 	ImGui::Spacing();
-	ImGui::TextWrapped("외부 요청: __dwo-forge.bat ci-trigger --reason <내용>, 또는 HTTP POST /job/<작업>/buildWithParameters (계정 토큰).");
+	ImGui::TextWrapped("외부 요청: __dwookit.bat ci-trigger --reason <내용>, 또는 HTTP POST /job/<작업>/buildWithParameters (계정 토큰).");
 	ImGui::Spacing();
 	ImGui::TextWrapped("보관: Jenkins는 최근 빌드만 남기고 오래된 것부터 지웁니다. 로컬 빌드와 자동 빌드의 패키지 결과물은 프로젝트 실행 기록에 최근 3개만 남깁니다.");
 	if (s.installed)

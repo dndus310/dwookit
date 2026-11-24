@@ -1,14 +1,14 @@
-// dwo-Forge control panel: Dear ImGui (docking) + Win32 + DirectX 11.
+// dwookit control panel: Dear ImGui (docking) + Win32 + DirectX 11.
 //
-// Runs the same commands as __dwo-forge.bat and reads the same run.json / out/*.json files, so the GUI and the
+// Runs the same commands as __dwookit.bat and reads the same run.json / out/*.json files, so the GUI and the
 // command line always show identical results. Groups the three provided tools: DwoLens (analysis lines),
 // DwoStateMonitor (live link on 127.0.0.1:47731) and DwoCanvas (design file -> UMG importer).
 //
-//   dwo-forge-gui.exe [--project <folder with .uproject>] [--home <dwo-Forge repository>]
+//   dwookit-gui.exe [--project <folder with .uproject>] [--home <dwookit repository>]
 //                     [--view overview|architecture|problems|tests|logs|performance|live|canvas|history|tools]
 //                     [--select <run id>] [--run <command>] [--open-recording <file.jsonl>] [--canvas-file <design.json>]
-//   dwo-forge-gui.exe --project <folder> --export-report <file.html>   (no window: every line's latest report in one HTML)
-//   dwo-forge-gui.exe ... --screenshot <file.bmp>                      (renders a few frames, saves the window, exits)
+//   dwookit-gui.exe --project <folder> --export-report <file.html>   (no window: every line's latest report in one HTML)
+//   dwookit-gui.exe ... --screenshot <file.bmp>                      (renders a few frames, saves the window, exits)
 
 #include "views_canvas.h"
 #include "views_launcher.h"
@@ -371,7 +371,7 @@ static void DrawMenuBar(App& app, bool& quit)
 	ImGui::PushFont(g_fonts.bold);
 	TextColored(col::Accent, ICON_FORGE);
 	ImGui::SameLine(0, S(4));
-	ImGui::TextUnformatted("dwo-Forge");
+	ImGui::TextUnformatted("dwookit");
 	ImGui::PopFont();
 	ImGui::Dummy(ImVec2(S(4), 0));
 	ImGui::SameLine();
@@ -421,7 +421,7 @@ static void DrawMenuBar(App& app, bool& quit)
 			{
 				if (group) ImGui::Separator();
 				group = a.group;
-				ImGui::TextDisabled("%s", std::string(group) == "Forge" ? "dwo-Forge" : std::string(group) == "CI" ? "DwoBuilder" : group);
+				ImGui::TextDisabled("%s", std::string(group) == "Forge" ? "dwookit" : std::string(group) == "CI" ? "DwoBuilder" : group);
 			}
 			if (ImGui::MenuItem((std::string(a.icon) + "  " + a.name).c_str(), a.shortcut, app.activity == a.id)) app.requestActivity = a.id;
 		}
@@ -484,7 +484,7 @@ static void DrawMenuBar(App& app, bool& quit)
 		if (titled != app.project)
 		{
 			titled = app.project;
-			std::wstring t = app.hasUProject ? L"dwo-Forge — " + ToWide(app.projectName) + L" — " + app.project.wstring() : L"dwo-Forge";
+			std::wstring t = app.hasUProject ? L"dwookit — " + ToWide(app.projectName) + L" — " + app.project.wstring() : L"dwookit";
 			SetWindowTextW(g_hwnd, t.c_str());
 		}
 	}
@@ -522,10 +522,10 @@ static void DrawMenuBar(App& app, bool& quit)
 			ImGui::TextUnformatted(app.projectName.c_str());
 			ImGui::PopFont();
 			TextDim(PathUtf8(app.project));
-			TextDim(std::string(app.isCodeProject ? "C++ 프로젝트" : "블루프린트 전용") + (app.attached ? "  ·  UE " + app.Engine() + "  ·  dwo-Forge 연결됨" : "  ·  연결 안 됨"));
+			TextDim(std::string(app.isCodeProject ? "C++ 프로젝트" : "블루프린트 전용") + (app.attached ? "  ·  UE " + app.Engine() + "  ·  dwookit 연결됨" : "  ·  연결 안 됨"));
 			ImGui::Spacing();
 			if (ImGui::Selectable((std::string(ICON_OPEN) + "  탐색기로 열기").c_str())) OpenWithShell(app.project);
-			if (app.attached && ImGui::Selectable((std::string(ICON_FOLDER) + "  dwo-Forge 데이터 폴더 (__dwo-forge)").c_str())) OpenWithShell(app.ForgeDir());
+			if (app.attached && ImGui::Selectable((std::string(ICON_FOLDER) + "  dwookit 데이터 폴더 (__dwookit)").c_str())) OpenWithShell(app.ForgeDir());
 			if (const RunInfo* r = app.Latest(0))
 			{
 				if (ImGui::Selectable((std::string(ICON_PAGE) + "  최근 분석 리포트 열기").c_str())) OpenWithShell(r->dir / "out" / "report.html");
@@ -823,7 +823,7 @@ static void DrawStatusBar(App& app)
 	{
 		StatusDot(app.attached ? col::Pass : col::Muted);
 		ImGui::SameLine();
-		ImGui::TextUnformatted(app.hasUProject ? (app.projectName + (app.attached ? "  ·  UE " + app.Engine() : app.legacyAttached ? "  ·  dwo-Lens 1.x (이전 중)" : "  ·  연결 안 됨")).c_str() : "프로젝트 없음");
+		ImGui::TextUnformatted(app.hasUProject ? (app.projectName + (app.attached ? "  ·  UE " + app.Engine() : app.legacyAttached ? "  ·  " + app.legacyName + " (이전 중)" : "  ·  연결 안 됨")).c_str() : "프로젝트 없음");
 	}
 	ImGui::PopClipRect();
 	if (showProb || showLive)
@@ -881,7 +881,7 @@ static void DrawConsole(App& app)
 				if (l.rfind("> ", 0) == 0) c = col::Accent;
 				else if (low.find("error") != std::string::npos || low.find("fail") != std::string::npos || low.find("오류") != std::string::npos) c = col::Fail;
 				else if (low.find("warn") != std::string::npos || low.find("경고") != std::string::npos) c = col::Warn;
-				else if (l.rfind("[dwo-forge]", 0) == 0 || l.rfind("[dwo-lens]", 0) == 0) c = IM_COL32(0xA8, 0xC8, 0xF0, 255);
+				else if (l.rfind("[dwookit]", 0) == 0 || l.rfind("[dwo-lens]", 0) == 0) c = IM_COL32(0xA8, 0xC8, 0xF0, 255);
 				else if (l.rfind("[gui]", 0) == 0) c = col::Dim;
 				TextColored(c, l.c_str());
 			}
@@ -898,7 +898,7 @@ static void DrawConsole(App& app)
 	ImGui::EndChild();
 }
 
-// What uninstall will remove, from 'forge.ps1 uninstall --plan-json' (the same scan the command uses).
+// What uninstall will remove, from 'dwookit.ps1 uninstall --plan-json' (the same scan the command uses).
 struct UninstallPlan
 {
 	std::atomic<int> state{ 0 };   // 0 idle, 1 scanning, 2 ready, 3 failed
@@ -915,7 +915,7 @@ static void StartUninstallScan(App& app)
 	g_plan.state = 1;
 	g_plan.scan = json();
 	g_plan.error.clear();
-	std::wstring cmd = L"powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"" + (app.home / "tools" / "forge.ps1").wstring() +
+	std::wstring cmd = L"powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"" + (app.home / "tools" / "dwookit.ps1").wstring() +
 	                   L"\" -Command uninstall -Project \"" + app.project.wstring() + L"\" --plan-json";
 	fs::path dir = app.project;
 	g_plan.worker = std::thread([cmd, dir] {
@@ -954,14 +954,14 @@ static void DrawDetachModal(App& app)
 		generatedChoice = 1;
 		cleanRefs = true;
 		acceptCode = false;
-		ImGui::OpenPopup("dwo-Forge 제거");
+		ImGui::OpenPopup("dwookit 제거");
 		app.confirmDetach = false;
 	}
 	ImGui::SetNextWindowSize(ImVec2(S(640), 0));
 	// Re-centre every frame: the dialog grows when the scan finishes.
 	ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
-	if (!ImGui::BeginPopupModal("dwo-Forge 제거", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) return;
-	Title("이 프로젝트에서 dwo-Forge를 완전히 제거합니다");
+	if (!ImGui::BeginPopupModal("dwookit 제거", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) return;
+	Title("이 프로젝트에서 dwookit를 완전히 제거합니다");
 	ImGui::PushTextWrapPos(S(630));
 	TextDim("플러그인을 따로 지울 필요 없이 한 번에 지웁니다. 연동할 때 추가한 파일, 도구가 만든 파일, 프로젝트 파일에 등록된 항목까지 정리합니다.");
 	ImGui::PopTextWrapPos();
@@ -1015,8 +1015,8 @@ static void DrawDetachModal(App& app)
 	ImGui::BeginChild("plan", ImVec2(S(630), 0), ImGuiChildFlags_AutoResizeY);
 	SectionHeader("항상 지우는 것");
 	bullet(plugins.empty() ? col::Muted : col::Text, ICON_DELETE, "플러그인", plugins.empty() ? "없음" : JoinStrings(json(plugins)));
-	bullet(col::Text, ICON_DELETE, "실행 파일·연동 정보", JoinStrings(json(launchers)) + (launchers.empty() ? "" : ", ") + "__dwo-forge\\");
-	bullet(exclude.empty() ? col::Muted : col::Text, ICON_DELETE, "git exclude", exclude.empty() ? "추가한 항목 없음" : "dwo-Forge 블록만 · " + exclude);
+	bullet(col::Text, ICON_DELETE, "실행 파일·연동 정보", JoinStrings(json(launchers)) + (launchers.empty() ? "" : ", ") + "__dwookit\\");
+	bullet(exclude.empty() ? col::Muted : col::Text, ICON_DELETE, "git exclude", exclude.empty() ? "추가한 항목 없음" : "dwookit 블록만 · " + exclude);
 	std::vector<std::string> tests;
 	for (auto& a : artifacts) if (a.find("Tests") != std::string::npos) tests.push_back(a);
 	if (!tests.empty()) bullet(col::Text, ICON_DELETE, "테스트 잔여물", JoinStrings(json(tests)));
@@ -1030,7 +1030,7 @@ static void DrawDetachModal(App& app)
 		if (!configs.empty()) bullet(col::Warn, ICON_SETTINGS, "플러그인 설정 파일", JoinStrings(json(configs)), configs);
 		if (!editorIni.empty()) bullet(col::Muted, ICON_SETTINGS, "에디터 개인 설정", "모듈 기록 줄", editorIni);
 		ImGui::Checkbox("이 항목들도 정리 (원본은 백업)", &cleanRefs);
-		Tooltip("백업 위치: %LOCALAPPDATA%\\dwo-Forge\\uninstalled\\<프로젝트>-<시각>\\backup");
+		Tooltip("백업 위치: %LOCALAPPDATA%\\dwookit\\uninstalled\\<프로젝트>-<시각>\\backup");
 	}
 	if (!code.empty())
 	{
@@ -1059,12 +1059,12 @@ static void DrawDetachModal(App& app)
 	SectionHeader("실행 기록·로그·리포트");
 	ImGui::Text("실행 기록 %lld개 · %s%s", Num(g_plan.scan, "Runs"), Bytes(Real(g_plan.scan, "DataBytes")).c_str(),
 	            created.empty() ? "" : Fmt(" · 프로젝트에 남은 파일 %d개", (int)created.size()).c_str());
-	TextDim("__dwo-forge\\data, Saved\\DwoCanvas 리포트, 성능 캡처 CSV");
-	ImGui::RadioButton("보존: 프로젝트 밖(%LOCALAPPDATA%\\dwo-Forge\\uninstalled)으로 옮김", &dataChoice, 0);
+	TextDim("__dwookit\\data, Saved\\DwoCanvas 리포트, 성능 캡처 CSV");
+	ImGui::RadioButton("보존: 프로젝트 밖(%LOCALAPPDATA%\\dwookit\\uninstalled)으로 옮김", &dataChoice, 0);
 	ImGui::RadioButton("삭제", &dataChoice, 1);
 	ImGui::EndChild();
 	ImGui::Separator();
-	ImGui::Checkbox("dwo-Forge의 최근 프로젝트 목록에서도 빼기", &forget);
+	ImGui::Checkbox("dwookit의 최근 프로젝트 목록에서도 빼기", &forget);
 	ImGui::Spacing();
 	bool blocked = !code.empty() && !acceptCode;
 	ImGui::BeginDisabled(blocked);
@@ -1467,9 +1467,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 	static App app;
 	wchar_t local[MAX_PATH] = {};
 	GetEnvironmentVariableW(L"LOCALAPPDATA", local, MAX_PATH);
-	app.settingsDir = fs::path(local) / L"dwo-Forge";
+	app.settingsDir = fs::path(local) / L"dwookit";
 	{
-		// Settings of dwo-Lens 1.x (recent projects, layout): copied once when dwo-Forge has none yet.
+		// Settings of dwo-Lens 1.x (recent projects, layout): copied once when dwookit has none yet.
 		std::error_code ec;
 		fs::path legacy = fs::path(local) / L"dwo-Lens";
 		fs::create_directories(app.settingsDir, ec);
@@ -1529,7 +1529,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 	if (homeArg.empty())
 	{
 		wchar_t buf[MAX_PATH] = {};
-		if (GetEnvironmentVariableW(L"DWO_FORGE_HOME", buf, MAX_PATH)) homeArg = buf;
+		if (GetEnvironmentVariableW(L"DWOOKIT_HOME", buf, MAX_PATH)) homeArg = buf;
 		else if (GetEnvironmentVariableW(L"DWO_LENS_HOME", buf, MAX_PATH)) homeArg = buf;   // dwo-Lens 1.x registration
 	}
 	app.home = homeArg;
@@ -1544,17 +1544,17 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		return err.empty() ? 0 : 1;
 	}
 
-	WNDCLASSEXW wc{ sizeof(wc), CS_CLASSDC, WndProc, 0, 0, hInstance, nullptr, LoadCursor(nullptr, IDC_ARROW), nullptr, nullptr, L"DwoForgeGui", nullptr };
+	WNDCLASSEXW wc{ sizeof(wc), CS_CLASSDC, WndProc, 0, 0, hInstance, nullptr, LoadCursor(nullptr, IDC_ARROW), nullptr, nullptr, L"DwookitGui", nullptr };
 	wc.hIcon = LoadIcon(nullptr, IDI_APPLICATION);
 	RegisterClassExW(&wc);
-	HWND hwnd = g_hwnd = CreateWindowW(wc.lpszClassName, L"dwo-Forge", WS_OVERLAPPEDWINDOW, 80, 60, 1500, 920, nullptr, nullptr, wc.hInstance, nullptr);
+	HWND hwnd = g_hwnd = CreateWindowW(wc.lpszClassName, L"dwookit", WS_OVERLAPPEDWINDOW, 80, 60, 1500, 920, nullptr, nullptr, wc.hInstance, nullptr);
 	BOOL dark = TRUE;
 	DwmSetWindowAttribute(hwnd, 20 /* DWMWA_USE_IMMERSIVE_DARK_MODE */, &dark, sizeof(dark));
 	if (!CreateDeviceD3D(hwnd))
 	{
 		CleanupDeviceD3D();
 		UnregisterClassW(wc.lpszClassName, wc.hInstance);
-		MessageBoxW(nullptr, L"DirectX 11 장치를 만들 수 없습니다.", L"dwo-Forge", MB_ICONERROR);
+		MessageBoxW(nullptr, L"DirectX 11 장치를 만들 수 없습니다.", L"dwookit", MB_ICONERROR);
 		return 1;
 	}
 	float scale = ImGui_ImplWin32_GetDpiScaleForHwnd(hwnd);

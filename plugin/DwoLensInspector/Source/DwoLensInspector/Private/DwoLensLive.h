@@ -14,8 +14,8 @@ class FDwoLensLogCapture;
 
 /**
  * Live Lens: collects DwoLens raw data while the Unreal Editor is used, so analysis results accumulate without
- * closing the editor to run a commandlet. Off unless the project's __dwo-forge/live-lens.json enables it
- * (__dwo-forge.bat live on). Every editor run is a session under __dwo-forge/live/sessions/<id>/:
+ * closing the editor to run a commandlet. Off unless the project's __dwookit/live-lens.json enables it
+ * (__dwookit.bat live on). Every editor run is a session under __dwookit/live/sessions/<id>/:
  *
  *   events.jsonl   what happened, appended as it happens (survives a crash): assets saved, opened, removed,
  *                  renamed, Blueprints compiled, C++ reloaded, maps opened, PIE runs (map, length, project
@@ -27,8 +27,8 @@ class FDwoLensLogCapture;
  *                  The first session (no cache yet) always collects in full.
  *   session.json   summary written at exit
  *
- * At exit it starts '__dwo-forge.bat live-ingest' in the background, which waits for the editor to close,
- * merges the raw data into the cache and runs the analysis (tools/lens_live.py, forge.ps1). A session that
+ * At exit it starts '__dwookit.bat live-ingest' in the background, which waits for the editor to close,
+ * merges the raw data into the cache and runs the analysis (tools/lens_live.py, dwookit.ps1). A session that
  * ended in a crash is closed at the next editor start and its unsaved changes are carried over.
  * Heavy work never runs while the user works: only light recording, except in 'save' timing.
  */
@@ -42,7 +42,7 @@ public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
 
-	/** __dwo-forge/live-lens.json says Live Lens is on. */
+	/** __dwookit/live-lens.json says Live Lens is on. */
 	static bool IsEnabledForProject();
 
 private:

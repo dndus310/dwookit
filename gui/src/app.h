@@ -10,7 +10,7 @@ struct LineDef
 {
 	const char* line;       // run.json "line"
 	const char* prefix;     // run id prefix
-	const char* command;    // __dwo-forge.bat command
+	const char* command;    // __dwookit.bat command
 	const char* name;
 	const char* icon;
 	const char* desc;
@@ -514,19 +514,21 @@ struct App
 	bool hasUProject = false;
 	bool attached = false;
 	bool isCodeProject = false;
-	int stateMonitor = 0;        // 0 none, 1 installed by dwo-Forge, 2 part of the project
+	int stateMonitor = 0;        // 0 none, 1 installed by dwookit, 2 part of the project
 	bool stateMonitorLegacy = false;   // installed by dwo-Lens 1.x as Plugins/__StateMonitor (update migrates it)
 	std::string stateMonitorMode;
-	int canvas = 0;              // DwoCanvas: 0 none, 1 installed by dwo-Forge (Plugins/__DwoCanvas), 2 part of the project
+	int canvas = 0;              // DwoCanvas: 0 none, 1 installed by dwookit (Plugins/__DwoCanvas), 2 part of the project
 	std::string canvasVersion;
 	fs::path canvasFile;         // design file picked in the DwoCanvas view
 	std::vector<std::string> canvasRecent;
 	std::vector<CanvasReport> canvasReports;
 	std::string canvasLastCommand;
-	bool legacyAttached = false; // project still has dwo-Lens 1.x __dwo-lens (migrated by the next command)
+	bool legacyAttached = false; // project still connected under an earlier name (migrated by the next command)
+	std::string legacyName;      // "dwo-Forge" or "dwo-Lens 1.x"
+	std::string legacyFolder;    // "__dwo-forge" or "__dwo-lens"
 	bool lensInstalled = false;  // Plugins/__DwoLensInspector (the DwoLens tool)
-	bool ciInstalled = false;    // __dwo-forge/ci.json (DwoBuilder tool)
-	bool toolsDirty = true;      // tool versions must be read again (forge.ps1 tools --json)
+	bool ciInstalled = false;    // __dwookit/ci.json (DwoBuilder tool)
+	bool toolsDirty = true;      // tool versions must be read again (dwookit.ps1 tools --json)
 	bool sidebarCollapsed = false; // sidebar shows icons only (saved in gui.json)
 	bool migrationStarted = false;
 	json state;
@@ -589,15 +591,15 @@ struct App
 		std::ofstream(settingsDir / "gui.json", std::ios::binary) << s.dump(1);
 	}
 
-	// Per-project GUI settings live inside the project's __dwo-forge folder, so uninstall removes them too.
-	fs::path ForgeDir() const { return project / "__dwo-forge"; }
+	// Per-project GUI settings live inside the project's __dwookit folder, so uninstall removes them too.
+	fs::path ForgeDir() const { return project / "__dwookit"; }
 	fs::path ProjectSettingsFile() const { return ForgeDir() / "gui.json"; }
 
-	// The dwo-Forge install folder (where tools\forge.ps1 is).
+	// The dwookit install folder (where tools\dwookit.ps1 is).
 	bool HomeValid() const
 	{
 		std::error_code ec;
-		return !home.empty() && fs::exists(home / "tools" / "forge.ps1", ec);
+		return !home.empty() && fs::exists(home / "tools" / "dwookit.ps1", ec);
 	}
 
 	void LoadProjectSettings()
@@ -605,7 +607,7 @@ struct App
 		mutes.clear();
 		if (auto s = ReadJson(ProjectSettingsFile()))
 			for (auto& m : Arr(*s, "mutes")) if (m.is_string()) mutes.insert(m.get<std::string>());
-		// DwoStateMonitor's watch list belongs to the project (__dwo-forge/sm-watch.txt; the plugin reads it too).
+		// DwoStateMonitor's watch list belongs to the project (__dwookit/sm-watch.txt; the plugin reads it too).
 		std::ifstream in(ForgeDir() / "sm-watch.txt", std::ios::binary);
 		if (in)
 		{
@@ -687,7 +689,7 @@ struct App
 		if (fs::exists(canvasManaged / "DwoCanvas.uplugin", ec))
 		{
 			canvasPlugin = canvasManaged / "DwoCanvas.uplugin";
-			canvas = fs::exists(canvasManaged / ".dwo-forge-managed", ec) ? 1 : 2;
+			canvas = (fs::exists(canvasManaged / ".dwookit-managed", ec) || fs::exists(canvasManaged / ".dwo-forge-managed", ec)) ? 1 : 2;
 		}
 		else if (fs::exists(canvasOld / ".dwo-forge-installed", ec) && fs::exists(canvasOld / "DwoCanvas.uplugin", ec))
 		{
@@ -709,7 +711,10 @@ struct App
 		auto st = ReadJson(ForgeDir() / "state.json");
 		attached = st.has_value();
 		state = st ? *st : json::object();
-		legacyAttached = !attached && fs::exists(project / "__dwo-lens" / "state.json", ec);
+		legacyName.clear(); legacyFolder.clear();
+		if (fs::exists(project / "__dwo-forge" / "state.json", ec)) { legacyName = "dwo-Forge"; legacyFolder = "__dwo-forge"; }
+		else if (fs::exists(project / "__dwo-lens" / "state.json", ec)) { legacyName = "dwo-Lens 1.x"; legacyFolder = "__dwo-lens"; }
+		legacyAttached = !attached && !legacyName.empty();
 		lensInstalled = fs::exists(project / "Plugins" / "__DwoLensInspector" / "DwoLensInspector.uplugin", ec);
 		ciInstalled = attached && fs::exists(ForgeDir() / "ci.json", ec);
 		LoadCanvasReports();
@@ -1037,7 +1042,7 @@ struct App
 
 	// ---------------------------------------------------------------- commands
 
-	// Runs a dwo-Forge command (same as the command line) straight from the install folder.
+	// Runs a dwookit command (same as the command line) straight from the install folder.
 	bool Run(const std::string& command)
 	{
 		if (runner.running)
@@ -1048,21 +1053,21 @@ struct App
 		}
 		if (!HomeValid())
 		{
-			message = "dwo-Forge 폴더를 찾을 수 없습니다: " + PathUtf8(home) + ". dwo-Forge 폴더의 dwo-Forge.bat으로 다시 여세요.";
+			message = "dwookit 폴더를 찾을 수 없습니다: " + PathUtf8(home) + ". dwookit 폴더의 dwookit.bat으로 다시 여세요.";
 			PushToast("실행할 수 없음", message, col::Fail);
 			return false;
 		}
-		SetEnvironmentVariableW(L"DWO_FORGE_HOME", home.wstring().c_str());
-		SetEnvironmentVariableW(L"DWO_FORGE_FROM_BAT", nullptr);
+		SetEnvironmentVariableW(L"DWOOKIT_HOME", home.wstring().c_str());
+		SetEnvironmentVariableW(L"DWOOKIT_FROM_BAT", nullptr);
 		SetEnvironmentVariableW(L"DWO_LENS_FROM_BAT", nullptr);
 		std::string verb = command.substr(0, command.find(' '));
 		std::string rest = command.size() > verb.size() ? command.substr(verb.size()) : "";
 		// PC-wide commands (DwoBuilder's Jenkins) also run with no project open: against the install folder.
 		fs::path target = project.empty() ? home : project;
-		std::wstring ps = L"powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"" + (home / "tools" / "forge.ps1").wstring() +
+		std::wstring ps = L"powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"" + (home / "tools" / "dwookit.ps1").wstring() +
 		                  L"\" -Command " + ToWide(verb) + L" -Project \"" + target.wstring() + L"\"" + ToWide(rest);
 		runner.logDir = settingsDir / "logs";
-		if (runner.Start(ps, target, "dwo-forge " + command))
+		if (runner.Start(ps, target, "dwookit " + command))
 		{
 			message.clear();
 			lastCommand = command;
@@ -1134,12 +1139,12 @@ struct App
 				Run(next);
 			}
 		}
-		// A project still attached with dwo-Lens 1.x: any command migrates it (__dwo-lens -> __dwo-forge), so run
+		// A project still connected under an earlier name: any command migrates it (__dwo-forge or __dwo-lens -> __dwookit), so run
 		// the cheapest one once and show the result.
 		if (legacyAttached && !migrationStarted && !runner.running && HomeValid())
 		{
 			migrationStarted = true;
-			PushToast("dwo-Lens 1.x 프로젝트", "__dwo-lens를 __dwo-forge로 옮깁니다 (기록과 설정 유지).", col::Info);
+			PushToast(legacyName + " 프로젝트", legacyFolder + " 폴더를 __dwookit로 옮깁니다 (기록과 설정 유지).", col::Info);
 			Run("status");
 		}
 		std::vector<LiveMessage> messages;

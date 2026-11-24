@@ -146,7 +146,7 @@ static void DeltaText(double now, double before, bool lowerIsBetter, std::string
 
 // ============================================================================ overview
 
-// Live Lens: DwoLens collecting inside the editor, per editor session (DwoLensLive.cpp, forge.ps1 live).
+// Live Lens: DwoLens collecting inside the editor, per editor session (DwoLensLive.cpp, dwookit.ps1 live).
 struct LiveLensUi
 {
 	double readAt = -100;
@@ -250,7 +250,7 @@ static void DrawOverviewNav(App& app)
 	TextBold(app.projectName);
 	TextDim(app.isCodeProject ? "C++ 프로젝트" : "Blueprint 전용 프로젝트");
 	ImGui::Spacing();
-	KeyValue("상태", app.attached ? (app.lensInstalled ? "연결됨 · DwoLens 설치됨" : "연결됨 · DwoLens 설치 안 됨") : app.legacyAttached ? "dwo-Lens 1.x · 이전 중" : "연결 안 됨", 70);
+	KeyValue("상태", app.attached ? (app.lensInstalled ? "연결됨 · DwoLens 설치됨" : "연결됨 · DwoLens 설치 안 됨") : app.legacyAttached ? app.legacyName + " · 이전 중" : "연결 안 됨", 70);
 	if (app.attached)
 	{
 		KeyValue("엔진", "UE " + app.Engine(), 70);
@@ -301,7 +301,7 @@ static void DrawOverviewMain(App& app)
 	ImGui::TextUnformatted(app.projectName.c_str());
 	ImGui::PopFont();
 	std::string sub = (app.attached ? "UE " + app.Engine() + "  ·  " : std::string("연결되지 않음  ·  ")) +
-	                  (app.isCodeProject ? "C++" : "Blueprint 전용") + (app.attached ? "  ·  dwo-Forge " + app.SystemCommit() : "");
+	                  (app.isCodeProject ? "C++" : "Blueprint 전용") + (app.attached ? "  ·  dwookit " + app.SystemCommit() : "");
 	TextDim(sub);
 	float right = ImGui::GetWindowContentRegionMax().x;
 	float buttonsW = S(330);
@@ -321,13 +321,13 @@ static void DrawOverviewMain(App& app)
 
 	if (!app.attached && app.legacyAttached)
 	{
-		EmptyState(ICON_SYNC, "dwo-Lens 1.x로 연동된 프로젝트입니다",
-		           "__dwo-lens 폴더와 실행 파일, git exclude 블록을 dwo-Forge 이름으로 옮기고 있습니다. 실행 기록과 설정은 그대로 유지됩니다. 실행 로그에서 진행 상황을 볼 수 있습니다.");
+		EmptyState(ICON_SYNC, (app.legacyName + "로 연결된 프로젝트입니다").c_str(),
+		           (app.legacyFolder + " 폴더와 실행 파일, git exclude 블록을 dwookit 이름으로 옮기고 있습니다. 실행 기록과 설정은 그대로 유지됩니다. 실행 로그에서 진행 상황을 볼 수 있습니다.").c_str());
 		return;
 	}
 	if (!app.attached)
 	{
-		if (EmptyState(ICON_LINK, "dwo-Forge에 연결되지 않은 프로젝트입니다", "런처에서 프로젝트를 연결하고 DwoLens를 설치하면 검사를 실행할 수 있습니다.", "런처 열기"))
+		if (EmptyState(ICON_LINK, "dwookit에 연결되지 않은 프로젝트입니다", "런처에서 프로젝트를 연결하고 DwoLens를 설치하면 검사를 실행할 수 있습니다.", "런처 열기"))
 			app.requestActivity = Activity::Launcher;
 		return;
 	}
@@ -2751,7 +2751,7 @@ static std::string Between(const std::string& s, const std::string& open, const 
 static std::string WriteBundleReport(App& app, const fs::path& dest)
 {
 	std::string style, body, mermaid;
-	std::string cover = "<section><div class='meta'>dwo-Forge DwoLens 종합 리포트</div><h1>" + HtmlEscape(app.projectName) +
+	std::string cover = "<section><div class='meta'>dwookit DwoLens 종합 리포트</div><h1>" + HtmlEscape(app.projectName) +
 	                    "</h1><div class='scroll'><table><thead><tr><th>검사</th><th>실행 ID</th><th>결과</th></tr></thead><tbody>";
 	int parts = 0;
 	for (int i = 0; i < kLensLineCount; ++i)
@@ -2786,7 +2786,7 @@ static std::string WriteBundleReport(App& app, const fs::path& dest)
 	if (!parts) return "묶을 실행 기록이 없습니다.";
 	cover += "</tbody></table></div></section>";
 	std::string page = "<!doctype html><html lang='ko'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'>"
-	                   "<title>" + HtmlEscape(app.projectName) + " · dwo-Forge DwoLens 종합 리포트</title><style>" + style +
+	                   "<title>" + HtmlEscape(app.projectName) + " · dwookit DwoLens 종합 리포트</title><style>" + style +
 	                   "</style></head><body><main>" + cover + body + "</main>" + mermaid + "</body></html>";
 	std::ofstream out(dest, std::ios::binary);
 	out << page;
@@ -2797,7 +2797,7 @@ static std::string WriteBundleReport(App& app, const fs::path& dest)
 static void SaveBundleReport(App& app)
 {
 	fs::path dest;
-	if (!PickSaveFile(g_hwnd, ToWide(app.projectName + "_dwo-forge_report.html"), L"HTML 리포트", L"*.html", L"html", dest)) return;
+	if (!PickSaveFile(g_hwnd, ToWide(app.projectName + "_dwookit_report.html"), L"HTML 리포트", L"*.html", L"html", dest)) return;
 	std::string err = WriteBundleReport(app, dest);
 	if (err.empty()) PushToast("종합 리포트 저장됨", PathUtf8(dest), col::Pass, [dest] { OpenWithShell(dest); }, "열기");
 	else PushToast("저장 실패", err, col::Fail);
@@ -3060,7 +3060,7 @@ static const ForgeToolDef kForgeTools[] = {
 	{ "statemonitor", ICON_EYE, "DwoStateMonitor", "실행 중인 게임의 상태를 실시간으로 보는 런타임 플러그인" },
 	{ "canvas", ICON_CANVAS, "DwoCanvas", "디자인 파일(*.dwocanvas.json)을 UMG 위젯 블루프린트로 가져오는 플러그인" },
 	{ "builder", ICON_SYNC, "DwoBuilder", "C++ 컴파일·패키지 빌드, Jenkins 자동 빌드" },
-	{ "forge", ICON_FORGE, "dwo-Forge", "프로젝트 연결, 도구 설치·업데이트, 런처, 자체 검증" },
+	{ "forge", ICON_FORGE, "dwookit", "프로젝트 연결, 도구 설치·업데이트, 런처, 자체 검증" },
 };
 
 static const char* ToolNameOf(const std::string& key)
@@ -3073,7 +3073,7 @@ static const char* ToolNameOf(const std::string& key)
 // The tool catalog (tools/catalog.json): every check and integration the tools provide, shown in the launcher.
 static void DrawCatalogTable(App& app)
 {
-	static const char* const kinds[] = { "전체", "DwoLens", "DwoStateMonitor", "DwoCanvas", "DwoBuilder", "dwo-Forge" };
+	static const char* const kinds[] = { "전체", "DwoLens", "DwoStateMonitor", "DwoCanvas", "DwoBuilder", "dwookit" };
 	static const char* const keys[] = { "", "lens", "statemonitor", "canvas", "builder", "forge" };
 	int kind = 0;
 	for (int i = 0; i < 6; ++i) if (ui.toolCategory == keys[i]) kind = i;

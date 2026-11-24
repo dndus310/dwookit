@@ -1,6 +1,6 @@
-// The launcher: dwo-Forge's home, drawn as one card next to the sidebar. Project page: tabs (all / installed /
+// The launcher: dwookit's home, drawn as one card next to the sidebar. Project page: tabs (all / installed /
 // updates), project picker and search, then the tool library (thumbnail, text, action + "..." menu, version).
-// PC page: Jenkins and engines. Tool versions come from 'forge.ps1 tools --json'.
+// PC page: Jenkins and engines. Tool versions come from 'dwookit.ps1 tools --json'.
 #pragma once
 
 #include "views_ci.h"
@@ -9,7 +9,7 @@
 
 struct ToolMeta
 {
-	const char* id;        // forge.ps1 tool id
+	const char* id;        // dwookit.ps1 tool id
 	const char* name;
 	const char* mono;      // two-letter tile shown in the sidebar
 	const char* icon;      // glyph on the library thumbnail
@@ -58,13 +58,13 @@ static void DrawToolTile(ImDrawList* dl, ImVec2 pos, float size, const ToolMeta&
 	dl->AddText(f, fs, pos + (ImVec2(size, size) - ts) * 0.5f, IM_COL32(255, 255, 255, (int)(255 * alpha)), t.mono);
 }
 
-// ============================================================================ tool status (forge.ps1 tools --json)
+// ============================================================================ tool status (dwookit.ps1 tools --json)
 
 struct ToolView
 {
 	std::string id, state, reason, detail, installedVersion, availableVersion, installedEngine, installedAt;
 	bool available = true;
-	bool known = false;   // from forge.ps1 (versions); false = file-system guess while it loads
+	bool known = false;   // from dwookit.ps1 (versions); false = file-system guess while it loads
 };
 
 struct ToolsProbe
@@ -82,14 +82,14 @@ struct ToolsProbe
 		if (busy || project.empty()) return;
 		if (worker.joinable()) worker.join();
 		busy = true;
-		std::wstring cmd = L"powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"" + (home / "tools" / "forge.ps1").wstring() +
+		std::wstring cmd = L"powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"" + (home / "tools" / "dwookit.ps1").wstring() +
 		                   L"\" -Command tools -Project \"" + project.wstring() + L"\" --json";
 		worker = std::thread([this, cmd, project] {
 			std::string out;
 			DWORD code = 1;
 			json parsed;
 			std::string err;
-			if (!CaptureOutput(cmd, project, out, code)) err = "forge.ps1을 실행할 수 없습니다.";
+			if (!CaptureOutput(cmd, project, out, code)) err = "dwookit.ps1을 실행할 수 없습니다.";
 			else
 			{
 				size_t at = out.find('{');
@@ -214,9 +214,9 @@ static void ConsumeLauncherRequest()
 
 static fs::path CiHomeDir()
 {
-	const wchar_t* ciHome = _wgetenv(L"DWO_FORGE_CI_HOME");
+	const wchar_t* ciHome = _wgetenv(L"DWOOKIT_CI_HOME");
 	if (ciHome && *ciHome) return fs::path(ciHome);
-	return fs::path(_wgetenv(L"LOCALAPPDATA") ? _wgetenv(L"LOCALAPPDATA") : L".") / "dwo-Forge" / "ci";
+	return fs::path(_wgetenv(L"LOCALAPPDATA") ? _wgetenv(L"LOCALAPPDATA") : L".") / "dwookit" / "ci";
 }
 
 // ============================================================================ building blocks (card, tabs, thumbnails)
@@ -398,7 +398,7 @@ static void DrawToolDetails(App& app, const ToolMeta& m, const ToolView& v)
 	std::string id = m.id == std::string("ci") ? "builder" : m.id;
 	for (const char* verb : { "install", "update", "remove" })
 	{
-		std::string line = "__dwo-forge.bat tool " + std::string(verb) + " " + id;
+		std::string line = "__dwookit.bat tool " + std::string(verb) + " " + id;
 		if (ImGui::Selectable((std::string(ICON_COPY) + "  " + line).c_str())) { ImGui::SetClipboardText(line.c_str()); PushToast("복사함", line, col::Info); }
 	}
 	(void)app;
@@ -491,8 +491,8 @@ static void DrawToolItem(App& app, const ToolMeta& m, const ToolView& v, const j
 	ImGui::BeginDisabled(mutates && (!idle || !app.hasUProject || (primary == "설치" && (ciBlocked || !v.available))));
 	bool clicked = primary == "열기" ? PrimaryButton(label.c_str(), ImVec2(bw, 0)) : ImGui::Button(label.c_str(), ImVec2(bw, 0));
 	ImGui::EndDisabled();
-	if (primary == "설치" && ciBlocked) Tooltip("자동 빌드에는 PC의 Jenkins가 필요합니다. 인터넷 PC에서 dwo-Forge.bat ci-bundle로 만든 번들을 dwo-Forge의 bundles 폴더에 두세요. 로컬 빌드는 ··· > 열기로 설치 없이 쓸 수 있습니다.");
-	else if (primary == "설치" && !app.attached) Tooltip("프로젝트를 dwo-Forge에 연결한 뒤 설치합니다.");
+	if (primary == "설치" && ciBlocked) Tooltip("자동 빌드에는 PC의 Jenkins가 필요합니다. 인터넷 PC에서 dwookit.bat ci-bundle로 만든 번들을 dwookit의 bundles 폴더에 두세요. 로컬 빌드는 ··· > 열기로 설치 없이 쓸 수 있습니다.");
+	else if (primary == "설치" && !app.attached) Tooltip("프로젝트를 dwookit에 연결한 뒤 설치합니다.");
 	if (clicked)
 	{
 		if (primary == "설치") RunToolCommand(app, "tool install " + id);
@@ -671,8 +671,8 @@ static void DrawProjectPage(App& app)
 	}
 	if (!app.attached && app.legacyAttached)
 	{
-		EmptyState(ICON_SYNC, "dwo-Lens 1.x로 연결된 프로젝트입니다",
-		           "__dwo-lens 폴더와 실행 파일, git exclude 블록을 dwo-Forge 이름으로 옮기고 있습니다. 실행 기록과 설정은 그대로 유지됩니다.");
+		EmptyState(ICON_SYNC, (app.legacyName + "로 연결된 프로젝트입니다").c_str(),
+		           (app.legacyFolder + " 폴더와 실행 파일, git exclude 블록을 dwookit 이름으로 옮기고 있습니다. 실행 기록과 설정은 그대로 유지됩니다.").c_str());
 		return;
 	}
 
@@ -682,8 +682,8 @@ static void DrawProjectPage(App& app)
 	ImGui::BeginDisabled(app.runner.running);
 	if (!app.attached)
 	{
-		if (Banner("connect", col::Info, "이 프로젝트는 dwo-Forge에 연결되지 않았습니다. 도구의 설치를 누르면 연결과 설치를 함께 합니다. "
-		                                 "연결은 __dwo-forge 폴더와 실행 파일만 만들고 git에서 숨기며, 연결 해제로 흔적 없이 지울 수 있습니다.", "연결만 하기"))
+		if (Banner("connect", col::Info, "이 프로젝트는 dwookit에 연결되지 않았습니다. 도구의 설치를 누르면 연결과 설치를 함께 합니다. "
+		                                 "연결은 __dwookit 폴더와 실행 파일만 만들고 git에서 숨기며, 연결 해제로 흔적 없이 지울 수 있습니다.", "연결만 하기"))
 			app.Run("connect");
 	}
 	else if (!engine.empty() && !connectedEngine.empty() && engine != connectedEngine)
@@ -693,12 +693,12 @@ static void DrawProjectPage(App& app)
 	}
 	else if (pj.value("launcherOutdated", false) && updates == 0)
 	{
-		if (Banner("launcher", col::Warn, "이 프로젝트의 실행 파일(__dwo-forge.bat)이 이전 dwo-Forge(" + Str(pj, "connectedWith") + ")의 것입니다. 연결을 새로 고치면 지금 버전으로 바뀝니다.", "연결 새로 고침"))
+		if (Banner("launcher", col::Warn, "이 프로젝트의 실행 파일(__dwookit.bat)이 이전 dwookit(" + Str(pj, "connectedWith") + ")의 것입니다. 연결을 새로 고치면 지금 버전으로 바뀝니다.", "연결 새로 고침"))
 			app.Run("update");
 	}
 	else if (updates > 0)
 	{
-		if (Banner("updates", col::Warn, Fmt("이 dwo-Forge(%s)에 더 새 버전이 있는 도구가 %d개 있습니다.", Str(Obj(doc, "forge"), "version").c_str(), updates), "모두 업데이트"))
+		if (Banner("updates", col::Warn, Fmt("이 dwookit(%s)에 더 새 버전이 있는 도구가 %d개 있습니다.", Str(Obj(doc, "forge"), "version").c_str(), updates), "모두 업데이트"))
 			app.Run("tool update --all");
 	}
 	ImGui::EndDisabled();
@@ -742,14 +742,14 @@ static void DrawJenkinsPanel(App& app)
 	ImGui::Spacing();
 	KeyValue("위치", Str(Obj(pc, "jenkins"), "home", PathUtf8(CiHomeDir())), 110);
 	std::string bundle = Str(Obj(pc, "bundle"), "file");
-	KeyValue("오프라인 번들", bundle.empty() ? "없음 (인터넷 PC에서 dwo-Forge.bat ci-bundle)" : bundle, 110);
+	KeyValue("오프라인 번들", bundle.empty() ? "없음 (인터넷 PC에서 dwookit.bat ci-bundle)" : bundle, 110);
 	if (!s.user.empty()) KeyValue("계정", s.user, 110);
 	ImGui::Spacing();
 	bool idle = !app.runner.running;
 	ImGui::BeginDisabled(!idle);
 	auto pickBundle = [&](const char* verb) {
 		fs::path p;
-		if (PickOpen(g_hwnd, false, L"dwo-Forge CI 번들 선택", p, L"dwo-Forge CI 번들 (dwo-forge-ci-bundle-*.zip)", L"dwo-forge-ci-bundle-*.zip;*.zip"))
+		if (PickOpen(g_hwnd, false, L"dwookit CI 번들 선택", p, L"dwookit CI 번들 (dwookit-ci-bundle-*.zip)", L"dwookit-ci-bundle-*.zip;*.zip"))
 			app.Run(std::string(verb) + " --bundle \"" + PathUtf8(p) + "\"");
 	};
 	if (!s.installed)
@@ -788,7 +788,7 @@ static void DrawJenkinsPanel(App& app)
 	{
 		TextBold("Jenkins 제거");
 		ImGui::PushTextWrapPos(S(380));
-		TextDim("Jenkins와 모든 프로젝트의 DwoBuilder 작업·git 훅을 지웁니다. 빌드 기록은 %LOCALAPPDATA%\\dwo-Forge\\uninstalled로 옮겨 둡니다.");
+		TextDim("Jenkins와 모든 프로젝트의 DwoBuilder 작업·git 훅을 지웁니다. 빌드 기록은 %LOCALAPPDATA%\\dwookit\\uninstalled로 옮겨 둡니다.");
 		ImGui::PopTextWrapPos();
 		if (DangerButton("제거")) { app.Run("ci-remove --keep-data"); ImGui::CloseCurrentPopup(); }
 		ImGui::SameLine();
@@ -869,7 +869,7 @@ static void DrawAboutPage(App& app)
 {
 	json doc = g_tools.Get(app.project);
 	ImGui::Dummy(ImVec2(0, S(2)));
-	UnderlineTab("dwo-Forge", true);
+	UnderlineTab("dwookit", true);
 	CardRule();
 	ImGui::Dummy(ImVec2(0, S(8)));
 	ImGui::BeginChild("about", ImVec2(0, 0), ImGuiChildFlags_None);

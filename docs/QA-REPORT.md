@@ -1,6 +1,6 @@
-# dwo-Forge QA 보고서
+# dwookit QA 보고서
 
-> dwo-Forge 2.0은 dwo-Lens의 새 이름입니다. 1~7절은 dwo-Lens 1.x 시절의 기록이라 그때의 이름(`__dwo-lens`, `StateMonitor` 등)을 그대로 둡니다. 2.0 검증은 [8절](#8-v20-dwo-forge-검증-2026-11-11)에 있습니다.
+> dwookit 2.0은 dwo-Lens의 새 이름입니다. 1~7절은 dwo-Lens 1.x 시절의 기록이라 그때의 이름(`__dwo-lens`, `StateMonitor` 등)을 그대로 둡니다. 2.0 검증은 [8절](#8-v20-dwookit-검증-2026-11-11)에 있습니다.
 
 - 일자: 2026-10-28
 - 엔진: UE 5.7.4 (Launcher)
@@ -140,13 +140,13 @@ GitHub zip으로 받은 폴더에서 부착이 실패한 문제(설치 폴더에
 - 실제 성능 캡처가 남긴 CSV의 제거 (기록 파일에 경로를 넣어 시뮬레이션)
 - 창으로 끌어다 놓기와 실패 알림의 로그 파일 열기 (빌드와 코드 경로만 확인)
 
-## 8. v2.0 dwo-Forge 검증 (2026-11-11)
+## 8. v2.0 dwookit 검증 (2026-11-11)
 
-dwo-Lens를 dwo-Forge로 바꾸고 세 도구(Lens · DwoStateMonitor · DwoCanvas)로 재구성한 뒤의 검증입니다. 엔진 실행은 모두 격리된 프로젝트 복사본과 별도 `LOCALAPPDATA`에서 했습니다.
+dwo-Lens를 dwookit로 바꾸고 세 도구(Lens · DwoStateMonitor · DwoCanvas)로 재구성한 뒤의 검증입니다. 엔진 실행은 모두 격리된 프로젝트 복사본과 별도 `LOCALAPPDATA`에서 했습니다.
 
 | 구분 | 결과 |
 |---|---|
-| 단위 테스트 | 52/52 통과 (Python 도구 42 + `tests/test_forge_cli.py` 10: dwo-Lens 1.x 프로젝트 이전, 실행 중인 옛 실행 파일 넘겨주기, exclude 블록 교체, `%LOCALAPPDATA%` 이전, 새·옛 이름 모두 제거, DwoCanvas 제거 거부·강제, 프로젝트 소유 DwoCanvas 보호, uninstall이 DwoCanvas 유지, 검사기 실행) |
+| 단위 테스트 | 52/52 통과 (Python 도구 42 + `tests/test_dwookit_cli.py` 10: dwo-Lens 1.x 프로젝트 이전, 실행 중인 옛 실행 파일 넘겨주기, exclude 블록 교체, `%LOCALAPPDATA%` 이전, 새·옛 이름 모두 제거, DwoCanvas 제거 거부·강제, 프로젝트 소유 DwoCanvas 보호, uninstall이 DwoCanvas 유지, 검사기 실행) |
 | CoreRedirects | 설치한 DwoStateMonitor에서 `unreal.load_class`로 `/Script/StateMonitor.StateMonitorLibrary`·`StateMonitorWidget`·`StateMonitorSubsystem`이 `/Script/DwoStateMonitor.*`로 연결됨 (플러그인 `Config/Engine.ini`가 Engine 설정에 합쳐져 UObject 초기화 전에 읽힘, 코드 등록 불필요) |
 | 발견·수정 | BuildPlugin 패키지에 `Config/*.ini`(CoreRedirects)와 DwoCanvas `Schema/`가 빠짐 → 설치 때 소스에서 보충. 커맨드릿 리포트 경로가 엔진 폴더 기준 상대 경로 → 절대 경로로 변환. 엔진 자식 프로세스가 잡은 로그 → 공유 읽기 |
 | DwoCanvas 종단 | 부착 → `canvas-install`(git에 보임) → `canvas-validate` → `canvas-import --doc Settings` (종료 코드 0, 위젯 162개, 리포트 경로 출력) → `canvas-remove` 거부(WBP_Settings가 DwoCanvasRuntime 사용) → `uninstall`이 DwoCanvas를 남김. 이때 플러그인 바이너리는 아래 빌드 문제로 에디터 대상만 빌드한 것을 캐시에 넣어 사용 |
@@ -175,7 +175,7 @@ dwo-Lens를 dwo-Forge로 바꾸고 세 도구(Lens · DwoStateMonitor · DwoCanv
 | 검증 | 결과 |
 |---|---|
 | 실사용 재현 (temp_proj 복사본) | 부착 → DwoStateMonitor 런타임 설치 → DwoCanvas 설치 → 위젯 가져오기 → DwoCanvas 자동화 테스트 → `.uproject`·`Build.cs`·코드·설정 파일 편집 → `uninstall --delete-data --delete-generated --force` 한 번. 부착 전 스냅숏과 비교해 남은 것은 사용자 코드(`Source/Probe`)와 에디터가 실행 때마다 만드는 빈 `Content/Collections`뿐. `.uproject`는 부착 전과 바이트 단위로 같음 |
-| 보존 경로 | `--keep-data --keep-generated`: 위젯·기록은 프로젝트에 남고, 실행 기록·리포트는 `%LOCALAPPDATA%\dwo-Forge\uninstalled\…`로 이동, 편집 원본은 `backup`에 저장 |
+| 보존 경로 | `--keep-data --keep-generated`: 위젯·기록은 프로젝트에 남고, 실행 기록·리포트는 `%LOCALAPPDATA%\dwookit\uninstalled\…`로 이동, 편집 원본은 `backup`에 저장 |
 | 확인 없이 실행 | 코드 사용이 있거나 위젯 처리 방법이 없으면 아무것도 바꾸지 않고 멈춤 |
 | 단위 테스트 | 60/60 (forge CLI 18개 중 새 테스트 7개) |
 | 자체 검증 | 43/43 (한 번에 제거하는 순환, 위젯 처리 선택 없이 멈춤, 부모 저장소 보존 경로 포함) |
@@ -197,6 +197,6 @@ dwo-Lens를 dwo-Forge로 바꾸고 세 도구(Lens · DwoStateMonitor · DwoCanv
 |---|---|
 | ensure 콜스택을 오류로 셈 | 언리얼은 ensure 하나를 콜스택 줄마다 Error로 남김. 이제 조건 줄 하나로 묶고 설명은 메시지, 콜스택은 세부 정보로. BP 전체 컴파일 오류 415 → 11 |
 | 문제 목록 제목에 콜스택 | 크래시·로그 제목을 한 줄로(콜스택, `[File:]`/`[Line:]` 제외). 전체 내용은 속성 패널 |
-| 오래된 프로젝트 실행 파일이 안 보임 | 2.0.1 때의 `__dwo-forge.bat`이 그대로인데 런처는 업데이트 0. 이제 `tools --json`의 `launcherOutdated`, 런처 배너(연결 새로 고침), `tools`·`status` 표시, `tool update --all`이 함께 새로 씀 |
+| 오래된 프로젝트 실행 파일이 안 보임 | 2.0.1 때의 `__dwookit.bat`이 그대로인데 런처는 업데이트 0. 이제 `tools --json`의 `launcherOutdated`, 런처 배너(연결 새로 고침), `tools`·`status` 표시, `tool update --all`이 함께 새로 씀 |
 | 제거가 `.uproject` BOM을 지움 | 엔진이 쓰는 BOM을 프로젝트 파일 정리 때 잃어 git에 변경으로 보였음. `.uproject`, `Build.cs`, 에디터 설정 모두 원래 인코딩 유지 |
 | 자체 검증의 가정 | 기존 생성 위젯(새 이름·옛 이름 DesignBridgeRuntime)을 복사본에서 먼저 치우고, 파일의 줄바꿈을 따르고, 자체 git 저장소인 플러그인은 비교에서 빼고, 폴더 대신 가져오기가 만든 에셋으로 확인 |

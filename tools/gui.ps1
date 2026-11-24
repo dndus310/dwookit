@@ -1,4 +1,4 @@
-# Builds (once per source version) and launches the dwo-Forge ImGui control panel.
+# Builds (once per source version) and launches the dwookit ImGui control panel.
 # Windows PowerShell 5.1 compatible.
 param(
     [Parameter(Mandatory = $true)][string]$SystemDir,
@@ -8,8 +8,8 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-function Say([string]$Message) { Write-Host "[dwo-forge] $Message" }
-function Fail([string]$Message) { Write-Host "[dwo-forge] ERROR: $Message" -ForegroundColor Red; exit 1 }
+function Say([string]$Message) { Write-Host "[dwookit] $Message" }
+function Fail([string]$Message) { Write-Host "[dwookit] ERROR: $Message" -ForegroundColor Red; exit 1 }
 
 $guiDir = Join-Path $SystemDir 'gui'
 
@@ -34,13 +34,13 @@ function Find-VcVars {
 }
 
 # dwo-Lens 1.x kept its caches and GUI settings in %LOCALAPPDATA%\dwo-Lens; move them once.
-$appData = Join-Path $env:LOCALAPPDATA 'dwo-Forge'
+$appData = Join-Path $env:LOCALAPPDATA 'dwookit'
 $legacyAppData = Join-Path $env:LOCALAPPDATA 'dwo-Lens'
-# 2.0.0 could leave a FILE named dwo-Forge here (settings copied before the folder existed); clear it.
+# 2.0.0 could leave a FILE named dwookit here (settings copied before the folder existed); clear it.
 if (Test-Path $appData -PathType Leaf) { Remove-Item -Force $appData -ErrorAction SilentlyContinue }
 if (Test-Path $legacyAppData) {
     if (-not (Test-Path $appData)) {
-        try { Move-Item $legacyAppData $appData -ErrorAction Stop; Say 'Moved %LOCALAPPDATA%\dwo-Lens to %LOCALAPPDATA%\dwo-Forge.' } catch { }
+        try { Move-Item $legacyAppData $appData -ErrorAction Stop; Say 'Moved %LOCALAPPDATA%\dwo-Lens to %LOCALAPPDATA%\dwookit.' } catch { }
     }
     if (Test-Path $legacyAppData) {
         # Both exist (or a running old window holds a file): carry over settings and kept histories, drop old caches.
@@ -54,7 +54,7 @@ if (Test-Path $legacyAppData) {
 
 $hash = Get-SourceHash
 $cache = Join-Path $appData "gui-cache\$hash"
-$exe = Join-Path $cache 'dwo-forge-gui.exe'
+$exe = Join-Path $cache 'dwookit-gui.exe'
 
 if (-not (Test-Path $exe)) {
     Say "Building the GUI (first time for this version, about a minute)..."

@@ -1,9 +1,9 @@
-"""DwoBuilder helpers used by ci.ps1 and forge.ps1. Pure decisions live here so they can be unit tested.
+"""DwoBuilder helpers used by ci.ps1 and dwookit.ps1. Pure decisions live here so they can be unit tested.
 
-    python forge_ci.py decide   --event <hook> --config <json...> --state <dir> [--branch B] [--remote R] < stdin
-    python forge_ci.py job-xml  --project <dir> --launcher <bat> --name <job> --config <json...>
-    python forge_ci.py verify-bundle --dir <extracted bundle>
-    python forge_ci.py prune    --runs <runs dir> --config <json...> [--dry-run]
+    python dwookit_ci.py decide   --event <hook> --config <json...> --state <dir> [--branch B] [--remote R] < stdin
+    python dwookit_ci.py job-xml  --project <dir> --launcher <bat> --name <job> --config <json...>
+    python dwookit_ci.py verify-bundle --dir <extracted bundle>
+    python dwookit_ci.py prune    --runs <runs dir> --config <json...> [--dry-run]
 
 decide prints a JSON list of triggers: [{"event": "push", "ref": "develop", "stages": [...], "reason": "..."}].
 """
@@ -26,7 +26,7 @@ ZERO = "0" * 40
 STAGES = ("compile", "lens", "package")
 DEFAULT_CI = {
     "port": 8098,
-    "jobPrefix": "dwo-forge",
+    "jobPrefix": "dwookit",
     "keepBuilds": 30,
     "keepArtifacts": 10,
     "quietPeriodSeconds": 10,
@@ -152,21 +152,21 @@ def decide(event: str, stdin: str, ci: dict, state: Path, branch: str = "", remo
 # ----------------------------------------------------------------------------------------------- Jenkins job
 
 def pipeline_script(launcher: str, lens_checks: list[str]) -> str:
-    """Declarative pipeline. Runs in the project folder through its __dwo-forge.bat; results are copied into
-    the workspace (DWO_FORGE_CI_OUT) for junit/archiveArtifacts. DwoLens fail -> UNSTABLE, build errors -> FAILURE.
+    """Declarative pipeline. Runs in the project folder through its __dwookit.bat; results are copied into
+    the workspace (DWOOKIT_CI_OUT) for junit/archiveArtifacts. DwoLens fail -> UNSTABLE, build errors -> FAILURE.
 
     Steps use `powershell`, not `bat`, and keep every path out of the script text: Jenkins writes .bat files as UTF-8
     while cmd reads them in the console code page (949 on Korean Windows), so a non-ASCII workspace or project path
     (e.g. a Korean user name) broke every bat step. Paths travel in environment variables instead."""
     groovy_launcher = launcher.replace("\\", "\\\\").replace("'", "\\'")
     checks = ", ".join(f"'{c}'" for c in lens_checks)
-    run = "& $env:DWO_FORGE_LAUNCHER {0}; exit $LASTEXITCODE"
+    run = "& $env:DWOOKIT_LAUNCHER {0}; exit $LASTEXITCODE"
     return f"""pipeline {{
   agent any
   options {{ disableConcurrentBuilds() }}
   environment {{
-    DWO_FORGE_LAUNCHER = '{groovy_launcher}'
-    DWO_FORGE_CI_OUT = "${{env.WORKSPACE}}\\\\results"
+    DWOOKIT_LAUNCHER = '{groovy_launcher}'
+    DWOOKIT_CI_OUT = "${{env.WORKSPACE}}\\\\results"
   }}
   stages {{
     stage('준비') {{
@@ -184,7 +184,7 @@ def pipeline_script(launcher: str, lens_checks: list[str]) -> str:
       steps {{
         script {{
           for (check in [{checks}]) {{
-            def rc = powershell(returnStatus: true, script: '& $env:DWO_FORGE_LAUNCHER ' + check + '; exit $LASTEXITCODE')
+            def rc = powershell(returnStatus: true, script: '& $env:DWOOKIT_LAUNCHER ' + check + '; exit $LASTEXITCODE')
             if (rc == 2) {{ unstable("DwoLens ${{check}}: 실패 판정") }}
             else if (rc != 0) {{ error("DwoLens ${{check}}: 실행 오류 (종료 코드 ${{rc}})") }}
           }}
@@ -219,7 +219,7 @@ def job_xml(project: str, launcher: str, ci: dict) -> str:
                              "</hudson.model.BooleanParameterDefinition>")
     return f"""<?xml version='1.1' encoding='UTF-8'?>
 <flow-definition plugin="workflow-job">
-  <description>{escape(f"dwo-Forge DwoBuilder: {project}. dwo-Forge가 관리합니다 (__dwo-forge.bat ci-job).")}</description>
+  <description>{escape(f"dwookit DwoBuilder: {project}. dwookit가 관리합니다 (__dwookit.bat ci-job).")}</description>
   <keepDependencies>false</keepDependencies>
   <properties>
     <jenkins.model.BuildDiscarderProperty>
@@ -254,8 +254,8 @@ def sha256(path: Path) -> str:
 def verify_bundle(root: Path) -> dict:
     """Checks every file listed in manifest.json against its SHA-256. Returns the manifest or raises."""
     manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8-sig"))
-    if manifest.get("schema") != "dwo-forge.ci-bundle/1":
-        raise ValueError("manifest.json is not a dwo-Forge CI bundle")
+    if manifest.get("schema") != "dwookit.ci-bundle/1":
+        raise ValueError("manifest.json is not a dwookit CI bundle")
     bad = [rel for rel, digest in manifest.get("files", {}).items()
            if not (root / rel).is_file() or sha256(root / rel) != digest]
     if bad:
@@ -268,7 +268,7 @@ def verify_bundle(root: Path) -> dict:
 def make_manifest(root: Path, info: dict) -> dict:
     files = {str(p.relative_to(root)).replace("\\", "/"): sha256(p)
              for p in sorted(root.rglob("*")) if p.is_file() and p.name != "manifest.json"}
-    manifest = {"schema": "dwo-forge.ci-bundle/1", **info, "files": files}
+    manifest = {"schema": "dwookit.ci-bundle/1", **info, "files": files}
     (root / "manifest.json").write_text(json.dumps(manifest, indent=1), encoding="utf-8")
     return manifest
 
@@ -332,12 +332,12 @@ def main() -> int:
         try:
             manifest = verify_bundle(args.dir)
         except (OSError, ValueError) as exc:
-            print(f"[dwo-forge] ERROR: bundle check failed: {exc}")
+            print(f"[dwookit] ERROR: bundle check failed: {exc}")
             return 1
         print(json.dumps({k: v for k, v in manifest.items() if k != "files"} | {"fileCount": len(manifest["files"])}))
     elif args.cmd == "make-manifest":
         manifest = make_manifest(args.dir, json.loads(args.info_file.read_text(encoding="utf-8-sig")))
-        print(f"[dwo-forge] manifest: {len(manifest['files'])} files")
+        print(f"[dwookit] manifest: {len(manifest['files'])} files")
     elif args.cmd == "prune":
         r = retention_config(load_config(args.config))
         doomed = prune_plan(args.runs, int(r["runsPerCheck"]), int(r["packages"]))
@@ -345,7 +345,7 @@ def main() -> int:
             if not args.dry_run:
                 shutil.rmtree(dpath, ignore_errors=True)
         if doomed:
-            print(f"[dwo-forge] retention: removed {len(doomed)} old run(s) (keep {r['runsPerCheck']} per check, {r['packages']} packages)")
+            print(f"[dwookit] retention: removed {len(doomed)} old run(s) (keep {r['runsPerCheck']} per check, {r['packages']} packages)")
     elif args.cmd == "config":
         cfg = load_config(args.config)
         print(json.dumps({"ci": ci_config(cfg), "retention": retention_config(cfg)}, ensure_ascii=False))

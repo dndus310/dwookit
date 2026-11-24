@@ -1,6 +1,6 @@
 """DwoLens build lines: editor C++ compile (UnrealBuildTool) and package build (RunUAT BuildCookRun).
 
-forge.ps1 runs the tools and keeps their console output in the run folder; this script turns that output into
+dwookit.ps1 runs the tools and keeps their console output in the run folder; this script turns that output into
 out/<line>.json and out/report.html like the other lines.
 
     python lens_build.py compile --run <run dir> [--skipped "<reason>"]
@@ -173,7 +173,7 @@ def main() -> int:
     (out / f"{args.line}.json").write_text(json.dumps(result, ensure_ascii=False, indent=1), encoding="utf-8")
     (out / "report.html").write_text(render(result, args.run.name), encoding="utf-8")
     count = len(result.get("errors", [])) if args.line == "compile" else result.get("errorCount", 0)
-    print(f"[dwo-forge] {args.line}: errors={count} warnings={result.get('warnings', 0)} verdict={result['verdict']}")
+    print(f"[dwookit] {args.line}: errors={count} warnings={result.get('warnings', 0)} verdict={result['verdict']}")
     return 0
 
 

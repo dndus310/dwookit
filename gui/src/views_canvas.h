@@ -49,7 +49,7 @@ static void RunCanvas(App& app, const std::string& verb, bool reset = false)
 
 static const char* CanvasStateText(const App& app)
 {
-	return app.canvas == 1 ? "설치됨 (dwo-Forge)" : app.canvas == 2 ? "프로젝트에 포함" : "설치 안 됨";
+	return app.canvas == 1 ? "설치됨 (dwookit)" : app.canvas == 2 ? "프로젝트에 포함" : "설치 안 됨";
 }
 
 // ---------------------------------------------------------------------------- nav
@@ -71,7 +71,7 @@ static void DrawCanvasNav(App& app)
 		ImGui::BeginDisabled(!idle || !app.attached);
 		if (PrimaryButton((std::string(ICON_DOWNLOAD) + "  설치").c_str(), ImVec2(-FLT_MIN, 0))) app.Run("tool install canvas");
 		ImGui::EndDisabled();
-		Tooltip(app.attached ? "미리 빌드한 에디터 바이너리와 소스를 Plugins/__DwoCanvas에 복사합니다. git 변경 목록에 나타나지 않으며, DwoCanvas나 dwo-Forge를 제거하면 함께 지워집니다."
+		Tooltip(app.attached ? "미리 빌드한 에디터 바이너리와 소스를 Plugins/__DwoCanvas에 복사합니다. git 변경 목록에 나타나지 않으며, DwoCanvas나 dwookit를 제거하면 함께 지워집니다."
 		                     : "먼저 런처에서 프로젝트를 연결하세요.");
 	}
 	else
@@ -80,7 +80,7 @@ static void DrawCanvasNav(App& app)
 		if (ImGui::Button((std::string(ICON_DELETE) + "  제거").c_str(), ImVec2(-FLT_MIN, 0))) app.Run("canvas-remove");
 		ImGui::EndDisabled();
 		Tooltip(app.canvas == 1 ? "생성된 위젯이 DwoCanvasRuntime을 쓰고 있으면 제거를 거부합니다 (명령줄 --force로만 강제)."
-		                        : "프로젝트가 직접 가진 DwoCanvas는 dwo-Forge가 제거하지 않습니다.");
+		                        : "프로젝트가 직접 가진 DwoCanvas는 dwookit가 제거하지 않습니다.");
 	}
 	ImGui::EndChild();
 
@@ -343,8 +343,8 @@ static void DrawCanvasInspector(App& app)
 	KeyValue("런타임 모듈", "DwoCanvasRuntime", 80);
 	KeyValue("에디터 모듈", "DwoCanvasEditor", 80);
 	ImGui::PushTextWrapPos(0);
-	TextDim("원본은 dwo-Forge에 있고 Plugins/__DwoCanvas에 설치됩니다(git에서 숨김). 생성된 위젯 블루프린트가 DwoCanvasRuntime을 쓰므로, "
-	        "그런 위젯이 남아 있으면 DwoCanvas 제거와 dwo-Forge 제거를 멈추고 알려 줍니다. 위젯을 여는 다른 PC에도 DwoCanvas가 설치되어 있어야 합니다.");
+	TextDim("원본은 dwookit에 있고 Plugins/__DwoCanvas에 설치됩니다(git에서 숨김). 생성된 위젯 블루프린트가 DwoCanvasRuntime을 쓰므로, "
+	        "그런 위젯이 남아 있으면 DwoCanvas 제거와 dwookit 제거를 멈추고 알려 줍니다. 위젯을 여는 다른 PC에도 DwoCanvas가 설치되어 있어야 합니다.");
 	ImGui::PopTextWrapPos();
 
 	if (CanvasReport* r = app.CanvasReportAt((size_t)ImMax(0, ui.canvasReport)))
@@ -367,8 +367,8 @@ static void DrawCanvasInspector(App& app)
 	std::string file = app.canvasFile.empty() ? "<file.dwocanvas.json>" : Quoted(app.canvasFile.filename());
 	ImGui::PushFont(g_fonts.mono);
 	ImGui::PushTextWrapPos(0);
-	TextDim("__dwo-forge.bat canvas-validate " + file);
-	TextDim("__dwo-forge.bat canvas-import " + file + " [--reset] [--doc Name]");
+	TextDim("__dwookit.bat canvas-validate " + file);
+	TextDim("__dwookit.bat canvas-import " + file + " [--reset] [--doc Name]");
 	ImGui::PopTextWrapPos();
 	ImGui::PopFont();
 	if (!app.canvasLastCommand.empty()) KeyValue("마지막 실행", app.canvasLastCommand, 80);

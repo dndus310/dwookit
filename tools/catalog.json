@@ -1,6 +1,6 @@
 {
   "schema": "forge.catalog/0.2",
-  "_comment": "Tool registry of dwo-Forge. tool: lens (DwoLens analysis lines), statemonitor (DwoStateMonitor), canvas (DwoCanvas), builder (DwoBuilder: compile, package, local Jenkins), forge (shared operations). kind: build = implemented by dwo-Forge, wrap = Epic/engine tool driven headless, ai = interpretation. status: ready | planned.",
+  "_comment": "Tool registry of dwookit. tool: lens (DwoLens analysis lines), statemonitor (DwoStateMonitor), canvas (DwoCanvas), builder (DwoBuilder: compile, package, local Jenkins), forge (shared operations). kind: build = implemented by dwookit, wrap = Epic/engine tool driven headless, ai = interpretation. status: ready | planned.",
   "tools": [
     {
       "id": "reflection-dump",
@@ -30,7 +30,7 @@
       "status": "ready",
       "command": "bp",
       "invocation": "UnrealEditor-Cmd <uproject> -run=DwoLensInspector -LensBpList=<bp-track.txt> -LensBpOut=<dir>, then lens_bp.py md (also inside analyze when Blueprints are tracked)",
-      "output": "__dwo-forge/blueprints/<path>/<Name>.md (pseudocode; overview + parts/ when long), <Name>.json (lens.bp/1), index.md"
+      "output": "__dwookit/blueprints/<path>/<Name>.md (pseudocode; overview + parts/ when long), <Name>.json (lens.bp/1), index.md"
     },
     {
       "id": "live-lens",
@@ -40,7 +40,7 @@
       "status": "ready",
       "command": "live",
       "invocation": "DwoLensInspector editor subsystem (DwoLensLive.cpp) per editor session; live-ingest after exit (lens_live.py + analyze)",
-      "output": "__dwo-forge/live/sessions/<id>/ (events, raw), live/base (raw cache), runs with source 'live', changes.json, history.jsonl, runtime.json"
+      "output": "__dwookit/live/sessions/<id>/ (events, raw), live/base (raw cache), runs with source 'live', changes.json, history.jsonl, runtime.json"
     },
     {
       "id": "game-flow",
@@ -60,7 +60,7 @@
       "status": "ready",
       "command": "bp",
       "invocation": "lens_explain.py (after lens_bp.py md, in bp export and analyze); window: DwoLens > 파일 분석",
-      "output": "__dwo-forge/blueprints/<path>/<Name>.explain.json (lens.explain/1), <Name>.html, <Name>.explain-prompt.md, index.html"
+      "output": "__dwookit/blueprints/<path>/<Name>.explain.json (lens.explain/1), <Name>.html, <Name>.explain-prompt.md, index.html"
     },
     {
       "id": "agent-context",
@@ -70,7 +70,7 @@
       "status": "ready",
       "command": "agent",
       "invocation": "lens_agent.py write (on connect, update, analyze, bp export)",
-      "output": "__dwo-forge/context/AGENT.md, CLAUDE.local.md block, .github/instructions/dwo-forge.instructions.md, .github/instructions/project.instructions.md (user's, empty shell)"
+      "output": "__dwookit/context/AGENT.md, CLAUDE.local.md block, .github/instructions/dwookit.instructions.md, .github/instructions/project.instructions.md (user's, empty shell)"
     },
     {
       "id": "asset-reference-scan",
@@ -339,7 +339,7 @@
       "kind": "build",
       "status": "ready",
       "command": "gui (State Monitor)",
-      "invocation": "dwo-Forge GUI > DwoStateMonitor > 녹화 저장 / 녹화 열기 (or --open-recording <file.jsonl>)",
+      "invocation": "dwookit GUI > DwoStateMonitor > 녹화 저장 / 녹화 열기 (or --open-recording <file.jsonl>)",
       "output": "<name>_state.jsonl",
       "category": "runtime",
       "description": "Records every live snapshot the viewer receives and saves or reopens it as JSON Lines; the timeline replays it."
@@ -361,7 +361,7 @@
       "kind": "build",
       "status": "ready",
       "command": "gui",
-      "invocation": "dwo-Forge.bat (repository) or __dwo-forge.bat gui; Dear ImGui docking + DirectX 11, built once with MSVC",
+      "invocation": "dwookit.bat (repository) or __dwookit.bat gui; Dear ImGui docking + DirectX 11, built once with MSVC",
       "output": "DwoLens (dashboard, architecture, problems, verify, logs, performance), DwoStateMonitor live view, DwoCanvas, history, tools"
     },
     {
@@ -410,7 +410,7 @@
       "command": "gui (문제)",
       "description": "Merges findings, quality, test failures, log groups, smoke, perf and size issues from every line's latest run; marks NEW against the previous run and lets you mute items into a per-project baseline.",
       "invocation": "GUI > 문제",
-      "output": "%LOCALAPPDATA%/dwo-Forge/projects/<hash>.json (mutes)"
+      "output": "%LOCALAPPDATA%/dwookit/projects/<hash>.json (mutes)"
     },
     {
       "id": "state-monitor-provided",
@@ -439,7 +439,7 @@
       "kind": "wrap",
       "status": "ready",
       "command": "tests/package_check.ps1",
-      "invocation": "BuildCookRun (Shipping) with dwo-Forge attached, package inspection, smoke run, detach",
+      "invocation": "BuildCookRun (Shipping) with dwookit attached, package inspection, smoke run, detach",
       "output": ".qa/<name>/package-result.json"
     },
     {
@@ -487,7 +487,7 @@
       "category": "canvas",
       "command": "gui (DwoCanvas)",
       "description": "Install state, design file picker (drag and drop), validate / import / import with reset, and a summary of the latest import report.",
-      "invocation": "dwo-Forge GUI > DwoCanvas (Ctrl+0)",
+      "invocation": "dwookit GUI > DwoCanvas (Ctrl+0)",
       "output": "interactive"
     },
     {
@@ -528,7 +528,7 @@
       "status": "ready",
       "command": "ci-install / ci-job / ci-trigger",
       "invocation": "Jenkins LTS + Temurin 21 JRE from an offline bundle, 127.0.0.1 only, git hooks",
-      "output": "%LOCALAPPDATA%/dwo-Forge/ci"
+      "output": "%LOCALAPPDATA%/dwookit/ci"
     }
   ]
 }

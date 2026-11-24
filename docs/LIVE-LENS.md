@@ -19,10 +19,10 @@ DwoLensLiveSubsystem                                       OnShutdownPostPackage
 ```
 
 - 플러그인: `plugin/DwoLensInspector/Source/DwoLensInspector/Private/DwoLensLive.cpp` (`UDwoLensLiveSubsystem`, 에디터 서브시스템). 수집은 기존 commandlet(`UDwoLensInspectorCommandlet::Main`)을 에디터 안에서 그대로 호출하므로 결과 형식이 `analyze`와 같습니다. `-LensPackages=<파일>`(그 블루프린트만), `-LensSkipAssets`(에셋 목록은 종료 때) 인자가 추가되었습니다.
-- 가공: `tools/lens_live.py`, `forge.ps1`의 `live`, `live-ingest`.
+- 가공: `tools/lens_live.py`, `dwookit.ps1`의 `live`, `live-ingest`.
 - 결과는 보통 분석 실행(run)과 같아서 대시보드, 아키텍처, 게임 흐름, 문제, 리포트가 그대로 보여 줍니다. 실행 기록에서 `collect (Live Lens, …)`로 구분됩니다.
 
-## 2. 설정 (`__dwo-forge/live-lens.json`, 창: DwoLens › 대시보드 › Live Lens, 명령: `live on|off|status|config|rebuild`)
+## 2. 설정 (`__dwookit/live-lens.json`, 창: DwoLens › 대시보드 › Live Lens, 명령: `live on|off|status|config|rebuild`)
 
 | 항목 | 값 | 설명 |
 |---|---|---|

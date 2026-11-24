@@ -1,10 +1,10 @@
 """Live Lens, the processing side: turns what the editor collected during a session into the cache.
 
-The DwoLensInspector editor plugin (DwoLensLive.cpp) writes, per editor run, __dwo-forge/live/sessions/<id>/:
+The DwoLensInspector editor plugin (DwoLensLive.cpp) writes, per editor run, __dwookit/live/sessions/<id>/:
 events.jsonl (what happened), raw/ and saves/NNNN/ (DwoLens raw data, full or only changed packages) and
-session.json. After the editor closed, forge.ps1 live-ingest calls this module:
+session.json. After the editor closed, dwookit.ps1 live-ingest calls this module:
 
-    merge       raw of the session -> __dwo-forge/live/base/ (the complete, current raw data). A full collection
+    merge       raw of the session -> __dwookit/live/base/ (the complete, current raw data). A full collection
                 replaces it; a partial one replaces only the Blueprints it collected and drops removed packages
     accumulate  after the analysis of the new run: what changed against the previous live run (classes, flow
                 links, session activity) -> out/changes.json and live/history.jsonl; classes seen in play
@@ -13,7 +13,7 @@ session.json. After the editor closed, forge.ps1 live-ingest calls this module:
                     history   every run's results and the change log are kept, raw data only for the newest
                     snapshot  every run is kept complete (raw data too)
 
-The cache is disposable: 'forge.ps1 live rebuild' drops live/base and the next session collects everything.
+The cache is disposable: 'dwookit.ps1 live rebuild' drops live/base and the next session collects everything.
 
     python lens_live.py merge --session <dir> --base <dir>
     python lens_live.py accumulate --project <dir> --run <run dir> --session <dir> --keep history
@@ -174,7 +174,7 @@ def update_runtime(live: Path, activity: dict, session_id: str):
 
 
 def cmd_accumulate(project: Path, run: Path, session: Path, keep: str) -> int:
-    forge = project / "__dwo-forge"
+    forge = project / "__dwookit"
     live = forge / "live"
     runs = live_runs(forge / "data" / "runs")
     previous = [r for r in runs if r != run]

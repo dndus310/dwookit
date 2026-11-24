@@ -119,7 +119,7 @@ refusal then ends the run with exit 3. A refusal of the whole chain also exits 3
 ## Cache
 
 The validated model reply (raw text, before post-processing) is cached under
-`%LOCALAPPDATA%\dwo-Forge\canvas-inference-cache` (`~/.cache/...` elsewhere; override with `--cache-dir` or
+`%LOCALAPPDATA%\dwookit\canvas-inference-cache` (`~/.cache/...` elsewhere; override with `--cache-dir` or
 `DWOCANVAS_INFERENCE_CACHE`). Key: sha256 over the inputs (image bytes, text, mode, name, canvas size, tokens), the
 model, the prompt version, the effort and the fallback setting (and the mock file, in mock mode). Replies that
 still fail validation are not cached. `--no-cache` neither reads nor writes it. Post-processing runs again on a

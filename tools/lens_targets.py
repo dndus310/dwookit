@@ -1,4 +1,4 @@
-"""dwo-Forge: what the user can pick to follow, read straight from the project files (no editor needed).
+"""dwookit: what the user can pick to follow, read straight from the project files (no editor needed).
 
     python lens_targets.py --project <dir> [-o targets.json]
 
@@ -8,9 +8,9 @@ Lists
     runtime class name (<Name>_C, what DwoStateMonitor watches) and whether `bp add` already tracks it
   - C++ UCLASSes in Source/ and project plugins' Source/: class, runtime class name (prefix A/U dropped),
     parent, header, module
-  - the current watch lists: __dwo-forge/bp-track.txt (Lens) and __dwo-forge/sm-watch.txt (DwoStateMonitor)
+  - the current watch lists: __dwookit/bp-track.txt (Lens) and __dwookit/sm-watch.txt (DwoStateMonitor)
 
-The dwo-Forge window shows this as a checkable tree; the CLI uses it for `bp pick` and `sm-watch pick`.
+The dwookit window shows this as a checkable tree; the CLI uses it for `bp pick` and `sm-watch pick`.
 Standard library only.
 """
 from __future__ import annotations
@@ -126,7 +126,7 @@ def scan_classes(project: Path) -> list[dict]:
 
 
 def collect(project: Path) -> dict:
-    forge = project / "__dwo-forge"
+    forge = project / "__dwookit"
     tracked = read_list(forge / "bp-track.txt")
     watched = [l.split()[0] for l in read_list(forge / "sm-watch.txt")]
     blueprints = scan_blueprints(project, tracked)

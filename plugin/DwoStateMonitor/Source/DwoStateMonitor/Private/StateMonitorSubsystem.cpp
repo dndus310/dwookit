@@ -207,7 +207,7 @@ void UStateMonitorSubsystem::SetReferenceDepth(int32 Depth)
 
 FString UStateMonitorSubsystem::GetProjectWatchListPath()
 {
-	return FPaths::Combine(FPaths::ProjectDir(), TEXT("__dwo-forge"), TEXT("sm-watch.txt"));
+	return FPaths::Combine(FPaths::ProjectDir(), TEXT("__dwookit"), TEXT("sm-watch.txt"));
 }
 
 int32 UStateMonitorSubsystem::LoadWatchListFile(const FString& Path)

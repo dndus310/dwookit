@@ -241,9 +241,9 @@ renderNav(); render();
 
 
 def project_name(run: Path) -> str:
-    """The project of a run folder (<project>/__dwo-forge/data/runs/<id>): state.json's name, else the folder."""
+    """The project of a run folder (<project>/__dwookit/data/runs/<id>): state.json's name, else the folder."""
     for parent in run.resolve().parents:
-        if parent.name == "__dwo-forge":
+        if parent.name == "__dwookit":
             try:
                 state = json.loads((parent / "state.json").read_text(encoding="utf-8-sig"))
                 if state.get("project"):

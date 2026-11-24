@@ -126,7 +126,7 @@ static void DrawLiveNav(App& app)
 	SectionHeader("관찰할 클래스", std::to_string(app.liveSettings.watch.size()).c_str());
 	if (ImGui::Button((std::string(ICON_LIST) + "  목록에서 고르기").c_str(), ImVec2(-FLT_MIN, 0)))
 		OpenTargetPicker(app, 1);
-	Tooltip("프로젝트의 블루프린트·위젯·C++ 클래스를 트리에서 골라 실행 중인 게임에서 관찰합니다. 목록은 프로젝트의 __dwo-forge/sm-watch.txt에 저장되고, 게임이 시작할 때도 읽습니다.");
+	Tooltip("프로젝트의 블루프린트·위젯·C++ 클래스를 트리에서 골라 실행 중인 게임에서 관찰합니다. 목록은 프로젝트의 __dwookit/sm-watch.txt에 저장되고, 게임이 시작할 때도 읽습니다.");
 	if (app.liveSettings.watch.empty()) TextDim("GameMode·플레이어·Pawn 외에 볼 객체를 고르세요.");
 	for (size_t i = 0; i < app.liveSettings.watch.size(); ++i)
 	{

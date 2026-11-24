@@ -186,7 +186,7 @@ def build_data(out: Path, project: Path | None) -> dict:
 
     files = []
     if project:
-        root = project / "__dwo-forge" / "blueprints"
+        root = project / "__dwookit" / "blueprints"
         for p in sorted(root.rglob("*.explain.json")) if root.is_dir() else []:
             doc = load(p)
             if doc:

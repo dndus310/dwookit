@@ -1,7 +1,7 @@
 // DwoLens 파일 분석: the tracked Blueprints, one at a time, as a person reads them: what the object is made of,
 // what it does (behaviors), how each behavior unfolds (a step tree that goes into own functions, other tracked
 // Blueprints and the project's C++), and under every step the pseudocode line (logic).
-// Data: __dwo-forge/blueprints/<path>/<Name>.explain.json (tools/lens_explain.py), <Name>.agent.json if an agent
+// Data: __dwookit/blueprints/<path>/<Name>.explain.json (tools/lens_explain.py), <Name>.agent.json if an agent
 // wrote better wording.
 #pragma once
 
@@ -55,7 +55,7 @@ static void DrawFilesNav(App& app)
 	auto files = TrackedFiles(app);
 	SectionHeader("추적 중인 파일", std::to_string(files.size()).c_str());
 	if (ImGui::Button((std::string(ICON_LIST) + "  목록에서 고르기").c_str(), ImVec2(-FLT_MIN, 0))) OpenTargetPicker(app, 0);
-	Tooltip("프로젝트의 블루프린트를 트리에서 골라 추적합니다. 목록: __dwo-forge/bp-track.txt");
+	Tooltip("프로젝트의 블루프린트를 트리에서 골라 추적합니다. 목록: __dwookit/bp-track.txt");
 	bool lens = app.lensInstalled;
 	ImGui::BeginDisabled(!lens || app.runner.running);
 	if (ImGui::Button((std::string(ICON_REFRESH) + "  다시 내보내기 (bp export)").c_str(), ImVec2(-FLT_MIN, 0))) app.Run("bp export");
@@ -307,7 +307,7 @@ static void DrawFilesInspector(App& app)
 	SectionHeader("에이전트 설명");
 	ImGui::TextWrapped("Claude Code나 Copilot에게 더 자연스러운 설명을 맡길 수 있습니다. 요청 문장을 복사해 에이전트에 붙여 넣으면 "
 	                   "<이름>.agent.json을 만들고, 이 화면과 HTML에 함께 표시됩니다.");
-	std::string rel = "__dwo-forge/blueprints/" + it->dir + "/" + it->name + ".explain-prompt.md";
+	std::string rel = "__dwookit/blueprints/" + it->dir + "/" + it->name + ".explain-prompt.md";
 	if (ImGui::Button((std::string(ICON_COPY) + "  요청 문장 복사").c_str(), ImVec2(-FLT_MIN, 0)))
 	{
 		CopyToClipboard("Read " + rel + " and do exactly what it says.");

@@ -13,7 +13,7 @@
 Rule-based (no LLM, no network). For better wording an agent can add <Name>.agent.json (see the prompt file this
 module writes next to it); the window and the HTML page show that text next to the rule-based one.
 
-    python lens_explain.py --dir <__dwo-forge/blueprints> [--project <dir>]
+    python lens_explain.py --dir <__dwookit/blueprints> [--project <dir>]
 
 Writes, per Blueprint folder: <Name>.explain.json (lens.explain/1), <Name>.html, <Name>.explain-prompt.md, and
 index.html in the root.
@@ -871,7 +871,7 @@ def explain(bp: dict, others: dict[str, Explainer] | None = None, cpp: CppIndex 
 # ---------------------------------------------------------------------------------------------- outputs
 
 PROMPT = """\
-# Explain {name} for a person (dwo-Forge)
+# Explain {name} for a person (dwookit)
 
 Read `{name}.explain.json` (rule-based) and, only where a step is unclear, `{name}.md` or `parts/`. Write
 `{name}.agent.json` next to them, in Korean, exactly this shape, nothing else:
@@ -972,7 +972,7 @@ def render_html(doc: dict, agent: dict | None) -> str:
                      + "".join(f"<details class='cpp'><summary>이 행동을 부르는 C++ {esc(o['class'])}::{esc(o['function'])} — {esc(o['file'])}:{o['line']}</summary>"
                                f"<pre>{esc(chr(10).join(o['code']))}</pre></details>" for o in b.get("origins", []))
                      + html_steps(b["steps"]) + "</details>")
-    parts.append(f"<p class='sub'>규칙 기반 설명 (dwo-Forge). 전체 의사코드: {esc(doc['name'])}.md · 전체 스크립트: {esc(doc['name'])}.json</p></main></body></html>")
+    parts.append(f"<p class='sub'>규칙 기반 설명 (dwookit). 전체 의사코드: {esc(doc['name'])}.md · 전체 스크립트: {esc(doc['name'])}.json</p></main></body></html>")
     return "".join(parts)
 
 

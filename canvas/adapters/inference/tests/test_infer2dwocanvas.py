@@ -378,7 +378,7 @@ class Cache(Base):
         args = infer.build_parser().parse_args(["--text", "x", "-o", "o.json"])
         with mock.patch.dict("os.environ", {"LOCALAPPDATA": r"C:\Users\u\AppData\Local"}, clear=False):
             with mock.patch.dict("os.environ", {infer.CACHE_ENV: ""}):
-                self.assertEqual(infer.cache_dir(args), Path(r"C:\Users\u\AppData\Local") / "dwo-Forge" / "canvas-inference-cache")
+                self.assertEqual(infer.cache_dir(args), Path(r"C:\Users\u\AppData\Local") / "dwookit" / "canvas-inference-cache")
 
 
 class Sdk(Base):

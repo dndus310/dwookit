@@ -1,4 +1,4 @@
-"""Unit tests for the dwo-Forge Lens Python tools. Standard library only.
+"""Unit tests for the dwookit Lens Python tools. Standard library only.
 
     python -m unittest discover -s tests -v
 """
@@ -606,7 +606,7 @@ class QualityTests(TempDir):
         self.assertEqual(findings[0]["rule"], "state-monitor")
 
     def test_dwo_state_monitor_detection(self):
-        # dwo-Forge installs the renamed plugin as Plugins/__DwoStateMonitor; BP nodes reference /Script/DwoStateMonitor.
+        # dwookit installs the renamed plugin as Plugins/__DwoStateMonitor; BP nodes reference /Script/DwoStateMonitor.
         write(self.tmp / "P.uproject", json.dumps({"Plugins": []}))
         write(self.tmp / "Plugins/__DwoStateMonitor/DwoStateMonitor.uplugin", "{}")
         bp = {"asset": "/Game/BP_A.BP_A", "graphs": [{"name": "EventGraph", "nodes": [
@@ -985,7 +985,7 @@ class AgentContextTests(TempDir):
     def setUp(self):
         super().setUp()
         self.project = self.tmp / "Proj"
-        self.forge = self.project / "__dwo-forge"
+        self.forge = self.project / "__dwookit"
         self.forge.mkdir(parents=True)
         subprocess.run(["git", "init", "-q", str(self.project)], check=True)
 
@@ -998,16 +998,16 @@ class AgentContextTests(TempDir):
         lens_bp.write_folder(self.forge / "blueprints", self.project)
         self.assertEqual(self.run_agent("write"), 0)
         agent = (self.forge / "context" / "AGENT.md").read_text(encoding="utf-8")
-        for text in ("3 tracked Blueprint(s)", "__dwo-forge/blueprints/index.md", "parts/", "Haiku",
+        for text in ("3 tracked Blueprint(s)", "__dwookit/blueprints/index.md", "parts/", "Haiku",
                      "UFUNCTION(BlueprintCallable)", "| # | Blueprint | graph / function | change |",
                      "No explanations", "never open them", "(empty so far)"):
             self.assertIn(text, agent)
         self.assertLess(len(agent.split()), 900)                         # read on every task: keep it short
         user = self.project / ".github/instructions/project.instructions.md"
-        self.assertTrue(user.read_text(encoding="utf-8").startswith('---\napplyTo: "**"\n---\n<!-- dwo-forge'))
+        self.assertTrue(user.read_text(encoding="utf-8").startswith('---\napplyTo: "**"\n---\n<!-- dwookit'))
         claude = (self.project / "CLAUDE.local.md").read_text(encoding="utf-8")
-        self.assertIn("@__dwo-forge/context/AGENT.md\n@.github/instructions/project.instructions.md", claude)
-        copilot = (self.project / ".github/instructions/dwo-forge.instructions.md").read_text(encoding="utf-8")
+        self.assertIn("@__dwookit/context/AGENT.md\n@.github/instructions/project.instructions.md", claude)
+        copilot = (self.project / ".github/instructions/dwookit.instructions.md").read_text(encoding="utf-8")
         self.assertTrue(copilot.startswith('---\napplyTo: "**"\n---\n'))
         # The user's file is never overwritten, and it is announced as winning once it says something.
         mine = user.read_text(encoding="utf-8") + "- Tick 금지\n"
@@ -1032,7 +1032,7 @@ class AgentContextTests(TempDir):
         self.run_agent("write")                                         # a second write replaces, never duplicates
         data = claude.read_bytes()
         self.assertTrue(data.startswith(original))
-        self.assertEqual(data.count(b">>> dwo-forge managed"), 1)
+        self.assertEqual(data.count(b">>> dwookit managed"), 1)
         self.assertNotIn(b"\n<", data.replace(b"\r\n", b""))             # CRLF kept throughout
         self.run_agent("remove")
         self.assertEqual(claude.read_bytes(), original)
@@ -1040,7 +1040,7 @@ class AgentContextTests(TempDir):
     def test_committed_and_foreign_files_are_left_alone(self):
         claude = write(self.project / "CLAUDE.local.md", "team file\n")
         subprocess.run(["git", "-C", str(self.project), "add", "CLAUDE.local.md"], check=True)
-        foreign = write(self.project / ".github/instructions/dwo-forge.instructions.md", "someone else's\n")
+        foreign = write(self.project / ".github/instructions/dwookit.instructions.md", "someone else's\n")
         self.run_agent("write")
         self.run_agent("remove")
         self.assertEqual(claude.read_text(encoding="utf-8"), "team file\n")
@@ -1077,8 +1077,8 @@ class TargetListTests(TempDir):
         write(p / "Plugins/__DwoCanvas/DwoCanvas.uplugin", "{}")
         write(p / "Source/Game/Public/Enemy.h", "UCLASS(Blueprintable)\nclass GAME_API AEnemy : public ACharacter\n{};\n"
                                                 "UCLASS(Abstract)\nclass UBaseThing final : public UObject {};\n")
-        write(p / "__dwo-forge/bp-track.txt", "# list\n/Game/UI/\n")
-        write(p / "__dwo-forge/sm-watch.txt", "BP_Hero_C 4\n")
+        write(p / "__dwookit/bp-track.txt", "# list\n/Game/UI/\n")
+        write(p / "__dwookit/sm-watch.txt", "BP_Hero_C 4\n")
         d = lens_targets.collect(p)
         bps = {b["package"]: b for b in d["blueprints"]}
         self.assertEqual(sorted(bps), ["/Feature/BP_Gadget", "/Game/Chars/BP_Hero", "/Game/UI/WBP_Hud"])
@@ -1328,8 +1328,8 @@ class LiveLensTests(TempDir):
     def test_accumulate_changes_runtime_and_retention(self):
         import lens_live
         project = self.tmp / "Proj"
-        runs = project / "__dwo-forge" / "data" / "runs"
-        session = project / "__dwo-forge" / "live" / "sessions" / "2"
+        runs = project / "__dwookit" / "data" / "runs"
+        session = project / "__dwookit" / "live" / "sessions" / "2"
         write(session / "session.json", json.dumps({"id": "2", "ended": "normal", "collected": "partial"}))
         write(session / "events.jsonl", "\n".join(json.dumps(e) for e in [
             {"type": "asset_saved", "package": "/Game/B"}, {"type": "asset_opened", "package": "/Game/B"},
@@ -1344,9 +1344,9 @@ class LiveLensTests(TempDir):
         self.assertEqual(changes["activity"]["saved"], ["/Game/B"])
         self.assertEqual(changes["activity"]["pieRuns"], 1)
         self.assertEqual(changes["activity"]["logErrors"], 1)
-        runtime = json.loads((project / "__dwo-forge" / "live" / "runtime.json").read_text(encoding="utf-8"))
+        runtime = json.loads((project / "__dwookit" / "live" / "runtime.json").read_text(encoding="utf-8"))
         self.assertEqual(runtime["classes"]["/Game/B.B_C"]["maxCount"], 3)
-        self.assertTrue((project / "__dwo-forge" / "live" / "history.jsonl").exists())
+        self.assertTrue((project / "__dwookit" / "live" / "history.jsonl").exists())
         self.assertTrue(old.exists() and not (old / "raw").exists())           # history: results kept, raw dropped
         self.assertEqual(json.loads((session / "session.json").read_text(encoding="utf-8"))["ingested"], "run-2")
         newer = self.make_live_run(runs, "run-3", ["A"])
@@ -1410,8 +1410,8 @@ class RunReportTests(TempDir):
 
     def run_dir(self, name: str) -> Path:
         project = self.tmp / "Proj"
-        write(project / "__dwo-forge" / "state.json", json.dumps({"project": "MyGame"}))
-        run = project / "__dwo-forge" / "data" / "runs" / name
+        write(project / "__dwookit" / "state.json", json.dumps({"project": "MyGame"}))
+        run = project / "__dwookit" / "data" / "runs" / name
         (run / "out").mkdir(parents=True)
         return run
 
@@ -1462,7 +1462,7 @@ class CatalogAndConfigTests(unittest.TestCase):
             self.assertRegex(t["station"], r"^(ST-[1-5]|BUILD|OPS|UI)$")
             self.assertIn(t["tool"], ("lens", "statemonitor", "canvas", "builder", "forge"))
         tools = {t["tool"] for t in catalog["tools"]}
-        self.assertEqual(tools, {"lens", "statemonitor", "canvas", "builder", "forge"}, "every dwo-Forge tool group has catalog entries")
+        self.assertEqual(tools, {"lens", "statemonitor", "canvas", "builder", "forge"}, "every dwookit tool group has catalog entries")
         commands = " ".join(t["command"] for t in catalog["tools"])
         for command in ("canvas-install", "canvas-remove", "canvas-import", "canvas-validate", "sm-install", "sm-remove"):
             self.assertIn(command, commands)

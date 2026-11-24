@@ -1,6 +1,6 @@
 # DwoCanvas
 
-dwo-Forge가 제공하는 도구 중 하나입니다. **정해진 시안 규격(dwocanvas/2 JSON)**을 받아 언리얼 위젯 블루프린트(WBP)의 디자이너 트리를 만듭니다.
+dwookit가 제공하는 도구 중 하나입니다. **정해진 시안 규격(dwocanvas/2 JSON)**을 받아 언리얼 위젯 블루프린트(WBP)의 디자이너 트리를 만듭니다.
 
 시안이 어디서 왔는지는 플러그인이 알지 못합니다. 원본 도구마다 변환기(어댑터)가 규격 JSON을 만들고, 플러그인은 그 규격만 읽습니다.
 
@@ -26,14 +26,14 @@ dwo-Forge가 제공하는 도구 중 하나입니다. **정해진 시안 규격(
 | `Conformance/` | 적합성 케이스: 원본 도구의 렌더 이미지와 UE 렌더를 비교 |
 
 ## 설치와 사용
-- dwo-Forge로 설치합니다: `dwo-Forge.bat canvas-install <프로젝트>`. 원본은 dwo-Forge에 있고, 플러그인은 `Plugins/__DwoCanvas`에 복사됩니다(git에서 숨김).
+- dwookit로 설치합니다: `dwookit.bat canvas-install <프로젝트>`. 원본은 dwookit에 있고, 플러그인은 `Plugins/__DwoCanvas`에 복사됩니다(git에서 숨김).
   - `canvas-remove`나 `uninstall` 때 지워집니다. `canvas-remove`는 생성된 위젯이 런타임 모듈을 쓰고 있으면 멈추고 알려 주고, `uninstall`은 위젯과 가져오기 기록을 함께 지울지 남길지 묻습니다.
   - 생성된 위젯을 여는 다른 PC에도 DwoCanvas가 설치되어 있어야 합니다.
 - **가져오기 방법**
   - 에디터: **Tools > DwoCanvas > Import Design File...** (`*.dwocanvas.json`)
   - 명령줄: `UnrealEditor-Cmd.exe <프로젝트> -run=DwoCanvasImport -File=<json> [-ResetOverrides] [-Doc=이름]` (오류가 없으면 종료 코드 0)
   - Python: `unreal.DwoCanvasLibrary.import_design_file(path, False)`
-  - dwo-Forge: `canvas-import <파일>`, `canvas-validate <파일>`
+  - dwookit: `canvas-import <파일>`, `canvas-validate <파일>`
 - 결과는 **결과 창**에 표시되고, 리포트 파일은 `Saved/DwoCanvas/Reports/`에 저장됩니다.
   - 결과 창 내용: 상태, 변경 수, 만들어진 WBP, C++ 연결, 시안 일치도, 확인할 항목
 - 재임포트 기록 `DwoCanvas/Records/`는 WBP와 함께 커밋합니다. 이전 `DesignBridge/Records/`도 그대로 읽습니다.

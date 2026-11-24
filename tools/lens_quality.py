@@ -1,4 +1,4 @@
-"""dwo-Forge DwoLens quality checks on top of the extracted graph (ST-2).
+"""dwookit DwoLens quality checks on top of the extracted graph (ST-2).
 
 - naming:      asset prefix / folder rules (UE5 style guide defaults, overridable in config)
 - unused:      assets unreachable from maps and Config/*.ini, plus leftover redirectors
@@ -192,7 +192,7 @@ def check_state_monitor(ctx: dict, cfg: dict) -> tuple[list, dict]:
     plugin_file = None
     plugins_dir = root / "Plugins"
     if plugins_dir.exists():
-        # DwoStateMonitor installed by dwo-Forge sits in Plugins/__DwoStateMonitor (dwo-Lens 1.x: __StateMonitor);
+        # DwoStateMonitor installed by dwookit sits in Plugins/__DwoStateMonitor (dwo-Lens 1.x: __StateMonitor);
         # only the DwoLens inspector is never counted.
         plugin_file = next((p for name in plugin_names for p in sorted(plugins_dir.rglob(f"{name}.uplugin"))
                             if "__DwoLensInspector" not in p.parts), None)

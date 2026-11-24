@@ -1,9 +1,9 @@
-# dwo-Forge DwoBuilder: a private Jenkins on this PC (127.0.0.1 only), installed from an offline bundle so it
+# dwookit DwoBuilder: a private Jenkins on this PC (127.0.0.1 only), installed from an offline bundle so it
 # also works on closed networks, plus one pipeline job and git hooks per project.
 # Windows PowerShell 5.1 compatible.
 #
 #   ci-bundle  [--out <dir>]                        (internet PC) download Jenkins LTS, a Java runtime and the plugins
-#                                                    into dwo-forge-ci-bundle-<version>.zip
+#                                                    into dwookit-ci-bundle-<version>.zip
 #   ci-install [--bundle <zip>] [--no-start]        install from the bundle (no network access)
 #   ci-start | ci-stop | ci-status [--json]
 #   ci-remove  [--keep-data|--delete-data]          stop, remove every project's job and hooks, delete the install
@@ -21,16 +21,16 @@ $ErrorActionPreference = 'Stop'
 $Utf8 = New-Object System.Text.UTF8Encoding($false)
 $env:PYTHONUTF8 = '1'
 $SystemDir = Split-Path -Parent $PSScriptRoot
-$AppDataDir = Join-Path $env:LOCALAPPDATA 'dwo-Forge'
-# DWO_FORGE_CI_HOME (user environment variable) moves the whole DwoBuilder, e.g. to a larger disk.
-$CiDir = if ($env:DWO_FORGE_CI_HOME) { $env:DWO_FORGE_CI_HOME.TrimEnd('\') } else { Join-Path $AppDataDir 'ci' }
+$AppDataDir = Join-Path $env:LOCALAPPDATA 'dwookit'
+# DWOOKIT_CI_HOME (user environment variable) moves the whole DwoBuilder, e.g. to a larger disk.
+$CiDir = if ($env:DWOOKIT_CI_HOME) { $env:DWOOKIT_CI_HOME.TrimEnd('\') } else { Join-Path $AppDataDir 'ci' }
 $Runtime = Join-Path $CiDir 'runtime'
 $JenkinsHome = Join-Path $CiDir 'home'
 $SecretsPath = Join-Path $CiDir 'secrets.json'
 $CiStatePath = Join-Path $CiDir 'ci.json'
 $ProjectsPath = Join-Path $CiDir 'projects.json'
 $LogDir = Join-Path $CiDir 'logs'
-$HookMark = 'dwo-forge-ci-hook'
+$HookMark = 'dwookit-ci-hook'
 $Hooks = @('post-commit', 'post-merge', 'pre-push', 'reference-transaction')
 $Plugins = @('workflow-aggregator', 'junit')
 if ($Project) { $Project = (Resolve-Path $Project).Path.TrimEnd('\') }
@@ -42,8 +42,8 @@ function Invoke-Utf8([scriptblock]$Block) {
     try { [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false) } catch { }
     try { & $Block } finally { try { [Console]::OutputEncoding = $prev } catch { } }
 }
-function Say([string]$Message) { Write-Host "[dwo-forge] $Message" }
-function Fail([string]$Message) { Write-Host "[dwo-forge] ERROR: $Message" -ForegroundColor Red; exit 1 }
+function Say([string]$Message) { Write-Host "[dwookit] $Message" }
+function Fail([string]$Message) { Write-Host "[dwookit] ERROR: $Message" -ForegroundColor Red; exit 1 }
 function Has([string]$Flag) { return @($Rest) -contains $Flag }
 function Opt([string]$Name, [string]$Default = '') {
     $a = @($Rest)
@@ -64,13 +64,13 @@ function Write-JsonFile([string]$Path, $Object) {
 function Get-ConfigFiles {
     $files = @(Join-Path $SystemDir 'config\default.json')
     if ($Project) {
-        $o = Join-Path $Project '__dwo-forge\config.json'
+        $o = Join-Path $Project '__dwookit\config.json'
         if (Test-Path $o) { $files += $o }
     }
     return $files
 }
 function Get-CiConfig {
-    $json = Invoke-Utf8 { & python (Join-Path $SystemDir 'tools\forge_ci.py') config --config @(Get-ConfigFiles) }
+    $json = Invoke-Utf8 { & python (Join-Path $SystemDir 'tools\dwookit_ci.py') config --config @(Get-ConfigFiles) }
     return ($json | ConvertFrom-Json).ci
 }
 function Get-Port {
@@ -109,9 +109,9 @@ function Test-Running {
     return (Invoke-Jenkins 'GET' '/api/json?tree=mode' -TimeoutSec 5).Status -eq 200
 }
 function Get-CiSourceHash {
-    # Same formula as Get-CiSourceHash in forge.ps1: the job and the git hooks are generated from these two files.
+    # Same formula as Get-CiSourceHash in dwookit.ps1: the job and the git hooks are generated from these two files.
     $sb = New-Object System.Text.StringBuilder
-    foreach ($f in @('tools\forge_ci.py', 'tools\ci.ps1')) { [void]$sb.Append("$f=$((Get-FileHash -Algorithm SHA256 (Join-Path $SystemDir $f)).Hash);") }
+    foreach ($f in @('tools\dwookit_ci.py', 'tools\ci.ps1')) { [void]$sb.Append("$f=$((Get-FileHash -Algorithm SHA256 (Join-Path $SystemDir $f)).Hash);") }
     $bytes = [Security.Cryptography.SHA256]::Create().ComputeHash([Text.Encoding]::UTF8.GetBytes($sb.ToString()))
     return (($bytes | ForEach-Object { $_.ToString('x2') }) -join '').Substring(0, 12)
 }
@@ -139,7 +139,7 @@ function Save-Download([string]$Url, [string]$Dest) {
     Say "download $Url"
     $ProgressPreference = 'SilentlyContinue'
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-    Invoke-WebRequest -Uri $Url -OutFile $Dest -UseBasicParsing -Headers @{ 'User-Agent' = 'dwo-Forge-ci-bundle' }
+    Invoke-WebRequest -Uri $Url -OutFile $Dest -UseBasicParsing -Headers @{ 'User-Agent' = 'dwookit-ci-bundle' }
 }
 function Get-Sha256([string]$Path) { return (Get-FileHash -Algorithm SHA256 $Path).Hash.ToLowerInvariant() }
 function Get-WarVersion([string]$War) {
@@ -156,7 +156,7 @@ function Get-WarVersion([string]$War) {
 
 function Invoke-Bundle {
     $outDir = Opt '--out' (Join-Path $SystemDir 'bundles')
-    $stage = Join-Path ([IO.Path]::GetTempPath()) ("dwo-forge-ci-bundle-" + [guid]::NewGuid().ToString('N').Substring(0, 8))
+    $stage = Join-Path ([IO.Path]::GetTempPath()) ("dwookit-ci-bundle-" + [guid]::NewGuid().ToString('N').Substring(0, 8))
     New-Item -ItemType Directory -Force $stage, $outDir | Out-Null
     $dl = Join-Path $stage '_downloads'
     New-Item -ItemType Directory -Force $dl | Out-Null
@@ -183,7 +183,7 @@ function Invoke-Bundle {
         $java = Join-Path $stage 'jre\bin\java.exe'
 
         # Plugins with their dependencies, resolved for this Jenkins version
-        $rel = Invoke-RestMethod -UseBasicParsing -Headers @{ 'User-Agent' = 'dwo-Forge-ci-bundle' } 'https://api.github.com/repos/jenkinsci/plugin-installation-manager-tool/releases/latest'
+        $rel = Invoke-RestMethod -UseBasicParsing -Headers @{ 'User-Agent' = 'dwookit-ci-bundle' } 'https://api.github.com/repos/jenkinsci/plugin-installation-manager-tool/releases/latest'
         $asset = @($rel.assets | Where-Object { $_.name -match '^jenkins-plugin-manager-[\d.]+\.jar$' })[0]
         if (-not $asset) { Fail 'jenkins-plugin-manager jar not found in the latest release' }
         $pm = Join-Path $dl $asset.name
@@ -198,19 +198,19 @@ function Invoke-Bundle {
         Remove-Item -Recurse -Force $dl
         $info = @{ jenkinsVersion = $jenkinsVersion; java = $pkg.release_name; plugins = $Plugins; pluginFiles = $pluginCount
                    createdAt = (Get-Date).ToString('o') } | ConvertTo-Json -Compress
-        $infoFile = Join-Path ([IO.Path]::GetTempPath()) 'dwo-forge-bundle-info.json'
+        $infoFile = Join-Path ([IO.Path]::GetTempPath()) 'dwookit-bundle-info.json'
         [IO.File]::WriteAllText($infoFile, $info, $Utf8)
         # Pass the JSON as a file: PowerShell 5.1 strips the double quotes from native command arguments.
-        & python (Join-Path $SystemDir 'tools\forge_ci.py') make-manifest --dir $stage --info-file $infoFile
+        & python (Join-Path $SystemDir 'tools\dwookit_ci.py') make-manifest --dir $stage --info-file $infoFile
         $manifestExit = $LASTEXITCODE
         Remove-Item $infoFile -ErrorAction SilentlyContinue
         if ($manifestExit -ne 0) { Fail 'Could not write the bundle manifest.' }
-        $zipPath = Join-Path $outDir "dwo-forge-ci-bundle-$jenkinsVersion.zip"
+        $zipPath = Join-Path $outDir "dwookit-ci-bundle-$jenkinsVersion.zip"
         if (Test-Path $zipPath) { Remove-Item -Force $zipPath }
         Add-Type -AssemblyName System.IO.Compression.FileSystem
         [IO.Compression.ZipFile]::CreateFromDirectory($stage, $zipPath, [IO.Compression.CompressionLevel]::Optimal, $false)
         Say "bundle: $zipPath ($([math]::Round((Get-Item $zipPath).Length / 1MB)) MB, Jenkins $jenkinsVersion, $($pkg.release_name), $pluginCount plugin files)"
-        Say 'Copy it to the closed-network PC and run: dwo-Forge.bat ci-install --bundle <zip>'
+        Say 'Copy it to the closed-network PC and run: dwookit.bat ci-install --bundle <zip>'
     } finally {
         Remove-Item -Recurse -Force $stage -ErrorAction SilentlyContinue
     }
@@ -223,11 +223,11 @@ function Find-Bundle {
         if (-not (Test-Path $b)) { Fail "Bundle not found: $b" }
         return (Resolve-Path $b).Path
     }
-    $found = @(Get-ChildItem (Join-Path $SystemDir 'bundles') -Filter 'dwo-forge-ci-bundle-*.zip' -File -ErrorAction SilentlyContinue |
+    $found = @(Get-ChildItem (Join-Path $SystemDir 'bundles') -Filter 'dwookit-ci-bundle-*.zip' -File -ErrorAction SilentlyContinue |
                Sort-Object LastWriteTime -Descending)
     if ($found.Count) { return $found[0].FullName }
-    Fail ("No CI bundle. Put dwo-forge-ci-bundle-<version>.zip in $(Join-Path $SystemDir 'bundles') or pass --bundle <zip>. " +
-          'Make one on a PC with internet: dwo-Forge.bat ci-bundle')
+    Fail ("No CI bundle. Put dwookit-ci-bundle-<version>.zip in $(Join-Path $SystemDir 'bundles') or pass --bundle <zip>. " +
+          'Make one on a PC with internet: dwookit.bat ci-bundle')
 }
 
 function New-Secret([int]$Bytes) {
@@ -237,7 +237,7 @@ function New-Secret([int]$Bytes) {
 }
 
 function Write-InitScript {
-    # Runs at every Jenkins start: local account + fixed API token for dwo-Forge, no setup wizard, logged-in
+    # Runs at every Jenkins start: local account + fixed API token for dwookit, no setup wizard, logged-in
     # users only, one executor, no usage statistics, and this URL (127.0.0.1 only).
     $dir = Join-Path $JenkinsHome 'init.groovy.d'
     New-Item -ItemType Directory -Force $dir | Out-Null
@@ -257,12 +257,12 @@ strategy.setAllowAnonymousRead(false)
 j.setAuthorizationStrategy(strategy)
 def u = hudson.model.User.getById(s.user, false)
 def tokens = u.getProperty(ApiTokenProperty.class).tokenStore
-if (!tokens.tokenListSortedByName.any { it.name == 'dwo-forge' }) {
+if (!tokens.tokenListSortedByName.any { it.name == 'dwookit' }) {
     // Jenkins 2.5xx added an expiration date (null = never expires); older releases take two arguments.
     if (tokens.metaClass.respondsTo(tokens, 'addFixedNewToken', String, String, java.time.LocalDate)) {
-        tokens.addFixedNewToken('dwo-forge', s.token, (java.time.LocalDate) null)
+        tokens.addFixedNewToken('dwookit', s.token, (java.time.LocalDate) null)
     } else {
-        tokens.addFixedNewToken('dwo-forge', s.token)
+        tokens.addFixedNewToken('dwookit', s.token)
     }
 }
 u.save()
@@ -275,7 +275,7 @@ j.setInstallState(InstallState.INITIAL_SETUP_COMPLETED)
 JenkinsLocationConfiguration.get().setUrl("http://127.0.0.1:${s.port}/")
 j.save()
 '@
-    [IO.File]::WriteAllText((Join-Path $dir 'dwo-forge.groovy'), $groovy, $Utf8)
+    [IO.File]::WriteAllText((Join-Path $dir 'dwookit.groovy'), $groovy, $Utf8)
 }
 
 function Invoke-Install {
@@ -288,7 +288,7 @@ function Invoke-Install {
     Say "extracting $bundle"
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     [IO.Compression.ZipFile]::ExtractToDirectory($bundle, $stage)
-    $check = Invoke-Utf8 { & python (Join-Path $SystemDir 'tools\forge_ci.py') verify-bundle --dir $stage }
+    $check = Invoke-Utf8 { & python (Join-Path $SystemDir 'tools\dwookit_ci.py') verify-bundle --dir $stage }
     if ($LASTEXITCODE -ne 0) { Remove-Item -Recurse -Force $stage -ErrorAction SilentlyContinue; Write-Host $check; Fail 'The bundle is damaged or incomplete.' }
     $manifest = $check | ConvertFrom-Json
     Say "bundle ok: Jenkins $($manifest.jenkinsVersion), $($manifest.java), $($manifest.fileCount) files verified"
@@ -310,8 +310,8 @@ function Invoke-Install {
     }
     if (-not (Test-Path $SecretsPath)) {
         $port = [int](Get-CiConfig).port
-        Write-JsonFile $SecretsPath ([ordered]@{ user = 'dwo-forge'; password = (New-Secret 16); token = '11' + (New-Secret 16); port = $port })
-        Say "account: dwo-forge (password and API token in $SecretsPath)"
+        Write-JsonFile $SecretsPath ([ordered]@{ user = 'dwookit'; password = (New-Secret 16); token = '11' + (New-Secret 16); port = $port })
+        Say "account: dwookit (password and API token in $SecretsPath)"
     }
     $secrets = Read-JsonFile $SecretsPath
     $wantPort = Opt '--port'
@@ -341,7 +341,7 @@ function Start-Jenkins {
     if (Test-Running) { Say "already running: $(Get-BaseUrl)/"; return }
     $port = Get-Port
     $busy = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
-    if ($busy) { Fail "Port $port is used by another program (pid $($busy[0].OwningProcess)). Move DwoBuilder to a free port: dwo-Forge.bat ci-install --port 8099" }
+    if ($busy) { Fail "Port $port is used by another program (pid $($busy[0].OwningProcess)). Move DwoBuilder to a free port: dwookit.bat ci-install --port 8099" }
     New-Item -ItemType Directory -Force $LogDir | Out-Null
     $java = Join-Path $Runtime 'jre\bin\java.exe'
     $log = Join-Path $LogDir 'jenkins.log'
@@ -353,7 +353,7 @@ function Start-Jenkins {
                 "-Djenkins.model.Jenkins.slaveAgentPort=-1 -Djenkins.model.Jenkins.slaveAgentPortEnforce=true " +
                 "-DJENKINS_HOME=`"$JenkinsHome`" -Ddwo.forge.secrets=`"$SecretsPath`" " +
                 "-jar `"$(Join-Path $Runtime 'jenkins.war')`" --httpListenAddress=127.0.0.1 --httpPort=$port --webroot=`"$(Join-Path $CiDir 'war')`""
-    # Started through WMI so it is not part of the caller's process tree: closing the dwo-Forge window or a
+    # Started through WMI so it is not part of the caller's process tree: closing the dwookit window or a
     # git hook finishing must not stop Jenkins.
     $startup = New-CimInstance -ClassName Win32_ProcessStartup -ClientOnly -Property @{ ShowWindow = [uint16]0 }
     $cmd = "cmd.exe /d /c `"`"$java`" $javaArgs > `"$log`" 2>&1`""
@@ -407,18 +407,18 @@ function Invoke-Status {
         installed = $installed; running = $running; url = "$(Get-BaseUrl)/"; port = (Get-Port)
         jenkinsVersion = $(if ($state) { $state.jenkinsVersion } else { $null }); java = $(if ($state) { $state.java } else { $null })
         dir = $CiDir; secrets = $SecretsPath; projects = @(Get-Projects)
-        bundles = @(Get-ChildItem (Join-Path $SystemDir 'bundles') -Filter 'dwo-forge-ci-bundle-*.zip' -File -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName })
+        bundles = @(Get-ChildItem (Join-Path $SystemDir 'bundles') -Filter 'dwookit-ci-bundle-*.zip' -File -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName })
     }
     if ($Project) {
         $doc.job = Get-JobName
-        $pc = Read-JsonFile (Join-Path $Project '__dwo-forge\ci.json')
+        $pc = Read-JsonFile (Join-Path $Project '__dwookit\ci.json')
         $doc.registered = [bool]$pc
         $doc.hooks = @(if ($pc) { $pc.hooks })
     }
     if (Has '--json') { ConvertTo-Json -InputObject $doc -Depth 6; return }
     if (-not $installed) { Say 'DwoBuilder: not installed (ci-install)'; return }
     Say "DwoBuilder: Jenkins $($doc.jenkinsVersion) $(if ($running) { "running at $($doc.url)" } else { 'stopped (ci-start)' })"
-    Say "account: dwo-forge (password: $SecretsPath)"
+    Say "account: dwookit (password: $SecretsPath)"
     foreach ($p in $doc.projects) { Say "  job $($p.job) <- $($p.project)" }
 }
 
@@ -433,8 +433,8 @@ function Invoke-Remove {
     foreach ($p in Get-Projects) {
         if (Test-Path $p.project) {
             Remove-ProjectHooks $p.project
-            Remove-Item (Join-Path $p.project '__dwo-forge\ci.json') -ErrorAction SilentlyContinue
-            Remove-Item -Recurse -Force (Join-Path $p.project '__dwo-forge\ci') -ErrorAction SilentlyContinue
+            Remove-Item (Join-Path $p.project '__dwookit\ci.json') -ErrorAction SilentlyContinue
+            Remove-Item -Recurse -Force (Join-Path $p.project '__dwookit\ci') -ErrorAction SilentlyContinue
         }
     }
     if (Test-Path $CiDir) { Stop-Jenkins }
@@ -462,19 +462,19 @@ function Get-HooksDir([string]$Proj) {
 function Get-HookScript([string]$Name, [string]$Proj) {
     $ps1 = (Join-Path $SystemDir 'tools\ci.ps1') -replace '\\', '/'
     $proj = $Proj -replace '\\', '/'
-    $state = (Join-Path $Proj '__dwo-forge\ci') -replace '\\', '/'
+    $state = (Join-Path $Proj '__dwookit\ci') -replace '\\', '/'
     $stdin = if ($Name -in @('pre-push', 'reference-transaction')) { 1 } else { 0 }
     return @"
 #!/bin/sh
-# $HookMark`: dwo-Forge DwoBuilder. Removed by '__dwo-forge.bat ci-job --remove', ci-remove or uninstall.
-# The hook this replaced (if any) is kept next to it as $Name.dwo-forge-orig and runs first.
+# $HookMark`: dwookit DwoBuilder. Removed by '__dwookit.bat ci-job --remove', ci-remove or uninstall.
+# The hook this replaced (if any) is kept next to it as $Name.dwookit-orig and runs first.
 hook=$Name
 dir=`$(dirname "`$0")
 input=
 if [ $stdin = 1 ]; then input=`$(cat); fi
-if [ -x "`$dir/`$hook.dwo-forge-orig" ]; then
-  if [ $stdin = 1 ]; then printf '%s\n' "`$input" | "`$dir/`$hook.dwo-forge-orig" "`$@" || exit `$?
-  else "`$dir/`$hook.dwo-forge-orig" "`$@" || exit `$?; fi
+if [ -x "`$dir/`$hook.dwookit-orig" ]; then
+  if [ $stdin = 1 ]; then printf '%s\n' "`$input" | "`$dir/`$hook.dwookit-orig" "`$@" || exit `$?
+  else "`$dir/`$hook.dwookit-orig" "`$@" || exit `$?; fi
 fi
 case "`$hook" in
   pre-push)
@@ -506,7 +506,7 @@ function Install-ProjectHooks([string]$Proj) {
     foreach ($h in $Hooks) {
         $path = Join-Path $dir $h
         if ((Test-Path $path) -and -not ((Get-Content -Raw $path) -match $HookMark)) {
-            Move-Item -Force $path "$path.dwo-forge-orig"
+            Move-Item -Force $path "$path.dwookit-orig"
             Say "git hooks: kept the existing $h hook (runs first)"
         }
         [IO.File]::WriteAllText($path, ((Get-HookScript $h $Proj) -replace "`r`n", "`n"), $Utf8)
@@ -523,16 +523,16 @@ function Remove-ProjectHooks([string]$Proj) {
         $path = Join-Path $dir $h
         if ((Test-Path $path) -and ((Get-Content -Raw $path) -match $HookMark)) {
             Remove-Item -Force $path
-            if (Test-Path "$path.dwo-forge-orig") { Move-Item -Force "$path.dwo-forge-orig" $path }
+            if (Test-Path "$path.dwookit-orig") { Move-Item -Force "$path.dwookit-orig" $path }
         }
     }
-    Remove-Item -Recurse -Force (Join-Path $Proj '__dwo-forge\ci') -ErrorAction SilentlyContinue
+    Remove-Item -Recurse -Force (Join-Path $Proj '__dwookit\ci') -ErrorAction SilentlyContinue
     Say "git hooks removed from $dir"
 }
 
 # ---------------------------------------------------------------- project: job, trigger, hook events
 function Require-Project {
-    if (-not $Project -or -not (Test-Path (Join-Path $Project '__dwo-forge\state.json'))) { Fail 'Run this in a project connected to dwo-Forge (__dwo-forge.bat ci-job).' }
+    if (-not $Project -or -not (Test-Path (Join-Path $Project '__dwookit\state.json'))) { Fail 'Run this in a project connected to dwookit (__dwookit.bat ci-job).' }
 }
 
 function Ensure-Running {
@@ -543,7 +543,7 @@ function Ensure-Running {
 function Invoke-Job {
     Require-Project
     $name = Get-JobName
-    $projCi = Join-Path $Project '__dwo-forge\ci.json'
+    $projCi = Join-Path $Project '__dwookit\ci.json'
     if (Has '--remove') {
         if (Test-Path (Join-Path $Runtime 'jenkins.war')) {
             if (Test-Running) {
@@ -553,14 +553,14 @@ function Invoke-Job {
         }
         Remove-ProjectHooks $Project
         Remove-Item $projCi -ErrorAction SilentlyContinue
-        Remove-Item -Recurse -Force (Join-Path $Project '__dwo-forge\ci') -ErrorAction SilentlyContinue   # hook log, push markers
+        Remove-Item -Recurse -Force (Join-Path $Project '__dwookit\ci') -ErrorAction SilentlyContinue   # hook log, push markers
         Save-Projects @(Get-Projects | Where-Object { $_.project -ne $Project })
         return
     }
     Ensure-Running
-    $launcher = Join-Path $Project '__dwo-forge.bat'
-    $xmlFile = Join-Path ([IO.Path]::GetTempPath()) "dwo-forge-job-$name.xml"
-    & python (Join-Path $SystemDir 'tools\forge_ci.py') job-xml --project $Project --launcher $launcher --config @(Get-ConfigFiles) --out $xmlFile
+    $launcher = Join-Path $Project '__dwookit.bat'
+    $xmlFile = Join-Path ([IO.Path]::GetTempPath()) "dwookit-job-$name.xml"
+    & python (Join-Path $SystemDir 'tools\dwookit_ci.py') job-xml --project $Project --launcher $launcher --config @(Get-ConfigFiles) --out $xmlFile
     $xml = [IO.File]::ReadAllBytes($xmlFile)
     Remove-Item $xmlFile -ErrorAction SilentlyContinue
     $exists = (Invoke-Jenkins 'GET' "/job/$name/api/json?tree=name").Status -eq 200
@@ -570,7 +570,7 @@ function Invoke-Job {
     Say "job $name $(if ($exists) { 'updated' } else { 'created' }): $(Get-BaseUrl)/job/$name/"
     $hooks = @(Install-ProjectHooks $Project)
     $ci = Get-CiConfig
-    # version/hash: the launcher compares them with this dwo-Forge to offer an update (forge.ps1 Get-ToolStatus).
+    # version/hash: the launcher compares them with this dwookit to offer an update (dwookit.ps1 Get-ToolStatus).
     $version = if (Test-Path (Join-Path $SystemDir 'VERSION')) { (Get-Content -Raw (Join-Path $SystemDir 'VERSION')).Trim() } else { 'dev' }
     Write-JsonFile $projCi ([ordered]@{ job = $name; url = "$(Get-BaseUrl)/job/$name/"; hooks = $hooks; registeredAt = (Get-Date).ToString('o')
                                         version = $version; hash = Get-CiSourceHash })
@@ -579,12 +579,12 @@ function Invoke-Job {
     Save-Projects $list
     Say ("triggers: push -> $(@($ci.triggers.push.branches) -join ','); merge -> $(@($ci.triggers.merge.branches) -join ','); " +
          "new branch -> $(@($ci.triggers.branchCreate.branches) -join ','); commit -> $(@($ci.triggers.commit.branches) -join ','). " +
-         "Keep $($ci.keepBuilds) builds. Change them under ""ci"" in __dwo-forge/config.json, then run ci-job again.")
+         "Keep $($ci.keepBuilds) builds. Change them under ""ci"" in __dwookit/config.json, then run ci-job again.")
 }
 
 function Send-Trigger([string]$Reason, [string[]]$Stages, [string]$Event) {
     $name = Get-JobName
-    if ((Invoke-Jenkins 'GET' "/job/$name/api/json?tree=name").Status -ne 200) { Fail "No CI job for this project. Run __dwo-forge.bat ci-job first." }
+    if ((Invoke-Jenkins 'GET' "/job/$name/api/json?tree=name").Status -ne 200) { Fail "No CI job for this project. Run __dwookit.bat ci-job first." }
     $queued = Invoke-Jenkins 'GET' "/job/$name/api/json?tree=inQueue"
     if ($queued.Status -eq 200 -and ($queued.Content | ConvertFrom-Json).inQueue) {
         Say "a build of $name is already waiting in the queue; this $Event event is merged into it"
@@ -619,13 +619,13 @@ function Invoke-Hook {
     Require-Project
     $a = @($Rest)
     $hook = $a[0]; $inputFile = $a[1]; $branch = $(if ($a.Count -gt 2) { $a[2] } else { '' }); $arg1 = $(if ($a.Count -gt 3) { $a[3] } else { '' })
-    $state = Join-Path $Project '__dwo-forge\ci'
+    $state = Join-Path $Project '__dwookit\ci'
     $log = Join-Path $state 'hook.log'
     New-Item -ItemType Directory -Force $state | Out-Null
     if ($inputFile) { $inputFile = $inputFile -replace '^/([a-zA-Z])/', '$1:/' }
     try {
         # Windows PowerShell drops empty strings from native command lines, so optional values are only added when set.
-        $pyArgs = @((Join-Path $SystemDir 'tools\forge_ci.py'), 'decide', '--event', $hook, '--state', $state)
+        $pyArgs = @((Join-Path $SystemDir 'tools\dwookit_ci.py'), 'decide', '--event', $hook, '--state', $state)
         if ($branch) { $pyArgs += @('--branch', $branch) }
         if ($hook -eq 'pre-push' -and $arg1) { $pyArgs += @('--remote', $arg1) }
         if ($inputFile) { $pyArgs += @('--input', $inputFile) }

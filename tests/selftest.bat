@@ -1,5 +1,5 @@
 @echo off
-rem dwo-Forge self verification: unit tests, static checks, GUI build and a full command cycle
+rem dwookit self verification: unit tests, static checks, GUI build and a full command cycle
 rem on an isolated copy of the given Unreal project (the project itself is never modified).
 rem   tests\selftest.bat "C:\path\to\SomeProject"
 setlocal

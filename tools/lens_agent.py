@@ -1,13 +1,13 @@
-"""dwo-Forge agent context: tells coding agents (Claude Code, GitHub Copilot) what dwo-Forge already knows about
+"""dwookit agent context: tells coding agents (Claude Code, GitHub Copilot) what dwookit already knows about
 the project and how to work with it cheaply.
 
-    __dwo-forge/context/AGENT.md   rewritten by dwo-Forge: how to read the tracked Blueprints (index -> overview ->
+    __dwookit/context/AGENT.md   rewritten by dwookit: how to read the tracked Blueprints (index -> overview ->
                                    parts, cheap subagents for large ones), what to deliver (C++ or an editor
                                    checklist, never .uasset edits), output format, commands, freshness
     .github/instructions/project.instructions.md
                                    the user's own instructions (naming, folders, "no Tick" ...): created once as an
                                    empty shell (applyTo "**"), never overwritten; Copilot reads it by itself
-    .github/instructions/dwo-forge.instructions.md
+    .github/instructions/dwookit.instructions.md
                                    VS Code Copilot: applyTo "**", tells it to read AGENT.md first
     CLAUDE.local.md                Claude Code: a managed block that imports AGENT.md and the user's instructions
                                    (the file is personal and not committed; a git-tracked one is left alone)
@@ -33,19 +33,24 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import lens_bp  # noqa: E402
 
-BLOCK_BEGIN = "<!-- >>> dwo-forge managed (removed by __dwo-forge.bat uninstall) >>> -->"
-BLOCK_END = "<!-- <<< dwo-forge managed <<< -->"
-COPILOT_MARK = "<!-- dwo-forge managed: removed by __dwo-forge.bat uninstall -->"
+BLOCK_BEGIN = "<!-- >>> dwookit managed (removed by __dwookit.bat uninstall) >>> -->"
+BLOCK_END = "<!-- <<< dwookit managed <<< -->"
+COPILOT_MARK = "<!-- dwookit managed: removed by __dwookit.bat uninstall -->"
 CLAUDE_FILE = "CLAUDE.local.md"
-COPILOT_FILE = ".github/instructions/dwo-forge.instructions.md"
+COPILOT_FILE = ".github/instructions/dwookit.instructions.md"
 
 USER_FILE = ".github/instructions/project.instructions.md"
-USER_MARK = "<!-- dwo-forge: project instructions"
+USER_MARK = "<!-- dwookit: project instructions"
+# What dwo-Forge (the name before dwookit) wrote: recognized so the first write replaces it and uninstall removes it.
+LEGACY_BLOCKS = [("<!-- >>> dwo-forge managed (removed by __dwo-forge.bat uninstall) >>> -->", "<!-- <<< dwo-forge managed <<< -->")]
+LEGACY_COPILOT = [(".github/instructions/dwo-forge.instructions.md", "<!-- dwo-forge managed: removed by __dwo-forge.bat uninstall -->")]
+LEGACY_USER_MARKS = ["<!-- dwo-forge: project instructions"]
+BLOCKS = [(BLOCK_BEGIN, BLOCK_END)] + LEGACY_BLOCKS
 USER_SHELL = (
     "---\n"
     'applyTo: "**"\n'
     "---\n"
-    f"{USER_MARK} (yours: naming, folders, what not to do). Created empty by dwo-Forge and never overwritten; "
+    f"{USER_MARK} (yours: naming, folders, what not to do). Created empty by dwookit and never overwritten; "
     "uninstall backs it up, then removes it. To keep it in git: git add -f this file. -->\n"
 )
 
@@ -95,25 +100,25 @@ def agent_md(forge: Path, project: Path) -> str:
                  + (f", {bp['split']} split into parts" if bp["split"] else ""))
         if bp["changed"]:
             fresh += (f". CHANGED since the export (the pseudocode may be stale; ask the user to run "
-                      f"`__dwo-forge.bat bp export` with the editor closed): {', '.join(bp['changed'][:10])}")
+                      f"`__dwookit.bat bp export` with the editor closed): {', '.join(bp['changed'][:10])}")
     elif bp["tracked"]:
-        fresh = f"{len(bp['tracked'])} Blueprint path(s) tracked but not exported yet: `__dwo-forge.bat bp export`."
+        fresh = f"{len(bp['tracked'])} Blueprint path(s) tracked but not exported yet: `__dwookit.bat bp export`."
     else:
-        fresh = "No Blueprint is tracked yet. The user adds them with `__dwo-forge.bat bp add <path>`."
+        fresh = "No Blueprint is tracked yet. The user adds them with `__dwookit.bat bp add <path>`."
     has_rules = user_file_has_content(project)
 
     return f"""\
-# dwo-Forge: how to work in this Unreal project
+# dwookit: how to work in this Unreal project
 
-Written by dwo-Forge ({now_utc()}); rewritten after every `bp export` and `analyze`. Do not edit: project rules go
+Written by dwookit ({now_utc()}); rewritten after every `bp export` and `analyze`. Do not edit: project rules go
 in `{USER_FILE}`{' (it has rules: read it, it wins over this file)' if has_rules else ' (empty so far)'}.
-All paths below are relative to the project folder. `__dwo-forge/` is git-excluded, so search tools may skip it:
+All paths below are relative to the project folder. `__dwookit/` is git-excluded, so search tools may skip it:
 open its files by path.
 
 ## What is already known
 - Blueprints: {fresh}
-  Start at `__dwo-forge/blueprints/index.md`.
-- Architecture analysis: {f'latest run `__dwo-forge/data/runs/{run}/out/` (report.html, findings.json)' if run else 'none yet (`__dwo-forge.bat analyze`)'}.
+  Start at `__dwookit/blueprints/index.md`.
+- Architecture analysis: {f'latest run `__dwookit/data/runs/{run}/out/` (report.html, findings.json)' if run else 'none yet (`__dwookit.bat analyze`)'}.
 
 ## Reading Blueprints (cheapest first)
 `.uasset` files are binary: never open them, never ask for copied T3D text. Use the exported files:
@@ -125,7 +130,7 @@ open its files by path.
 4. `<Name>.json`: every node, pin, default and link. Open it only for one exact detail, never to read it all.
 5. `<Name>.explain.json`: the same Blueprint in plain words (composition, behaviors, flows that go into own
    functions, other tracked Blueprints and C++ bodies). When the user asks to explain a file for a person, follow
-   `<Name>.explain-prompt.md` (it writes `<Name>.agent.json`, which the dwo-Forge window shows).
+   `<Name>.explain-prompt.md` (it writes `<Name>.agent.json`, which the dwookit window shows).
 Pseudocode: `on X():` event, `fn` function, `await` latent call, `goto Ln` exec wires that join, `# ...` author
 comment, `X as T` cast, arguments only where the author changed the default.
 
@@ -148,10 +153,10 @@ Agents cannot edit Blueprint assets. Deliver one of:
 Output: the change list or the code only. No explanations, background or summaries unless the user asks.
 
 ## Checking the work (the user runs these with the editor closed)
-- `__dwo-forge.bat compile`: C++ build (editor target).
-- `__dwo-forge.bat verify`: compiles every Blueprint, data validation, automation tests.
-- `__dwo-forge.bat bp export`: refresh the pseudocode after Blueprint edits.
-- `__dwo-forge.bat analyze`: architecture report and quality checks.
+- `__dwookit.bat compile`: C++ build (editor target).
+- `__dwookit.bat verify`: compiles every Blueprint, data validation, automation tests.
+- `__dwookit.bat bp export`: refresh the pseudocode after Blueprint edits.
+- `__dwookit.bat analyze`: architecture report and quality checks.
 Never run these while the Unreal Editor has the project open.
 """
 
@@ -201,26 +206,44 @@ def git_tracked(project: Path, rel: str) -> bool:
         return False
 
 
+def has_block(text: str) -> bool:
+    return any(begin in text for begin, _ in BLOCKS)
+
+
+def ours_user_file(text: str) -> bool:
+    return any(mark in text for mark in [USER_MARK] + LEGACY_USER_MARKS)
+
+
 def without_block(text: str) -> str:
     lines = text.split("\n")
-    out, inside = [], False
+    out, end = [], None
     for line in lines:
-        if line.strip() == BLOCK_BEGIN:
-            inside = True
-            continue
-        if inside:
-            if line.strip() == BLOCK_END:
-                inside = False
-            continue
-        out.append(line)
+        if end is None:
+            match = next((e for b, e in BLOCKS if line.strip() == b), None)
+            if match:
+                end = match
+                continue
+            out.append(line)
+        elif line.strip() == end:
+            end = None
     return "\n".join(out)
+
+
+def remove_legacy_copilot(project: Path) -> list[str]:
+    notes = []
+    for name, mark in LEGACY_COPILOT:
+        f = project / name
+        if f.exists() and not git_tracked(project, name) and mark in f.read_text(encoding="utf-8-sig", errors="replace"):
+            f.unlink()
+            notes.append(f"{name}: removed (dwo-Forge name)")
+    return notes
 
 
 def claude_block() -> str:
     return "\n".join([
         BLOCK_BEGIN,
-        "This Unreal project is connected to dwo-Forge. Follow these before any task:",
-        "@__dwo-forge/context/AGENT.md",
+        "This Unreal project is connected to dwookit. Follow these before any task:",
+        "@__dwookit/context/AGENT.md",
         f"@{USER_FILE}",
         BLOCK_END,
     ])
@@ -232,7 +255,7 @@ def copilot_text() -> str:
         'applyTo: "**"',
         "---",
         COPILOT_MARK,
-        "This Unreal project is connected to dwo-Forge. Before any task, read `__dwo-forge/context/AGENT.md`",
+        "This Unreal project is connected to dwookit. Before any task, read `__dwookit/context/AGENT.md`",
         "(open it by path: the folder is git-excluded, so search may skip it) and follow it: how to read the",
         "exported Blueprint pseudocode, what to deliver and the output format. project.instructions.md wins over it.",
         "",
@@ -244,14 +267,14 @@ def install_pointers(project: Path) -> list[str]:
     claude = project / CLAUDE_FILE
     if git_tracked(project, CLAUDE_FILE):
         notes.append(f"{CLAUDE_FILE} is committed to git: not changed. Add this line yourself if the team wants it: "
-                     "@__dwo-forge/context/AGENT.md")
+                     "@__dwookit/context/AGENT.md")
     elif claude.exists():
         text, bom, nl = read_text(claude)
         base = without_block(text).rstrip("\n")
         new = (base + "\n\n" if base.strip() else "") + claude_block() + "\n"
         if new != text:
             write_text(claude, new, bom, nl)
-            notes.append(f"{CLAUDE_FILE}: dwo-forge block updated")
+            notes.append(f"{CLAUDE_FILE}: dwookit block updated")
     else:
         write_text(claude, claude_block() + "\n", False, "\n")
         notes.append(f"{CLAUDE_FILE}: created (Claude Code reads it automatically)")
@@ -264,12 +287,12 @@ def install_pointers(project: Path) -> list[str]:
 
     copilot = project / COPILOT_FILE
     if copilot.exists() and COPILOT_MARK not in copilot.read_text(encoding="utf-8-sig", errors="replace"):
-        notes.append(f"{COPILOT_FILE} exists and is not dwo-Forge's: left alone")
+        notes.append(f"{COPILOT_FILE} exists and is not dwookit's: left alone")
     elif not copilot.exists() or copilot.read_text(encoding="utf-8") != copilot_text():
         copilot.parent.mkdir(parents=True, exist_ok=True)
         copilot.write_text(copilot_text(), encoding="utf-8", newline="\n")
         notes.append(f"{COPILOT_FILE}: written (VS Code Copilot)")
-    return notes
+    return notes + remove_legacy_copilot(project)
 
 
 def remove_pointers(project: Path, backup: Path | None = None, with_user_file: bool = True) -> list[str]:
@@ -277,7 +300,7 @@ def remove_pointers(project: Path, backup: Path | None = None, with_user_file: b
     after a copy to backup when it has content; 'agent off' keeps it."""
     notes = []
     user = project / USER_FILE
-    if with_user_file and user.exists() and not git_tracked(project, USER_FILE) and USER_MARK in user.read_text(encoding="utf-8-sig", errors="replace"):
+    if with_user_file and user.exists() and not git_tracked(project, USER_FILE) and ours_user_file(user.read_text(encoding="utf-8-sig", errors="replace")):
         if user_file_has_content(project) and backup is not None:
             backup.mkdir(parents=True, exist_ok=True)
             shutil.copy2(user, backup / user.name)
@@ -287,11 +310,11 @@ def remove_pointers(project: Path, backup: Path | None = None, with_user_file: b
     claude = project / CLAUDE_FILE
     if claude.exists() and not git_tracked(project, CLAUDE_FILE):
         text, bom, nl = read_text(claude)
-        if BLOCK_BEGIN in text:
+        if has_block(text):
             rest = without_block(text).strip("\n")
             if rest.strip():
                 write_text(claude, rest + "\n", bom, nl)
-                notes.append(f"{CLAUDE_FILE}: dwo-forge block removed (your own lines kept)")
+                notes.append(f"{CLAUDE_FILE}: dwookit block removed (your own lines kept)")
             else:
                 claude.unlink()
                 notes.append(f"{CLAUDE_FILE}: removed")
@@ -299,6 +322,7 @@ def remove_pointers(project: Path, backup: Path | None = None, with_user_file: b
     if copilot.exists() and COPILOT_MARK in copilot.read_text(encoding="utf-8-sig", errors="replace"):
         copilot.unlink()
         notes.append(f"{COPILOT_FILE}: removed")
+    notes += remove_legacy_copilot(project)
     for d in (copilot.parent, copilot.parent.parent):
         if d.is_dir() and not any(d.iterdir()):
             d.rmdir()
@@ -320,7 +344,7 @@ def set_pointers_enabled(forge: Path, on: bool):
 
 
 def cmd_write(project: Path) -> int:
-    forge = project / "__dwo-forge"
+    forge = project / "__dwookit"
     if not forge.is_dir():
         print(f"lens_agent: {forge} does not exist (project not connected)", file=sys.stderr)
         return 1
@@ -340,27 +364,27 @@ def cmd_remove(project: Path, backup: Path | None = None) -> int:
 
 
 def cmd_status(project: Path) -> int:
-    forge = project / "__dwo-forge"
+    forge = project / "__dwookit"
     agent = forge / "context" / "AGENT.md"
-    print(f"AGENT.md        : {'written' if agent.exists() else 'missing (run: __dwo-forge.bat agent)'}")
+    print(f"AGENT.md        : {'written' if agent.exists() else 'missing (run: __dwookit.bat agent)'}")
     user = project / USER_FILE
     print(f"instructions    : {USER_FILE} "
           + ("(has content)" if user_file_has_content(project) else "(empty)" if user.exists() else "missing"))
     claude = project / CLAUDE_FILE
     if git_tracked(project, CLAUDE_FILE):
-        state = "committed to git, not changed by dwo-Forge"
+        state = "committed to git, not changed by dwookit"
     elif claude.exists() and BLOCK_BEGIN in claude.read_text(encoding="utf-8-sig", errors="replace"):
-        state = "has the dwo-forge block"
+        state = "has the dwookit block"
     else:
-        state = "no dwo-forge block"
+        state = "no dwookit block"
     print(f"Claude Code     : {CLAUDE_FILE} {state}")
     copilot = project / COPILOT_FILE
     if copilot.exists():
         ours = COPILOT_MARK in copilot.read_text(encoding="utf-8-sig", errors="replace")
-        print(f"Copilot         : {COPILOT_FILE} {'written by dwo-Forge' if ours else 'exists, not dwo-Forge'}")
+        print(f"Copilot         : {COPILOT_FILE} {'written by dwookit' if ours else 'exists, not dwookit'}")
     else:
         print(f"Copilot         : {COPILOT_FILE} missing")
-    print(f"pointer files   : {'on' if pointers_enabled(forge) else 'off (__dwo-forge.bat agent on)'}")
+    print(f"pointer files   : {'on' if pointers_enabled(forge) else 'off (__dwookit.bat agent on)'}")
     return 0
 
 
@@ -378,10 +402,10 @@ def main(argv=None) -> int:
     if args.cmd == "remove":
         return cmd_remove(project, args.backup)
     if args.cmd == "on":
-        set_pointers_enabled(project / "__dwo-forge", True)
+        set_pointers_enabled(project / "__dwookit", True)
         return cmd_write(project)
     if args.cmd == "off":
-        set_pointers_enabled(project / "__dwo-forge", False)
+        set_pointers_enabled(project / "__dwookit", False)
         for note in remove_pointers(project, with_user_file=False):
             print(f"agent: {note}")
         return 0

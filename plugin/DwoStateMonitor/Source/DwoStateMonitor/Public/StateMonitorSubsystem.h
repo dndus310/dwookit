@@ -12,9 +12,9 @@ class SWidget;
  * @brief 게임 인스턴스 하나가 공유하는 상태 모니터 모델과 화면 표시를 관리한다.
  * 어느 코드에서든 Get(WorldContext)로 찾아 스냅샷을 제출하고, ShowMonitor로 뷰포트에 띄운다.
  * 레벨이 바뀌어도 모델과 이력은 유지된다. 모든 함수는 게임 스레드에서만 호출한다.
- * 비 Shipping 빌드에서는 dwo-Forge 창(127.0.0.1:47731)에 Live로 붙어 소스를 스트리밍하고, 뷰어가 켜면
+ * 비 Shipping 빌드에서는 dwookit 창(127.0.0.1:47731)에 Live로 붙어 소스를 스트리밍하고, 뷰어가 켜면
  * GameInstance, GameMode, GameState, 로컬 PlayerController/PlayerState/Pawn/HUD를 코드 없이 자동 관찰한다.
- * 관찰할 클래스는 뷰어에서 고르거나 프로젝트의 __dwo-forge/sm-watch.txt(한 줄에 클래스 하나)에 둔다. 관찰한 객체가
+ * 관찰할 클래스는 뷰어에서 고르거나 프로젝트의 __dwookit/sm-watch.txt(한 줄에 클래스 하나)에 둔다. 관찰한 객체가
  * 프로퍼티로 가리키는 런타임 객체(액터, 컴포넌트, 런타임에 만든 UObject)는 참조 깊이만큼 따라가 함께 관찰한다.
  */
 UCLASS()
@@ -82,7 +82,7 @@ public:
 	UFUNCTION(BlueprintPure, Category = "State Monitor")
 	bool IsWatchingObject(const UObject* Object) const;
 
-	/** @brief dwo-Forge 창과 Live 연결 중인지. */
+	/** @brief dwookit 창과 Live 연결 중인지. */
 	UFUNCTION(BlueprintPure, Category = "State Monitor")
 	bool IsLiveConnected() const;
 
@@ -114,7 +114,7 @@ public:
 	 */
 	int32 LoadWatchListFile(const FString& Path);
 
-	/** @brief <프로젝트>/__dwo-forge/sm-watch.txt (dwo-Forge 창이 쓰는 관찰 목록). */
+	/** @brief <프로젝트>/__dwookit/sm-watch.txt (dwookit 창이 쓰는 관찰 목록). */
 	static FString GetProjectWatchListPath();
 
 private:

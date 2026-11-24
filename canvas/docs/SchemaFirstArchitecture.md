@@ -276,7 +276,7 @@ FDwoCanvasEditorModule::Get().RegisterRoleHandler(MakeShared<FMyInventorySlotHan
 | 추론 결과의 책임 | 초안이 그럴듯해 보여 검토 없이 쓰일 위험 | `source.mode: "draft"`와 낮은 확신도 노드를 리포트 맨 앞에 표시. 초안 WBP는 별도 폴더에 생성 |
 | 추론 비용·시간 | 화면마다 모델 호출과 재시도 비용 | 재시도 횟수 상한, 결과 캐시(입력 해시 기준) |
 
-## 11. 구현 현황 (브랜치 `feature/dwo-forge-canvas`)
+## 11. 구현 현황 (브랜치 `feature/dwookit-canvas`)
 
 | 단계 | 상태 | 위치 · 검증 |
 |---|---|---|

@@ -1,5 +1,5 @@
 // Picking what to follow from lists instead of typing names: the project's Blueprints (DwoLens tracking,
-// __dwo-forge/bp-track.txt) and Blueprint/C++ classes (DwoStateMonitor watching, __dwo-forge/sm-watch.txt).
+// __dwookit/bp-track.txt) and Blueprint/C++ classes (DwoStateMonitor watching, __dwookit/sm-watch.txt).
 // The candidates come from tools/lens_targets.py, which reads the project files (no editor needed).
 #pragma once
 
@@ -102,7 +102,7 @@ static void SetSmWatch(App& app, const std::vector<std::string>& classes)
 	cur = classes;
 	app.SaveSettings();
 	if (!app.project.empty() && fs::exists(app.ForgeDir()))
-		WriteTargetList(SmWatchPath(app), "Classes DwoStateMonitor watches while the game runs (picked in the dwo-Forge window). One class per line, optional max count.", classes);
+		WriteTargetList(SmWatchPath(app), "Classes DwoStateMonitor watches while the game runs (picked in the dwookit window). One class per line, optional max count.", classes);
 }
 
 // ---------------------------------------------------------------- picker
@@ -223,8 +223,8 @@ static void DrawTargetPicker(App& app)
 	if (!ImGui::BeginPopupModal("##targetpicker", nullptr, ImGuiWindowFlags_NoTitleBar)) return;
 	bool lens = g_picker.mode == 0;
 	ImGui::TextUnformatted(lens ? "추적할 블루프린트 고르기 (DwoLens)" : "실행 중 관찰할 클래스 고르기 (DwoStateMonitor)");
-	TextDim(lens ? "고른 블루프린트마다 의사코드(.md)와 전체 스크립트(.json), 사람이 읽는 설명을 만듭니다. 목록: __dwo-forge/bp-track.txt"
-	             : "게임이 돌 때 이 클래스의 객체(액터·컴포넌트·위젯)와 그 객체가 가리키는 객체를 관찰합니다. 목록: __dwo-forge/sm-watch.txt");
+	TextDim(lens ? "고른 블루프린트마다 의사코드(.md)와 전체 스크립트(.json), 사람이 읽는 설명을 만듭니다. 목록: __dwookit/bp-track.txt"
+	             : "게임이 돌 때 이 클래스의 객체(액터·컴포넌트·위젯)와 그 객체가 가리키는 객체를 관찰합니다. 목록: __dwookit/sm-watch.txt");
 	ImGui::Separator();
 
 	json doc = g_targets.Get(app.project);
@@ -276,7 +276,7 @@ static void DrawTargetPicker(App& app)
 		std::vector<std::string> list(g_picker.picked.begin(), g_picker.picked.end());
 		if (lens)
 		{
-			WriteTargetList(BpTrackPath(app), "Blueprints followed by dwo-Forge (bp add / bp remove). One package path or folder (ending with /) per line.", list);
+			WriteTargetList(BpTrackPath(app), "Blueprints followed by dwookit (bp add / bp remove). One package path or folder (ending with /) per line.", list);
 			PushToast("추적 목록 저장", Fmt("블루프린트 %d개", (int)list.size()), col::Pass);
 			if (g_picker.exportAfter && !list.empty()) app.Run("bp export");
 		}

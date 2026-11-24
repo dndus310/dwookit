@@ -1,4 +1,4 @@
-"""Minimal dwo-Forge live viewer used to verify the DwoStateMonitor live link end to end.
+"""Minimal dwookit live viewer used to verify the DwoStateMonitor live link end to end.
 
 Listens on 127.0.0.1:<port> (default 47731), turns auto-observe on as soon as a game
 connects, collects JSON Lines for N seconds, prints a summary and exits non-zero unless

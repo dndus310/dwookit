@@ -1,4 +1,4 @@
-# dwo-Forge self verification. Runs everything a release must pass and writes .qa\selftest\selftest-result.json.
+# dwookit self verification. Runs everything a release must pass and writes .qa\selftest\selftest-result.json.
 #
 #   powershell -File tests\selftest.ps1 -Project <a UE project folder to copy for the integration cycle>
 #
@@ -7,7 +7,7 @@ param(
     [string]$Project = '',
     [switch]$SkipIntegration,
     # Copies for the no-git and parent-repository cycles must sit outside every git repository.
-    [string]$Scratch = (Join-Path $env:SystemDrive 'dwo-forge-selftest')
+    [string]$Scratch = (Join-Path $env:SystemDrive 'dwookit-selftest')
 )
 # Continue: native tools write progress to stderr, which 'Stop' would turn into a terminating error.
 # Every step is judged explicitly by Check instead.
@@ -50,7 +50,7 @@ foreach ($json in @('config\default.json', 'tools\catalog.json')) {
 # ---------------------------------------------------------------- 3. GUI build
 $sw.Restart()
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repo 'tools\gui.ps1') -SystemDir $repo -BuildOnly | Out-Null
-$guiExe = Get-ChildItem (Join-Path $env:LOCALAPPDATA 'dwo-Forge\gui-cache') -Recurse -Filter dwo-forge-gui.exe -ErrorAction SilentlyContinue |
+$guiExe = Get-ChildItem (Join-Path $env:LOCALAPPDATA 'dwookit\gui-cache') -Recurse -Filter dwookit-gui.exe -ErrorAction SilentlyContinue |
           Sort-Object LastWriteTime -Descending | Select-Object -First 1
 Check 'gui' 'build' ($LASTEXITCODE -eq 0 -and $guiExe -ne $null) "$($guiExe.FullName)" $sw.Elapsed.TotalSeconds
 
@@ -58,7 +58,7 @@ Check 'gui' 'build' ($LASTEXITCODE -eq 0 -and $guiExe -ne $null) "$($guiExe.Full
 if (-not $SkipIntegration -and $Project) {
     $copy = Join-Path $qa 'project'
     New-Item -ItemType Directory -Force $copy | Out-Null
-    Get-ChildItem $Project | Where-Object { $_.Name -notin @('Intermediate', 'Saved', 'DerivedDataCache', '.git', '.vs', '__dwo-forge', '__dwo-forge.bat', '__dwo-lens', '__dwo-lens.bat') -and $_.Name -notlike '*.html' -and $_.Extension -ne '.sln' } |
+    Get-ChildItem $Project | Where-Object { $_.Name -notin @('Intermediate', 'Saved', 'DerivedDataCache', '.git', '.vs', '__dwookit', '__dwookit.bat', '__dwo-lens', '__dwo-lens.bat') -and $_.Name -notlike '*.html' -and $_.Extension -ne '.sln' } |
         ForEach-Object { Copy-Item -Recurse $_.FullName $copy }
     Get-ChildItem -Recurse -Directory -Path (Join-Path $copy 'Plugins') -Filter '__*' -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force
     # A DwoCanvas copy in the source project is its own; the cycle installs the bundled one.
@@ -77,21 +77,21 @@ if (-not $SkipIntegration -and $Project) {
     & git -C $copy add -A
     & git -C $copy -c user.name=selftest -c user.email=selftest@local commit -q -m baseline
     $before = (& git -C $copy status --porcelain) -join "`n"
-    $env:DWO_FORGE_HOME = $null
+    $env:DWOOKIT_HOME = $null
     $env:DWO_LENS_HOME = $null
-    $launcher = Join-Path $repo 'dwo-Forge.bat'
-    $bat = Join-Path $copy '__dwo-forge.bat'
+    $launcher = Join-Path $repo 'dwookit.bat'
+    $bat = Join-Path $copy '__dwookit.bat'
     function Run([string]$Cmd, [string]$Target = $copy) {
         $sw.Restart()
-        # attach goes through dwo-Forge.bat (as a user would); everything after through the project launcher.
-        $line = if ($Cmd -like 'attach*') { "`"$launcher`" $Cmd `"$Target`"" } else { "`"$(Join-Path $Target '__dwo-forge.bat')`" $Cmd" }
+        # attach goes through dwookit.bat (as a user would); everything after through the project launcher.
+        $line = if ($Cmd -like 'attach*') { "`"$launcher`" $Cmd `"$Target`"" } else { "`"$(Join-Path $Target '__dwookit.bat')`" $Cmd" }
         $out = & cmd /c $line 2>&1 | Out-String
         $code = $LASTEXITCODE
         [IO.File]::AppendAllText((Join-Path $qa 'integration.log'), "`n===== $Cmd (exit $code)`n$out")
         return [pscustomobject]@{ Code = $code; Out = $out; Seconds = $sw.Elapsed.TotalSeconds }
     }
     function Latest([string]$Prefix) {
-        Get-ChildItem (Join-Path $copy '__dwo-forge\data\runs') -Directory -Filter "$Prefix-*" | Sort-Object Name -Descending | Select-Object -First 1
+        Get-ChildItem (Join-Path $copy '__dwookit\data\runs') -Directory -Filter "$Prefix-*" | Sort-Object Name -Descending | Select-Object -First 1
     }
 
     $r = Run 'attach'
@@ -137,19 +137,19 @@ if (-not $SkipIntegration -and $Project) {
     $r = Run 'canvas-remove'
     Check 'canvas' 'canvas-remove refuses while widgets use it' ($r.Code -ne 0 -and (Test-Path $canvasDir)) ''
     $r = Run 'uninstall --delete-data'
-    Check 'canvas' 'uninstall asks what to do with generated widgets' ($r.Code -ne 0 -and $r.Out -match '--delete-generated' -and (Test-Path $canvasDir) -and (Test-Path "$copy\__dwo-forge")) 'nothing changed without a choice'
+    Check 'canvas' 'uninstall asks what to do with generated widgets' ($r.Code -ne 0 -and $r.Out -match '--delete-generated' -and (Test-Path $canvasDir) -and (Test-Path "$copy\__dwookit")) 'nothing changed without a choice'
     # Drop what the import generated (widgets, textures, import records) so the rest of the cycle compares clean.
     & git -C $copy clean -fdq -- Content DwoCanvas 2>$null
     $r = Run 'canvas-remove'
     Check 'canvas' 'canvas-remove once no widget uses it' ($r.Code -eq 0 -and -not (Test-Path $canvasDir)) ''
-    # A 2.0.0 install (visible Plugins\DwoCanvas with .dwo-forge-installed) moves to Plugins\__DwoCanvas.
+    # A 2.0.0 install (visible Plugins\DwoCanvas with .dwookit-installed) moves to Plugins\__DwoCanvas.
     $r = Run 'canvas-install'
     $oldCanvas = Join-Path $copy 'Plugins\DwoCanvas'
     Move-Item $canvasDir $oldCanvas
-    Remove-Item -Force (Join-Path $oldCanvas '.dwo-forge-managed')
-    Set-Content -Encoding UTF8 (Join-Path $oldCanvas '.dwo-forge-installed') 'DwoCanvas 0.2.0 installed by dwo-Forge'
+    Remove-Item -Force (Join-Path $oldCanvas '.dwookit-managed')
+    Set-Content -Encoding UTF8 (Join-Path $oldCanvas '.dwookit-installed') 'DwoCanvas 0.2.0 installed by dwookit'
     $r = Run 'status'
-    Check 'canvas' 'status moves a 2.0.0 install' ($r.Code -eq 0 -and -not (Test-Path $oldCanvas) -and (Test-Path "$canvasDir\.dwo-forge-managed")) '' $r.Seconds
+    Check 'canvas' 'status moves a 2.0.0 install' ($r.Code -eq 0 -and -not (Test-Path $oldCanvas) -and (Test-Path "$canvasDir\.dwookit-managed")) '' $r.Seconds
 
     if ($guiExe) {
         $out = Join-Path $qa 'combined-report.html'
@@ -165,7 +165,7 @@ if (-not $SkipIntegration -and $Project) {
     $r = Run 'sm-remove'
     Check 'safety' 'sm-remove refuses while referenced' ($r.Code -ne 0 -and (Test-Path "$copy\Plugins\__DwoStateMonitor")) ''
     $r = Run 'uninstall --delete-data'
-    Check 'safety' 'uninstall refuses while referenced' ($r.Code -ne 0 -and (Test-Path "$copy\__dwo-forge")) ''
+    Check 'safety' 'uninstall refuses while referenced' ($r.Code -ne 0 -and (Test-Path "$copy\__dwookit")) ''
     Remove-Item -Recurse -Force (Join-Path $copy 'Source\Probe')
     if (-not (Get-ChildItem (Join-Path $copy 'Source') -ErrorAction SilentlyContinue)) { Remove-Item -Force (Join-Path $copy 'Source') -ErrorAction SilentlyContinue }
     $r = Run 'sm-remove'
@@ -178,7 +178,7 @@ if (-not $SkipIntegration -and $Project) {
     Set-Content -Encoding UTF8 (Join-Path $legacySm '.dwo-lens-managed') 'dwo-Lens 1.x'
     $r = Run 'update'
     $migrated = Join-Path $copy 'Plugins\__DwoStateMonitor\DwoStateMonitor.uplugin'
-    Check 'cycle' 'update' ($r.Code -eq 0 -and (Test-Path $bat) -and -not (Test-Path (Join-Path $copy '__dwo-forge\system'))) 'runs from the install folder' $r.Seconds
+    Check 'cycle' 'update' ($r.Code -eq 0 -and (Test-Path $bat) -and -not (Test-Path (Join-Path $copy '__dwookit\system'))) 'runs from the install folder' $r.Seconds
     Check 'cycle' 'update migrates __StateMonitor' (-not (Test-Path $legacySm) -and (Test-Path $migrated) -and ((Get-Content -Raw $migrated) -match 'TargetAllowList')) 'same (editor) mode'
     # One-step uninstall with everything a user leaves after real use: installed plugins (no sm-remove /
     # canvas-remove first), generated widgets and records, reports, and the project-file edits made for runtime use.
@@ -203,7 +203,7 @@ if (-not $SkipIntegration -and $Project) {
                  @(@('Saved\DwoCanvas', 'Saved\DwoCanvasTests', 'Content\DwoCanvasTests', 'Config\DefaultDwoCanvas.ini') | Where-Object { Test-Path (Join-Path $copy $_) })
     $buildCs = Get-Content -Raw (Join-Path $probeDir 'Probe.Build.cs')
     Check 'cycle' 'one-step uninstall cleans project files' ((Get-FileHash $uprojectFile).Hash -eq $uprojectBefore -and $buildCs -notmatch 'Dwo' -and $r.Out -match 'edit them before building') '.uproject restored, Build.cs cleaned, code uses reported'
-    Remove-Item -Recurse -Force $probeDir   # the user's own code, not dwo-Forge's
+    Remove-Item -Recurse -Force $probeDir   # the user's own code, not dwookit's
     if (-not (Get-ChildItem (Join-Path $copy 'Source') -ErrorAction SilentlyContinue)) { Remove-Item -Force (Join-Path $copy 'Source') -ErrorAction SilentlyContinue }
     # Plugins that are git repositories of their own (submodule-like) report their own state; both sides skip them.
     $after = (@(& git -C $copy status --porcelain) | Where-Object { $_ -notmatch 'Plugins/' }) -join "`n"
@@ -219,14 +219,14 @@ if (-not $SkipIntegration -and $Project) {
 if (-not $SkipIntegration -and $Project) {
     if (Test-Path $Scratch) { Remove-Item -Recurse -Force $Scratch }
     New-Item -ItemType Directory -Force $Scratch | Out-Null
-    $env:DWO_FORGE_HOME = $null
+    $env:DWOOKIT_HOME = $null
     $env:DWO_LENS_HOME = $null
     # An install folder without .git, like an extracted GitHub zip.
     $zip = Join-Path $Scratch 'install'
     & robocopy $repo $zip /E /XD .git .qa Saved /NFL /NDL /NJH /NJS /NP | Out-Null
-    $zipLauncher = Join-Path $zip 'dwo-Forge.bat'
+    $zipLauncher = Join-Path $zip 'dwookit.bat'
     function Copy-Clean([string]$Dest) {
-        & robocopy $copy $Dest /E /XD .git Saved Intermediate DerivedDataCache __dwo-forge __dwo-lens /XF __dwo-forge.bat __dwo-lens.bat .gitignore /NFL /NDL /NJH /NJS /NP | Out-Null
+        & robocopy $copy $Dest /E /XD .git Saved Intermediate DerivedDataCache __dwookit __dwo-lens /XF __dwookit.bat __dwo-lens.bat .gitignore /NFL /NDL /NJH /NJS /NP | Out-Null
     }
     function Leftovers([string]$Dir) {
         @(Get-ChildItem -Force $Dir | Where-Object { $_.Name -like '__*' }) + @(Get-ChildItem -Force (Join-Path $Dir 'Plugins') -ErrorAction SilentlyContinue | Where-Object { $_.Name -like '__*' })
@@ -236,10 +236,10 @@ if (-not $SkipIntegration -and $Project) {
     Copy-Clean $plain
     $sw.Restart()
     $out = & cmd /c "`"$zipLauncher`" attach `"$plain`"" 2>&1 | Out-String
-    Check 'novcs' 'attach without git (zip install)' ($LASTEXITCODE -eq 0 -and $out -match 'No version control' -and (Test-Path (Join-Path $plain '__dwo-forge.bat'))) '' $sw.Elapsed.TotalSeconds
-    $out = & cmd /c "`"$(Join-Path $plain '__dwo-forge.bat')`" sizes" 2>&1 | Out-String
+    Check 'novcs' 'attach without git (zip install)' ($LASTEXITCODE -eq 0 -and $out -match 'No version control' -and (Test-Path (Join-Path $plain '__dwookit.bat'))) '' $sw.Elapsed.TotalSeconds
+    $out = & cmd /c "`"$(Join-Path $plain '__dwookit.bat')`" sizes" 2>&1 | Out-String
     Check 'novcs' 'line through the project launcher' ($LASTEXITCODE -eq 0) ''
-    $out = & cmd /c "`"$(Join-Path $plain '__dwo-forge.bat')`" uninstall --delete-data" 2>&1 | Out-String
+    $out = & cmd /c "`"$(Join-Path $plain '__dwookit.bat')`" uninstall --delete-data" 2>&1 | Out-String
     $left = Leftovers $plain
     Check 'novcs' 'uninstall leaves no trace' ($LASTEXITCODE -eq 0 -and $left.Count -eq 0) "leftovers $($left.Count)"
 
@@ -255,9 +255,9 @@ if (-not $SkipIntegration -and $Project) {
     $exclBefore = Get-Content -Raw $excl
     $out = & cmd /c "`"$zipLauncher`" attach `"$inner`"" 2>&1 | Out-String
     $hidden = ((& git -C $outer status --porcelain) -join "`n") -eq $before
-    Check 'parent' 'attach inside a parent repository' ($LASTEXITCODE -eq 0 -and $hidden -and (Get-Content -Raw $excl) -match '/games/project/__dwo-forge/') 'prefixed exclude, parent status unchanged'
-    $null = & cmd /c "`"$(Join-Path $inner '__dwo-forge.bat')`" sizes" 2>&1   # some run history to keep
-    $out = & cmd /c "`"$(Join-Path $inner '__dwo-forge.bat')`" uninstall --keep-data" 2>&1 | Out-String
+    Check 'parent' 'attach inside a parent repository' ($LASTEXITCODE -eq 0 -and $hidden -and (Get-Content -Raw $excl) -match '/games/project/__dwookit/') 'prefixed exclude, parent status unchanged'
+    $null = & cmd /c "`"$(Join-Path $inner '__dwookit.bat')`" sizes" 2>&1   # some run history to keep
+    $out = & cmd /c "`"$(Join-Path $inner '__dwookit.bat')`" uninstall --keep-data" 2>&1 | Out-String
     $kept = if ($out -match 'kept at (.+)') { $Matches[1].Trim() } else { '' }
     $left = Leftovers $inner
     $clean = ((& git -C $outer status --porcelain) -join "`n") -eq $before -and (Get-Content -Raw $excl) -eq $exclBefore

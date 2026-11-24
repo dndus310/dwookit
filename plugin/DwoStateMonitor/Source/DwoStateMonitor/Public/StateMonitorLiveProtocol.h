@@ -46,7 +46,7 @@ struct DWOSTATEMONITOR_API FStateMonitorLiveCommand
 };
 
 /**
- * @brief dwo-Forge 창과 주고받는 Live 프로토콜 v1(UTF-8 JSON Lines).
+ * @brief dwookit 창과 주고받는 Live 프로토콜 v1(UTF-8 JSON Lines).
  * 모든 함수는 소켓 없이 호출할 수 있는 순수 함수이며, 반환한 줄에는 끝의 '\n'이 없다.
  */
 namespace StateMonitorLive

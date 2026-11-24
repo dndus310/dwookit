@@ -13,7 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 
-import forge_ci  # noqa: E402
+import dwookit_ci  # noqa: E402
 import lens_build  # noqa: E402
 import lens_export  # noqa: E402
 
@@ -122,51 +122,51 @@ class RetentionTests(Tmp):
         for i in range(5):
             (runs / f"logs-2026010{i}-000000").mkdir(parents=True)
             (runs / f"package-2026010{i}-000000").mkdir(parents=True)
-        doomed = [d.name for d in forge_ci.prune_plan(runs, keep_per_check=3, keep_packages=2)]
+        doomed = [d.name for d in dwookit_ci.prune_plan(runs, keep_per_check=3, keep_packages=2)]
         self.assertEqual(doomed, ["logs-20260100-000000", "logs-20260101-000000",
                                   "package-20260100-000000", "package-20260101-000000", "package-20260102-000000"])
 
 
 class HookDecisionTests(Tmp):
     def ci(self):
-        return forge_ci.ci_config({})
+        return dwookit_ci.ci_config({})
 
     def test_push_needs_the_pre_push_marker(self):
         state = self.tmp / "state"
         fetched = f"{A} {B} refs/remotes/origin/develop\n"
-        self.assertEqual(forge_ci.decide("reference-transaction", fetched, self.ci(), state), [])   # someone else's push
-        forge_ci.decide("pre-push", f"refs/heads/develop {B} refs/heads/develop {A}\n", self.ci(), state, remote="origin")
-        out = forge_ci.decide("reference-transaction", fetched, self.ci(), state)
+        self.assertEqual(dwookit_ci.decide("reference-transaction", fetched, self.ci(), state), [])   # someone else's push
+        dwookit_ci.decide("pre-push", f"refs/heads/develop {B} refs/heads/develop {A}\n", self.ci(), state, remote="origin")
+        out = dwookit_ci.decide("reference-transaction", fetched, self.ci(), state)
         self.assertEqual([(t["event"], t["ref"]) for t in out], [("push", "develop")])
         self.assertEqual(out[0]["stages"], ["compile", "lens", "package"])
-        self.assertEqual(forge_ci.decide("reference-transaction", fetched, self.ci(), state), [])   # marker used once
+        self.assertEqual(dwookit_ci.decide("reference-transaction", fetched, self.ci(), state), [])   # marker used once
 
     def test_raw_marker_from_the_shell_hook(self):
         state = self.tmp / "state"
-        write(state / forge_ci.PUSH_RAW, f"origin {int(time.time())}\nrefs/heads/feature/x {B} refs/heads/feature/x {ZERO}\n")
+        write(state / dwookit_ci.PUSH_RAW, f"origin {int(time.time())}\nrefs/heads/feature/x {B} refs/heads/feature/x {ZERO}\n")
         ci = self.ci()
         ci["triggers"]["push"]["branches"] = ["feature/*"]
-        out = forge_ci.decide("reference-transaction", f"{ZERO} {B} refs/remotes/origin/feature/x\n", ci, state)
+        out = dwookit_ci.decide("reference-transaction", f"{ZERO} {B} refs/remotes/origin/feature/x\n", ci, state)
         self.assertEqual([t["ref"] for t in out], ["feature/x"])
-        self.assertFalse((state / forge_ci.PUSH_RAW).exists())
+        self.assertFalse((state / dwookit_ci.PUSH_RAW).exists())
 
     def test_stale_marker_is_ignored(self):
         state = self.tmp / "state"
-        forge_ci.decide("pre-push", f"refs/heads/develop {B} refs/heads/develop {A}\n", self.ci(), state, now=1000)
-        self.assertEqual(forge_ci.decide("reference-transaction", f"{A} {B} refs/remotes/origin/develop\n", self.ci(), state, now=1000 + 3600), [])
+        dwookit_ci.decide("pre-push", f"refs/heads/develop {B} refs/heads/develop {A}\n", self.ci(), state, now=1000)
+        self.assertEqual(dwookit_ci.decide("reference-transaction", f"{A} {B} refs/remotes/origin/develop\n", self.ci(), state, now=1000 + 3600), [])
 
     def test_branch_create_commit_and_merge(self):
         state = self.tmp / "state"
         ci = self.ci()
-        created = forge_ci.decide("reference-transaction", f"{ZERO} {A} refs/heads/feature/login\n{ZERO} {A} refs/heads/hotfix/x\n", ci, state)
+        created = dwookit_ci.decide("reference-transaction", f"{ZERO} {A} refs/heads/feature/login\n{ZERO} {A} refs/heads/hotfix/x\n", ci, state)
         self.assertEqual([(t["event"], t["ref"]) for t in created], [("branchCreate", "feature/login")])
-        self.assertEqual(forge_ci.decide("post-commit", "", ci, state, branch="feature/login")[0]["stages"], ["lens"])
-        self.assertEqual(forge_ci.decide("post-commit", "", ci, state, branch="main"), [])
-        self.assertEqual(forge_ci.decide("post-commit", "", ci, state, branch="HEAD"), [])   # detached / rebase
-        self.assertEqual(forge_ci.decide("post-merge", "", ci, state, branch="develop")[0]["event"], "merge")
+        self.assertEqual(dwookit_ci.decide("post-commit", "", ci, state, branch="feature/login")[0]["stages"], ["lens"])
+        self.assertEqual(dwookit_ci.decide("post-commit", "", ci, state, branch="main"), [])
+        self.assertEqual(dwookit_ci.decide("post-commit", "", ci, state, branch="HEAD"), [])   # detached / rebase
+        self.assertEqual(dwookit_ci.decide("post-merge", "", ci, state, branch="develop")[0]["event"], "merge")
 
     def test_config_overrides_triggers(self):
-        ci = forge_ci.ci_config({"ci": {"keepBuilds": 5, "triggers": {"commit": {"branches": []}}}})
+        ci = dwookit_ci.ci_config({"ci": {"keepBuilds": 5, "triggers": {"commit": {"branches": []}}}})
         self.assertEqual(ci["keepBuilds"], 5)
         self.assertEqual(ci["triggers"]["commit"]["branches"], [])
         self.assertEqual(ci["triggers"]["commit"]["stages"], ["lens"])   # untouched keys keep their default
@@ -174,7 +174,7 @@ class HookDecisionTests(Tmp):
 
 class JobXmlTests(unittest.TestCase):
     def test_job_has_retention_parameters_and_pipeline(self):
-        xml = forge_ci.job_xml("C:\\P", "C:\\P\\__dwo-forge.bat", forge_ci.ci_config({"ci": {"keepBuilds": 7, "keepArtifacts": 2}}))
+        xml = dwookit_ci.job_xml("C:\\P", "C:\\P\\__dwookit.bat", dwookit_ci.ci_config({"ci": {"keepBuilds": 7, "keepArtifacts": 2}}))
         root = ET.fromstring(xml.encode("utf-8"))
         strategy = root.find("properties/jenkins.model.BuildDiscarderProperty/strategy")
         self.assertEqual(strategy.find("numToKeep").text, "7")
@@ -184,8 +184,8 @@ class JobXmlTests(unittest.TestCase):
         names = [p.find("name").text for p in root.find("properties/hudson.model.ParametersDefinitionProperty/parameterDefinitions")]
         self.assertEqual(names, ["REASON", "COMPILE", "LENS", "PACKAGE"])
         script = root.find("definition/script").text
-        self.assertIn("DWO_FORGE_LAUNCHER = 'C:\\\\P\\\\__dwo-forge.bat'", script)
-        self.assertIn("powershell '& $env:DWO_FORGE_LAUNCHER compile; exit $LASTEXITCODE'", script)
+        self.assertIn("DWOOKIT_LAUNCHER = 'C:\\\\P\\\\__dwookit.bat'", script)
+        self.assertIn("powershell '& $env:DWOOKIT_LAUNCHER compile; exit $LASTEXITCODE'", script)
         self.assertIn("for (check in ['analyze', 'logs', 'sizes'])", script)
         self.assertIn("junit allowEmptyResults: true", script)
         self.assertEqual(root.find("definition/sandbox").text, "true")
@@ -193,19 +193,19 @@ class JobXmlTests(unittest.TestCase):
     def test_step_scripts_carry_no_paths(self):
         # Jenkins writes step scripts as UTF-8 and cmd/PowerShell 5.1 read them in the console code page (949 on Korean
         # Windows): a Korean user or project name must only reach the steps through environment variables.
-        launcher = "C:\\Users\\홍길동\\내 프로젝트\\__dwo-forge.bat"
-        script = forge_ci.pipeline_script(launcher, ["analyze"])
+        launcher = "C:\\Users\\홍길동\\내 프로젝트\\__dwookit.bat"
+        script = dwookit_ci.pipeline_script(launcher, ["analyze"])
         self.assertNotIn("bat ", script)
         self.assertNotIn("bat(", script)
         steps = [l for l in script.splitlines() if "powershell" in l]
         self.assertTrue(steps)
         for line in steps:
             self.assertTrue(line.isascii(), line)
-        self.assertIn("DWO_FORGE_LAUNCHER = 'C:\\\\Users\\\\홍길동\\\\내 프로젝트\\\\__dwo-forge.bat'", script)
+        self.assertIn("DWOOKIT_LAUNCHER = 'C:\\\\Users\\\\홍길동\\\\내 프로젝트\\\\__dwookit.bat'", script)
 
     def test_launcher_quote_is_escaped(self):
-        script = forge_ci.pipeline_script("C:\\O'Brien\\__dwo-forge.bat", [])
-        self.assertIn("DWO_FORGE_LAUNCHER = 'C:\\\\O\\'Brien\\\\__dwo-forge.bat'", script)
+        script = dwookit_ci.pipeline_script("C:\\O'Brien\\__dwookit.bat", [])
+        self.assertIn("DWOOKIT_LAUNCHER = 'C:\\\\O\\'Brien\\\\__dwookit.bat'", script)
 
 
 class BuildLogEncodingTests(Tmp):
@@ -238,11 +238,11 @@ class BundleTests(Tmp):
     def test_manifest_round_trip_and_tamper(self):
         write(self.tmp / "jenkins.war", "war")
         write(self.tmp / "plugins" / "junit.jpi", "plugin")
-        forge_ci.make_manifest(self.tmp, {"jenkinsVersion": "2.0"})
-        self.assertEqual(forge_ci.verify_bundle(self.tmp)["jenkinsVersion"], "2.0")
+        dwookit_ci.make_manifest(self.tmp, {"jenkinsVersion": "2.0"})
+        self.assertEqual(dwookit_ci.verify_bundle(self.tmp)["jenkinsVersion"], "2.0")
         write(self.tmp / "plugins" / "junit.jpi", "changed")
         with self.assertRaises(ValueError):
-            forge_ci.verify_bundle(self.tmp)
+            dwookit_ci.verify_bundle(self.tmp)
 
 
 if __name__ == "__main__":

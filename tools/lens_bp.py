@@ -1,6 +1,6 @@
 """DwoLens tracked Blueprints: compressed pseudocode (.md) next to each full export (.json).
 
-The DwoLensInspector commandlet writes, for every Blueprint the user tracks (`__dwo-forge.bat bp add`):
+The DwoLensInspector commandlet writes, for every Blueprint the user tracks (`__dwookit.bat bp add`):
 
     <dir>/<package path>/<Name>.json     every graph, node, pin, link, default, variable, component (lens.bp/1)
     <dir>/export.json                    manifest of the last export
@@ -1252,7 +1252,7 @@ def write_folder(root: Path, project: Path | None, split_lines: int = SPLIT_LINE
         "`<Name>.md` (pseudocode, read this first) and `<Name>.json` (every node, pin and link). A Blueprint longer "
         f"than {split_lines} lines is split: `<Name>.md` is its overview with a table of parts, and every event and "
         "function is a file in `parts/` that reads on its own.",
-        "Refresh: `__dwo-forge.bat bp export` (editor closed). Track more: `__dwo-forge.bat bp add <path>`.",
+        "Refresh: `__dwookit.bat bp export` (editor closed). Track more: `__dwookit.bat bp add <path>`.",
         "",
         "| Blueprint | type : parent | vars | functions | nodes | pseudocode lines | parts | |",
         "|---|---|---|---|---|---|---|---|",

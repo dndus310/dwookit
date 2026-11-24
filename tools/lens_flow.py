@@ -416,7 +416,7 @@ def read_ini(project: Path | None, model: Model) -> dict:
 def tracked_packages(project: Path | None) -> set[str]:
     if not project:
         return set()
-    manifest = load(project / "__dwo-forge" / "blueprints" / "export.json") or {}
+    manifest = load(project / "__dwookit" / "blueprints" / "export.json") or {}
     return {e.get("package") for e in manifest.get("exported", [])}
 
 
@@ -428,7 +428,7 @@ def build(raw: Path, out: Path, project: Path | None) -> dict:
     behaviors = m.behaviors()
     tracked = tracked_packages(project)
     # Live Lens: classes that existed while the game ran in the editor (PIE), over all sessions
-    runtime = (load(project / "__dwo-forge" / "live" / "runtime.json") or {}).get("classes", {}) if project else {}
+    runtime = (load(project / "__dwookit" / "live" / "runtime.json") or {}).get("classes", {}) if project else {}
     gamemodes = sorted({k for k in m.symbols if m.project_class(k) and m.role(k) == "gamemode"},
                        key=lambda k: (k != ini.get("gamemode"), short(k)))
     # one GameMode per Blueprint/C++ pair is enough as a root: prefer the Blueprint child that is used
@@ -513,7 +513,7 @@ def render_html(doc: dict) -> str:
     if not doc.get("roots"):
         return ""
     parts = ["<section><h2>게임 흐름</h2><p class='meta'>맵에서 출발해 게임 모드, 플레이어 객체, 그들이 만들고 쓰는 객체로 내려갑니다. "
-             "호출·참조까지 포함한 전체는 dwo-Forge 창의 DwoLens › 게임 흐름에서 봅니다.</p>"]
+             "호출·참조까지 포함한 전체는 dwookit 창의 DwoLens › 게임 흐름에서 봅니다.</p>"]
     for root in [r for r in doc["roots"] if r["kind"] == "map"][:8]:
         keys, edges = reachable(doc, root["key"])
         if len(keys) < 2:

@@ -1,6 +1,6 @@
 # DwoStateMonitor
 
-dwo-Forge가 제공하는 세 도구 중 하나입니다(Lens · **DwoStateMonitor** · DwoCanvas). dwo-Lens 1.x에서는 `StateMonitor`라는 이름이었고, 2.0부터 플러그인·모듈 이름이 `DwoStateMonitor`입니다. 클래스와 헤더 이름(`UStateMonitorSubsystem`, `StateMonitorSubsystem.h` 등)은 그대로입니다.
+dwookit가 제공하는 세 도구 중 하나입니다(Lens · **DwoStateMonitor** · DwoCanvas). dwo-Lens 1.x에서는 `StateMonitor`라는 이름이었고, 2.0부터 플러그인·모듈 이름이 `DwoStateMonitor`입니다. 클래스와 헤더 이름(`UStateMonitorSubsystem`, `StateMonitorSubsystem.h` 등)은 그대로입니다.
 
 ## 큰 그림
 
@@ -12,10 +12,10 @@ UStateMonitorSubsystem::Get(this)->Submit(TEXT("Player"), PlayerState);
 UStateMonitorSubsystem::Get(this)->ShowMonitor();
 ```
 
-## 코드 없이 쓰기 (dwo-Forge Live)
+## 코드 없이 쓰기 (dwookit Live)
 
 1. 아래 **설치**대로 플러그인을 넣습니다. 코드는 쓰지 않습니다.
-2. dwo-Forge 뷰어(DwoStateMonitor 화면)를 켭니다. 뷰어는 `127.0.0.1:47731`에서 기다립니다.
+2. dwookit 뷰어(DwoStateMonitor 화면)를 켭니다. 뷰어는 `127.0.0.1:47731`에서 기다립니다.
 3. PIE나 Standalone으로 게임을 실행합니다. 게임 인스턴스마다 뷰어에 접속하고(PIE 클라이언트가 여럿이면 각각), 뷰어가 자동 관찰을 켜면 다음 소스가 실시간으로 보입니다.
 
 | Source ID | 대상 |
@@ -24,10 +24,10 @@ UStateMonitorSubsystem::Get(this)->ShowMonitor();
 | `GameMode`, `GameState` | 현재 월드의 GameMode(서버만), GameState |
 | `PC0`, `PC0.PlayerState`, `PC0.Pawn` | 로컬 PlayerController와 그 PlayerState, Pawn (`PC1`… 순서) |
 | `PC0.Pawn.<컴포넌트>`, `PC0.HUD` | Pawn 컴포넌트 중 표시할 프로퍼티가 하나 이상 있는 것, HUD |
-| `<객체 이름>`, `<액터>.<컴포넌트>` | 관찰 목록의 클래스(뷰어의 `watch` 또는 `__dwo-forge/sm-watch.txt`)의 런타임 객체(액터·컴포넌트·위젯·UObject, 최대 개수까지)와 Watch State Object로 넣은 객체 |
+| `<객체 이름>`, `<액터>.<컴포넌트>` | 관찰 목록의 클래스(뷰어의 `watch` 또는 `__dwookit/sm-watch.txt`)의 런타임 객체(액터·컴포넌트·위젯·UObject, 최대 개수까지)와 Watch State Object로 넣은 객체 |
 | `<소스>.<프로퍼티>`, `<소스>.<프로퍼티>[i]` | 위 소스가 프로퍼티로 가리키는 런타임 객체 (참조 깊이만큼, 기본 1단계. 에셋·클래스 제외) |
 
-관찰 목록 파일 `<프로젝트>/__dwo-forge/sm-watch.txt`는 한 줄에 `클래스 이름 [최대 개수]`(`#` 주석)입니다. 게임 인스턴스가 시작할 때 읽으며, 뷰어 없이 게임 화면의 모니터만 켜도 이 목록의 객체를 관찰합니다. C++: `LoadWatchListFile(Path)`, `SetReferenceDepth(0~4)`.
+관찰 목록 파일 `<프로젝트>/__dwookit/sm-watch.txt`는 한 줄에 `클래스 이름 [최대 개수]`(`#` 주석)입니다. 게임 인스턴스가 시작할 때 읽으며, 뷰어 없이 게임 화면의 모니터만 켜도 이 목록의 객체를 관찰합니다. C++: `LoadWatchListFile(Path)`, `SetReferenceDepth(0~4)`.
 
 - 기본으로 **프로젝트 코드가 선언한 프로퍼티만** 담습니다. Blueprint 클래스의 변수와 엔진 폴더 밖 C++ 모듈의 `UPROPERTY`가 해당하며, 엔진 클래스(`AActor`, `APawn` 등)의 프로퍼티는 뷰어에서 `engine`을 켤 때만 담습니다. 그래서 엔진 기본 GameMode처럼 프로젝트 프로퍼티가 없는 객체는 빈 값(`{}`)으로 보입니다.
 - Deprecated, 에디터 전용, 델리게이트, Blueprint 실행 프레임은 항상 뺍니다. 엔진 쪽 Transient는 빼고 프로젝트 쪽 Transient는 남깁니다.
@@ -74,7 +74,7 @@ UTF-8 JSON Lines(한 줄에 JSON 하나, `\n`으로 구분)입니다. 게임이 
 
 ## 설치
 
-dwo-Forge를 쓰면 `__dwo-forge.bat sm-install`이 미리 빌드한 바이너리와 함께 `Plugins/__DwoStateMonitor`에 넣습니다(git에서 숨김, 기본은 에디터·PIE 전용). 직접 넣을 때는:
+dwookit를 쓰면 `__dwookit.bat sm-install`이 미리 빌드한 바이너리와 함께 `Plugins/__DwoStateMonitor`에 넣습니다(git에서 숨김, 기본은 에디터·PIE 전용). 직접 넣을 때는:
 
 1. `Plugins/DwoStateMonitor` 폴더를 대상 프로젝트의 `Plugins`에 복사합니다.
 2. 플러그인을 활성화합니다(`.uproject`의 `Plugins`에 `DwoStateMonitor` 추가 또는 에디터 플러그인 창).
@@ -141,7 +141,7 @@ SNew(SStateMonitor).Model(MonitorModel);
 
 ### StateMonitor (dwo-Lens 1.x) → DwoStateMonitor
 
-- 바뀐 것은 플러그인·모듈 이름뿐입니다. `Build.cs`의 `"StateMonitor"`와 `.uproject` `Plugins` 항목의 `StateMonitor`를 `DwoStateMonitor`로 바꾸세요. `__dwo-forge.bat status`와 `doctor`가 남은 곳을 알려 줍니다.
+- 바뀐 것은 플러그인·모듈 이름뿐입니다. `Build.cs`의 `"StateMonitor"`와 `.uproject` `Plugins` 항목의 `StateMonitor`를 `DwoStateMonitor`로 바꾸세요. `__dwookit.bat status`와 `doctor`가 남은 곳을 알려 줍니다.
 - 클래스, 함수, 헤더, 자동화 테스트 이름(`StateMonitor.*`)은 그대로라서 C++ 코드는 고칠 필요가 없습니다. API 매크로만 `STATEMONITOR_API` → `DWOSTATEMONITOR_API`로 바뀌었습니다(플러그인 내부용).
 - 저장된 블루프린트의 `/Script/StateMonitor` 참조는 `Config/Engine.ini`의 CoreRedirects(`PackageRedirects`)가 `/Script/DwoStateMonitor`로 연결합니다. 플러그인의 `Config/Engine.ini`는 플러그인이 마운트될 때 Engine 설정에 합쳐지고, UObject 초기화가 `[CoreRedirects]`를 읽기 전에 처리되므로 코드 등록이 필요 없습니다.
 - dwo-Lens가 설치한 `Plugins/__StateMonitor`는 `update` 또는 `sm-install` 때 같은 모드의 `Plugins/__DwoStateMonitor`로 바뀝니다.

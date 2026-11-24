@@ -86,13 +86,14 @@ def problems(run: Path, line: str) -> list[dict]:
 def sarif(run: Path, line: str, verdict: str, baseline: dict | None) -> dict:
     known = None
     if baseline:
-        known = {r.get("partialFingerprints", {}).get("dwoForge/v1")
+        fp = lambda r: r.get("partialFingerprints", {})
+        known = {fp(r).get("dwookit/v1") or fp(r).get("dwoForge/v1")      # baselines written before the rename
                  for rn in baseline.get("runs", []) for r in rn.get("results", [])}
     results, rules = [], {}
     for p in problems(run, line):
         rules.setdefault(p["rule"], {"id": p["rule"], "name": p["rule"]})
         r = {"ruleId": p["rule"], "level": p["level"], "message": {"text": p["message"] or p["rule"]},
-             "partialFingerprints": {"dwoForge/v1": p["fingerprint"]}}
+             "partialFingerprints": {"dwookit/v1": p["fingerprint"]}}
         loc = {}
         if p["file"]:
             phys = {"artifactLocation": {"uri": Path(p["file"]).as_uri() if Path(p["file"]).is_absolute() else p["file"]}}
@@ -112,7 +113,7 @@ def sarif(run: Path, line: str, verdict: str, baseline: dict | None) -> dict:
     return {
         "$schema": SARIF_SCHEMA, "version": "2.1.0",
         "runs": [{
-            "tool": {"driver": {"name": "dwo-Forge DwoLens", "rules": sorted(rules.values(), key=lambda r: r["id"])}},
+            "tool": {"driver": {"name": "dwookit DwoLens", "rules": sorted(rules.values(), key=lambda r: r["id"])}},
             "automationDetails": {"id": f"{line}/{run.name}"},
             "properties": {"check": line, "verdict": verdict, "newResults": new, "baselineCompared": baseline is not None},
             "results": results,
@@ -146,7 +147,7 @@ def junit(run: Path, line: str, run_doc: dict) -> str:
     total = sum(c[3] for c in cases)
     body = []
     for case, verdict, detail, secs in cases:
-        attrs = f"classname={quoteattr('dwo-forge.' + line)} name={quoteattr(case)} time=\"{secs:.3f}\""
+        attrs = f"classname={quoteattr('dwookit.' + line)} name={quoteattr(case)} time=\"{secs:.3f}\""
         if verdict == "fail":
             body.append(f"    <testcase {attrs}><failure message={quoteattr(detail or 'fail')}>{escape(detail)}</failure></testcase>")
         elif verdict == "warn":
@@ -154,7 +155,7 @@ def junit(run: Path, line: str, run_doc: dict) -> str:
         else:
             body.append(f"    <testcase {attrs}/>")
     return ("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-            f"<testsuites name=\"dwo-Forge\" tests=\"{len(cases)}\" failures=\"{failures}\" time=\"{total:.3f}\">\n"
+            f"<testsuites name=\"dwookit\" tests=\"{len(cases)}\" failures=\"{failures}\" time=\"{total:.3f}\">\n"
             f"  <testsuite name={quoteattr(name)} id={quoteattr(run.name)} tests=\"{len(cases)}\" failures=\"{failures}\" "
             f"errors=\"0\" skipped=\"0\" time=\"{total:.3f}\">\n" + "\n".join(body) + "\n  </testsuite>\n</testsuites>\n")
 
@@ -188,7 +189,7 @@ def main() -> int:
     ap.add_argument("--copy-to", type=Path)
     args = ap.parse_args()
     s = export(args.run, args.baseline, args.copy_to)
-    print(f"[dwo-forge] export: junit.xml, results.sarif ({s['results']} results, {s['new']} new)")
+    print(f"[dwookit] export: junit.xml, results.sarif ({s['results']} results, {s['new']} new)")
     return 0
 
 

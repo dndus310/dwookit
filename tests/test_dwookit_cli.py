@@ -1,6 +1,6 @@
-"""Command-line tests of tools/forge.ps1 that need no Unreal Engine: migration from dwo-Lens 1.x, the git
+"""Command-line tests of tools/dwookit.ps1 that need no Unreal Engine: migration from dwo-Lens 1.x, the git
 exclude block, DwoCanvas install-state rules, and uninstall. Every test works on a throwaway project with
-LOCALAPPDATA redirected, so the real %LOCALAPPDATA%\\dwo-Forge is never touched. Windows only.
+LOCALAPPDATA redirected, so the real %LOCALAPPDATA%\\dwookit is never touched. Windows only.
 """
 import json
 import os
@@ -12,13 +12,17 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-FORGE = ROOT / "tools" / "forge.ps1"
+FORGE = ROOT / "tools" / "dwookit.ps1"
 LEGACY_LAUNCHER = ROOT / "tests" / "fixtures" / "legacy_1x" / "__dwo-lens.bat"
+FORGE_LAUNCHER = ROOT / "tests" / "fixtures" / "dwo_forge_2x" / "__dwo-forge.bat"   # the launcher dwo-Forge 2.x wrote
 HAS_POWERSHELL = sys.platform == "win32" and shutil.which("powershell") is not None
 HAS_GIT = shutil.which("git") is not None
 
 LEGACY_BLOCK = ("# >>> dwo-lens managed: . (do not edit) >>>\n/__dwo-lens/\n/__dwo-lens.bat\n/Plugins/__DwoLensInspector/\n"
                 "/Plugins/__StateMonitor/\n# <<< dwo-lens managed <<<\n")
+FORGE_BLOCK = ("# >>> dwo-forge managed: . (do not edit) >>>\n/__dwo-forge/\n/__dwo-forge.bat\n/Plugins/__DwoLensInspector/\n"
+               "/CLAUDE.local.md\n/.github/instructions/dwo-forge.instructions.md\n/.github/instructions/project.instructions.md\n"
+               "# <<< dwo-forge managed <<<\n")
 
 
 def write(path: Path, text: str) -> Path:
@@ -42,7 +46,7 @@ class ForgeCliTests(unittest.TestCase):
     def env(self, **extra):
         e = dict(os.environ)
         e["LOCALAPPDATA"] = str(self.appdata)
-        for k in ("DWO_FORGE_FROM_BAT", "DWO_LENS_FROM_BAT"):
+        for k in ("DWOOKIT_FROM_BAT", "DWO_FORGE_FROM_BAT", "DWO_LENS_FROM_BAT"):
             e.pop(k, None)
         e.update(extra)
         return e
@@ -76,28 +80,102 @@ class ForgeCliTests(unittest.TestCase):
 
     # ------------------------------------------------------------------ migration
 
+    def make_forge_project(self):
+        """A project as dwo-Forge 2.x left it: __dwo-forge, its launcher, exclude block, agent pointer files, a
+        DwoBuilder git hook and %LOCALAPPDATA%\\dwo-Forge."""
+        forge = self.project / "__dwo-forge"
+        write(forge / "state.json", json.dumps({"schema": "forge.state/1", "project": "Game", "gitStatusBeforeAttach": ""}))
+        write(forge / "home.txt", str(ROOT))
+        write(forge / "data" / "runs" / "run-20261101-000000" / "run.json", json.dumps({"line": "architecture-report", "final": "pass"}))
+        write(forge / "created-files.txt", ".github/instructions/dwo-forge.instructions.md\n")
+        shutil.copy(FORGE_LAUNCHER, self.project / "__dwo-forge.bat")
+        write(self.appdata / "dwo-Forge" / "gui.json", json.dumps({"recent": [str(self.project)]}))
+        write(self.project / "CLAUDE.local.md", "# mine\n\n<!-- >>> dwo-forge managed (removed by __dwo-forge.bat uninstall) >>> -->\n"
+              "@__dwo-forge/context/AGENT.md\n<!-- <<< dwo-forge managed <<< -->\n")
+        write(self.project / ".github" / "instructions" / "dwo-forge.instructions.md",
+              "---\n<!-- dwo-forge managed: removed by __dwo-forge.bat uninstall -->\nread __dwo-forge/context/AGENT.md\n")
+        if HAS_GIT:
+            subprocess.run(["git", "init", "-q", str(self.project)], check=True)
+            self.git("add", "Game.uproject")
+            self.git("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "base")
+            exclude = self.project / ".git" / "info" / "exclude"
+            exclude.write_text(exclude.read_text(encoding="utf-8") + "\n" + FORGE_BLOCK, encoding="utf-8")
+            hooks = self.project / ".git" / "hooks"
+            write(hooks / "post-commit", "#!/bin/sh\n# dwo-forge-ci-hook: dwo-Forge DwoBuilder.\nstate=__dwo-forge/ci\n"
+                  "[ -x post-commit.dwo-forge-orig ] && ./post-commit.dwo-forge-orig\n")
+            write(hooks / "post-commit.dwo-forge-orig", "#!/bin/sh\necho mine\n")
+
+    def test_migrates_a_dwo_forge_project_on_any_command(self):
+        self.make_forge_project()
+        code, out = self.forge("sm-remove")   # needs no engine; migration runs before every command
+        self.assertEqual(code, 0, out)
+        kit = self.project / "__dwookit"
+        self.assertTrue((kit / "state.json").exists(), out)
+        self.assertTrue((kit / "data" / "runs" / "run-20261101-000000" / "run.json").exists())
+        self.assertFalse((self.project / "__dwo-forge").exists(), out)
+        self.assertFalse((self.project / "__dwo-forge.bat").exists())
+        self.assertIn("dwookit project launcher", (self.project / "__dwookit.bat").read_text(encoding="utf-8"))
+        self.assertTrue((self.appdata / "dwookit" / "gui.json").exists())
+        self.assertFalse((self.appdata / "dwo-Forge").exists())
+        self.assertIn("dwookit.instructions.md", (kit / "created-files.txt").read_text(encoding="utf-8"))
+        claude = (self.project / "CLAUDE.local.md").read_text(encoding="utf-8")
+        self.assertIn("# mine", claude)                                    # the user's own lines stay
+        self.assertNotIn("dwo-forge", claude)
+        self.assertIn("@__dwookit/context/AGENT.md", claude)
+        self.assertFalse((self.project / ".github" / "instructions" / "dwo-forge.instructions.md").exists())
+        self.assertTrue((self.project / ".github" / "instructions" / "dwookit.instructions.md").exists())
+        if HAS_GIT:
+            exclude = (self.project / ".git" / "info" / "exclude").read_text(encoding="utf-8")
+            self.assertIn("# >>> dwookit managed: . (do not edit) >>>", exclude)
+            self.assertNotIn("dwo-forge managed", exclude)
+            self.assertEqual(self.git("status", "--porcelain", "--untracked-files=all"), "", "dwookit files stay hidden")
+            hooks = self.project / ".git" / "hooks"
+            hook = (hooks / "post-commit").read_text(encoding="utf-8")
+            self.assertIn("dwookit-ci-hook", hook)
+            self.assertNotIn("dwo-forge", hook)
+            self.assertTrue((hooks / "post-commit.dwookit-orig").exists())
+        code, out = self.forge("sm-remove")
+        self.assertEqual(code, 0, out)
+        self.assertNotIn("Migrated", out)
+
+    def test_dwo_forge_launcher_hands_over_to_the_new_one(self):
+        """__dwo-forge.bat runs tools\\forge.ps1 (kept as a forwarder) and migrates while it is running."""
+        self.make_forge_project()
+        old = self.project / "__dwo-forge.bat"
+        run = lambda: subprocess.run(["cmd", "/c", str(old), "sm-remove"], capture_output=True, text=True, encoding="utf-8",
+                                     errors="replace", env=self.env(), cwd=str(self.project))
+        r = run()
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertTrue((self.project / "__dwookit" / "state.json").exists())
+        self.assertTrue((self.project / "__dwookit.bat").exists())
+        self.assertIn("dwookit legacy launcher", old.read_text(encoding="utf-8"), "old launcher replaced by the forwarder")
+        r = run()
+        self.assertIn("launcher of an earlier name", r.stdout)
+        self.assertFalse(old.exists())
+        self.assertFalse((self.project / "__dwo-forge").exists())
+
     def test_migrates_a_dwo_lens_project_on_any_command(self):
         self.make_legacy_project()
         code, out = self.forge("sm-remove")   # needs no engine; migration runs before every command
         self.assertEqual(code, 0, out)
-        forge = self.project / "__dwo-forge"
+        forge = self.project / "__dwookit"
         self.assertTrue((forge / "state.json").exists(), out)
         self.assertTrue((forge / "data" / "runs" / "run-20260101-000000" / "run.json").exists())
         self.assertEqual(json.loads((forge / "gui.json").read_text(encoding="utf-8"))["mutes"], ["finding:x"])
         self.assertEqual((forge / "home.txt").read_text(encoding="utf-8").strip(), str(ROOT))
         self.assertFalse((self.project / "__dwo-lens").exists())
         self.assertFalse((self.project / "__dwo-lens.bat").exists())
-        self.assertIn("dwo-Forge project launcher", (self.project / "__dwo-forge.bat").read_text(encoding="utf-8"))
-        # %LOCALAPPDATA%\dwo-Lens -> dwo-Forge
-        self.assertTrue((self.appdata / "dwo-Forge" / "gui.json").exists())
-        self.assertTrue((self.appdata / "dwo-Forge" / "uninstalled" / "Old-1" / "data" / "x.txt").exists())
+        self.assertIn("dwookit project launcher", (self.project / "__dwookit.bat").read_text(encoding="utf-8"))
+        # %LOCALAPPDATA%\dwo-Lens -> dwookit
+        self.assertTrue((self.appdata / "dwookit" / "gui.json").exists())
+        self.assertTrue((self.appdata / "dwookit" / "uninstalled" / "Old-1" / "data" / "x.txt").exists())
         self.assertFalse((self.appdata / "dwo-Lens").exists())
         if HAS_GIT:
             exclude = (self.project / ".git" / "info" / "exclude").read_text(encoding="utf-8")
-            self.assertIn("# >>> dwo-forge managed: . (do not edit) >>>", exclude)
+            self.assertIn("# >>> dwookit managed: . (do not edit) >>>", exclude)
             self.assertNotIn("dwo-lens managed", exclude)
-            self.assertIn("/__dwo-forge/", exclude)
-            self.assertEqual(self.git("status", "--porcelain", "--untracked-files=all"), "", "dwo-Forge files stay hidden")
+            self.assertIn("/__dwookit/", exclude)
+            self.assertEqual(self.git("status", "--porcelain", "--untracked-files=all"), "", "dwookit files stay hidden")
         # a second run changes nothing
         code, out = self.forge("sm-remove")
         self.assertEqual(code, 0, out)
@@ -110,22 +188,22 @@ class ForgeCliTests(unittest.TestCase):
         r = subprocess.run(["cmd", "/c", str(legacy), "sm-remove"], capture_output=True, text=True, encoding="utf-8",
                            errors="replace", env=self.env(), cwd=str(self.project))
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-        self.assertTrue((self.project / "__dwo-forge" / "state.json").exists())
-        self.assertTrue((self.project / "__dwo-forge.bat").exists())
-        self.assertIn("dwo-Forge legacy launcher", legacy.read_text(encoding="utf-8"), "old launcher replaced by the forwarder")
-        # next use: forwards to __dwo-forge.bat, then the forwarder and the empty __dwo-lens folder are gone
+        self.assertTrue((self.project / "__dwookit" / "state.json").exists())
+        self.assertTrue((self.project / "__dwookit.bat").exists())
+        self.assertIn("dwookit legacy launcher", legacy.read_text(encoding="utf-8"), "old launcher replaced by the forwarder")
+        # next use: forwards to __dwookit.bat, then the forwarder and the empty __dwo-lens folder are gone
         r = subprocess.run(["cmd", "/c", str(legacy), "sm-remove"], capture_output=True, text=True, encoding="utf-8",
                            errors="replace", env=self.env(), cwd=str(self.project))
-        self.assertIn("deprecated", r.stdout)
+        self.assertIn("launcher of an earlier name", r.stdout)
         self.assertFalse(legacy.exists())
         self.assertFalse((self.project / "__dwo-lens").exists())
-        self.assertTrue((self.project / "__dwo-forge.bat").exists())
+        self.assertTrue((self.project / "__dwookit.bat").exists())
 
     def test_uninstall_removes_new_and_old_names(self):
         self.make_legacy_project()
         code, out = self.forge("uninstall", "--delete-data")
         self.assertIn(code, (0, 3), out)
-        for name in ("__dwo-forge", "__dwo-forge.bat", "__dwo-lens", "__dwo-lens.bat"):
+        for name in ("__dwookit", "__dwookit.bat", "__dwo-lens", "__dwo-lens.bat"):
             self.assertFalse((self.project / name).exists(), f"{name} left behind\n{out}")
         if HAS_GIT:
             exclude = (self.project / ".git" / "info" / "exclude").read_text(encoding="utf-8")
@@ -143,11 +221,11 @@ class ForgeCliTests(unittest.TestCase):
     # ------------------------------------------------------------------ DwoCanvas
 
     def make_canvas(self, managed=True):
-        # Managed: Plugins/__DwoCanvas with the dwo-Forge marker. Otherwise the project's own Plugins/DwoCanvas.
+        # Managed: Plugins/__DwoCanvas with the dwookit marker. Otherwise the project's own Plugins/DwoCanvas.
         plugin = self.project / "Plugins" / ("__DwoCanvas" if managed else "DwoCanvas")
         write(plugin / "DwoCanvas.uplugin", json.dumps({"FileVersion": 3, "VersionName": "0.2.0"}))
         if managed:
-            write(plugin / ".dwo-forge-managed", "installed by dwo-Forge")
+            write(plugin / ".dwookit-managed", "installed by dwookit")
         return plugin
 
     def make_widget_user(self):
@@ -164,7 +242,7 @@ class ForgeCliTests(unittest.TestCase):
         self.assertEqual(code, 0, out)
         new = self.project / "Plugins" / "__DwoCanvas"
         self.assertFalse(old.exists(), out)
-        self.assertTrue((new / ".dwo-forge-managed").exists())
+        self.assertTrue((new / ".dwookit-managed").exists())
         self.assertFalse((new / ".dwo-forge-installed").exists())
         self.assertIn("__DwoCanvas", out)
 
@@ -198,7 +276,7 @@ class ForgeCliTests(unittest.TestCase):
         code, out = self.forge("uninstall", "--delete-data")
         self.assertIn(code, (0, 3), out)
         self.assertFalse(plugin.exists(), out)
-        self.assertFalse((self.project / "__dwo-forge").exists())
+        self.assertFalse((self.project / "__dwookit").exists())
 
     def test_uninstall_asks_about_generated_widgets(self):
         # Without a choice (and no console to ask on) nothing is changed.
@@ -210,7 +288,7 @@ class ForgeCliTests(unittest.TestCase):
         self.assertIn("WBP_Shop.uasset", out)
         self.assertIn("--delete-generated", out)
         self.assertTrue(plugin.exists())
-        self.assertTrue((self.project / "__dwo-forge").exists(), "a refusal leaves the attach intact")
+        self.assertTrue((self.project / "__dwookit").exists(), "a refusal leaves the attach intact")
 
     def test_uninstall_in_one_step_deletes_generated_widgets_and_records(self):
         self.make_legacy_project()
@@ -271,7 +349,7 @@ class ForgeCliTests(unittest.TestCase):
         self.assertIn("InstalledPlugins=glTFRuntime", ini.read_text(encoding="utf-8"))
         self.assertFalse(tests.exists() or (self.project / "Content" / "DwoCanvasTests").exists())
         self.assertFalse(reports.exists() or (self.project / "Saved" / "DwoCanvas").exists())
-        backups = list((self.appdata / "dwo-Forge" / "uninstalled").glob("*/backup/Game.uproject"))
+        backups = list((self.appdata / "dwookit" / "uninstalled").glob("*/backup/Game.uproject"))
         self.assertEqual(len(backups), 1, "edited project files are backed up")
         self.assertIn("DwoStateMonitor", backups[0].read_text(encoding="utf-8"))
 
@@ -334,7 +412,7 @@ class ForgeCliTests(unittest.TestCase):
         doc = {"schema": "forge.state/0.4", "project": "Game", "engineVersion": "", "systemCommit": "2.0.0", "vcs": "none",
                "attachedAt": "2026-01-01T00:00:00", "tools": tools or {}}
         doc.update(state)
-        write(self.project / "__dwo-forge" / "state.json", json.dumps(doc))
+        write(self.project / "__dwookit" / "state.json", json.dumps(doc))
 
     def tools(self):
         code, out = self.forge("tools", "--json")
@@ -348,7 +426,7 @@ class ForgeCliTests(unittest.TestCase):
         self.assertFalse(doc["project"]["connected"])
         self.assertEqual(list(tools), ["lens", "statemonitor", "canvas", "ci"])
         self.assertTrue(all(t["state"] == "none" for t in tools.values()))
-        self.assertFalse((self.project / "__dwo-forge").exists(), "tools never writes into the project")
+        self.assertFalse((self.project / "__dwookit").exists(), "tools never writes into the project")
         self.assertIn("jenkins", doc["pc"])
 
     def test_tool_commands_need_a_connected_project(self):
@@ -367,7 +445,7 @@ class ForgeCliTests(unittest.TestCase):
         self.connect_fake()
         self.make_canvas()
         _, tools = self.tools()
-        self.assertEqual(tools["canvas"]["state"], "update", "no record (installed by an older dwo-Forge): offer an update")
+        self.assertEqual(tools["canvas"]["state"], "update", "no record (installed by an older dwookit): offer an update")
         self.assertEqual(tools["canvas"]["reason"], "unknown-version")
         current, release = tools["canvas"]["availableHash"], tools["canvas"]["availableVersion"]
         self.connect_fake(tools={"canvas": {"version": release, "hash": current}})
@@ -382,7 +460,7 @@ class ForgeCliTests(unittest.TestCase):
     def test_lens_installed_before_3_0_is_read_from_plugin_hash(self):
         lens = self.project / "Plugins" / "__DwoLensInspector"
         write(lens / "DwoLensInspector.uplugin", "{}")
-        write(lens / ".dwo-forge-managed", "x")
+        write(lens / ".dwookit-managed", "x")
         _, tools = self.tools()
         current = tools["lens"]["availableHash"]
         self.connect_fake(pluginHash=current, systemCommit="2.0.1+abc")
@@ -393,10 +471,10 @@ class ForgeCliTests(unittest.TestCase):
 
     def test_an_older_project_launcher_is_reported(self):
         self.connect_fake()
-        shutil.copy(ROOT / "tools" / "project-launcher.bat", self.project / "__dwo-forge.bat")
+        shutil.copy(ROOT / "tools" / "project-launcher.bat", self.project / "__dwookit.bat")
         doc, _ = self.tools()
         self.assertFalse(doc["project"]["launcherOutdated"])
-        write(self.project / "__dwo-forge.bat", "@echo off\nrem a launcher from an older dwo-Forge\n")
+        write(self.project / "__dwookit.bat", "@echo off\nrem a launcher from an older dwookit\n")
         doc, _ = self.tools()
         self.assertTrue(doc["project"]["launcherOutdated"])
         code, out = self.forge("tool", "update", "--all")
@@ -407,23 +485,23 @@ class ForgeCliTests(unittest.TestCase):
 
     def test_any_command_replaces_files_from_an_older_connection(self):
         self.connect_fake()
-        write(self.project / "__dwo-forge.bat", "@echo off\nrem a launcher from an older dwo-Forge\n")
-        write(self.project / "__dwo-forge" / "home.txt", "C:\\old\\dwo-Lens")
+        write(self.project / "__dwookit.bat", "@echo off\nrem a launcher from an older dwookit\n")
+        write(self.project / "__dwookit" / "home.txt", "C:\\old\\dwo-Lens")
         code, out = self.forge("status")
         self.assertEqual(code, 0, out)
-        self.assertIn("updated to this dwo-Forge", out)
-        self.assertEqual((self.project / "__dwo-forge.bat").read_bytes(), (ROOT / "tools" / "project-launcher.bat").read_bytes())
-        self.assertEqual((self.project / "__dwo-forge" / "home.txt").read_text(encoding="utf-8-sig").strip(), str(ROOT))
+        self.assertIn("updated to this dwookit", out)
+        self.assertEqual((self.project / "__dwookit.bat").read_bytes(), (ROOT / "tools" / "project-launcher.bat").read_bytes())
+        self.assertEqual((self.project / "__dwookit" / "home.txt").read_text(encoding="utf-8-sig").strip(), str(ROOT))
         code, out = self.forge("status")
-        self.assertNotIn("updated to this dwo-Forge", out, "nothing to do the second time")
+        self.assertNotIn("updated to this dwookit", out, "nothing to do the second time")
 
     def test_tools_json_does_not_touch_an_older_connection(self):
         self.connect_fake()
-        old = "@echo off\nrem a launcher from an older dwo-Forge\n"
-        write(self.project / "__dwo-forge.bat", old)
+        old = "@echo off\nrem a launcher from an older dwookit\n"
+        write(self.project / "__dwookit.bat", old)
         doc, _ = self.tools()
         self.assertTrue(doc["project"]["launcherOutdated"])
-        self.assertEqual((self.project / "__dwo-forge.bat").read_text(encoding="utf-8"), old, "tools only reads")
+        self.assertEqual((self.project / "__dwookit.bat").read_text(encoding="utf-8"), old, "tools only reads")
 
     def test_tool_from_an_older_release_is_offered_as_an_update(self):
         self.connect_fake()
@@ -451,44 +529,44 @@ class ForgeCliTests(unittest.TestCase):
         code, out = self.forge("tool", "remove", "canvas")
         self.assertEqual(code, 0, out)
         self.assertFalse((self.project / "Plugins" / "__DwoCanvas").exists())
-        state = json.loads((self.project / "__dwo-forge" / "state.json").read_text(encoding="utf-8-sig"))
+        state = json.loads((self.project / "__dwookit" / "state.json").read_text(encoding="utf-8-sig"))
         self.assertEqual(list(state["tools"]), ["lens"])
 
     def test_tool_names_work_as_ids(self):
         # DwoCanvas / DwoBuilder (and builder) name the same tools as canvas / ci.
         self.make_canvas()
-        write(self.project / "__dwo-forge" / "ci.json", json.dumps({"job": "dwo-forge-Game", "hash": "x"}))
+        write(self.project / "__dwookit" / "ci.json", json.dumps({"job": "dwookit-Game", "hash": "x"}))
         self.connect_fake(tools={"canvas": {"version": "3.0.0", "hash": "x"}})
         code, out = self.forge("tool", "remove", "DwoCanvas")
         self.assertEqual(code, 0, out)
         self.assertFalse((self.project / "Plugins" / "__DwoCanvas").exists())
-        code, out = self.forge("tool", "remove", "builder", DWO_FORGE_CI_HOME=str(self.tmp / "no-ci"))
+        code, out = self.forge("tool", "remove", "builder", DWOOKIT_CI_HOME=str(self.tmp / "no-ci"))
         self.assertEqual(code, 0, out)
-        self.assertFalse((self.project / "__dwo-forge" / "ci.json").exists())
+        self.assertFalse((self.project / "__dwookit" / "ci.json").exists())
 
     def test_local_ci_record_lives_in_ci_json(self):
         self.connect_fake()
         _, tools = self.tools()
         current = tools["ci"]["availableHash"]
-        write(self.project / "__dwo-forge" / "ci.json", json.dumps({"job": "dwo-forge-Game", "version": "2.1.0", "hash": "old"}))
+        write(self.project / "__dwookit" / "ci.json", json.dumps({"job": "dwookit-Game", "version": "2.1.0", "hash": "old"}))
         _, tools = self.tools()
         self.assertEqual(tools["ci"]["state"], "update")
-        self.assertEqual(tools["ci"]["detail"], "dwo-forge-Game")
-        write(self.project / "__dwo-forge" / "ci.json", json.dumps({"job": "dwo-forge-Game", "version": "3.0.0", "hash": current}))
+        self.assertEqual(tools["ci"]["detail"], "dwookit-Game")
+        write(self.project / "__dwookit" / "ci.json", json.dumps({"job": "dwookit-Game", "version": "3.0.0", "hash": current}))
         _, tools = self.tools()
         self.assertEqual(tools["ci"]["state"], "installed")
 
     def test_ci_hash_formula_matches_ci_ps1(self):
-        # forge.ps1 and ci.ps1 each compute the Local CI source hash; they must agree or every CI shows an update.
+        # dwookit.ps1 and ci.ps1 each compute the Local CI source hash; they must agree or every CI shows an update.
         import hashlib
         parts = "".join(f"{rel}={hashlib.sha256((ROOT / rel.replace(chr(92), '/')).read_bytes()).hexdigest().upper()};"
-                        for rel in ("tools\\forge_ci.py", "tools\\ci.ps1"))
+                        for rel in ("tools\\dwookit_ci.py", "tools\\ci.ps1"))
         expected = hashlib.sha256(parts.encode("utf-8")).hexdigest()[:12]
         self.connect_fake()
         _, tools = self.tools()
         self.assertEqual(tools["ci"]["availableHash"], expected)
         text = (ROOT / "tools" / "ci.ps1").read_text(encoding="utf-8")
-        self.assertIn("foreach ($f in @('tools\\forge_ci.py', 'tools\\ci.ps1'))", text)
+        self.assertIn("foreach ($f in @('tools\\dwookit_ci.py', 'tools\\ci.ps1'))", text)
 
 
 if __name__ == "__main__":

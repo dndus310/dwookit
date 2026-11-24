@@ -375,7 +375,7 @@ static void DrawFlowInspector(App& app)
 				{
 					auto list = ReadTargetList(BpTrackPath(app));
 					list.push_back(package);
-					WriteTargetList(BpTrackPath(app), "Blueprints followed by dwo-Forge (bp add / bp remove). One package path or folder (ending with /) per line.", list);
+					WriteTargetList(BpTrackPath(app), "Blueprints followed by dwookit (bp add / bp remove). One package path or folder (ending with /) per line.", list);
 					g_files.sel = package.substr(1);
 					app.Run("bp export");
 				}

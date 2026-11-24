@@ -33,7 +33,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogDwoLensLive, Log, All);
 
 namespace DwoLensLive
 {
-	FString ForgeDir() { return FPaths::ConvertRelativePathToFull(FPaths::Combine(FPaths::ProjectDir(), TEXT("__dwo-forge"))); }
+	FString ForgeDir() { return FPaths::ConvertRelativePathToFull(FPaths::Combine(FPaths::ProjectDir(), TEXT("__dwookit"))); }
 
 	TSharedPtr<FJsonObject> ReadJson(const FString& Path)
 	{
@@ -575,10 +575,10 @@ void UDwoLensLiveSubsystem::OnShutdown()
 void UDwoLensLiveSubsystem::StartIngest()
 {
 	// Processing happens out of process after the editor closed (it waits for this process id).
-	const FString Launcher = FPaths::ConvertRelativePathToFull(FPaths::Combine(FPaths::ProjectDir(), TEXT("__dwo-forge.bat")));
+	const FString Launcher = FPaths::ConvertRelativePathToFull(FPaths::Combine(FPaths::ProjectDir(), TEXT("__dwookit.bat")));
 	if (!IFileManager::Get().FileExists(*Launcher))
 	{
-		UE_LOG(LogDwoLensLive, Warning, TEXT("Live Lens: %s not found; run __dwo-forge.bat live-ingest later"), *Launcher);
+		UE_LOG(LogDwoLensLive, Warning, TEXT("Live Lens: %s not found; run __dwookit.bat live-ingest later"), *Launcher);
 		return;
 	}
 	const FString Args = FString::Printf(TEXT("/c \"\"%s\" live-ingest --wait-pid %u\""), *Launcher, FPlatformProcess::GetCurrentProcessId());

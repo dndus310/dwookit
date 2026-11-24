@@ -673,7 +673,7 @@ def cache_dir(args) -> Path:
     if os.environ.get(CACHE_ENV):
         return Path(os.environ[CACHE_ENV])
     base = os.environ.get("LOCALAPPDATA") or os.path.join(os.path.expanduser("~"), ".cache")
-    return Path(base) / "dwo-Forge" / "canvas-inference-cache"
+    return Path(base) / "dwookit" / "canvas-inference-cache"
 
 
 def cache_key(request: dict, inputs: Inputs, args) -> str:
@@ -793,7 +793,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--no-fallback", action="store_true", help="disable the server-side refusal fallback (drops betas / fallbacks)")
     p.add_argument("--mock", help="JSON list of canned assistant replies, used in order instead of the API")
     p.add_argument("--no-cache", action="store_true", help="neither read nor write the reply cache")
-    p.add_argument("--cache-dir", help=r"cache directory [%%LOCALAPPDATA%%\dwo-Forge\canvas-inference-cache]")
+    p.add_argument("--cache-dir", help=r"cache directory [%%LOCALAPPDATA%%\dwookit\canvas-inference-cache]")
     p.add_argument("--quiet", action="store_true", help="only the final report")
     return p
 

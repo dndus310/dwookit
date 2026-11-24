@@ -1,4 +1,4 @@
-"""dwo-Forge DwoLens structured log parser (ST-4).
+"""dwookit DwoLens structured log parser (ST-4).
 
 Turns Unreal log files and crash folders into grouped, fingerprinted events so every wrapped tool
 (commandlets, automation, editor sessions) reports in one shape. Standard library only.
@@ -196,7 +196,7 @@ def main() -> int:
     summary = run(args.files, args.crashes, set(args.ignore), baseline)
     summary["verdict"] = verdict_of(summary)
     args.out.write_text(json.dumps(summary, ensure_ascii=False, indent=1), encoding="utf-8")
-    print(f"[dwo-forge] logs: {summary['counts']} groups={len(summary['groups'])} new={summary['newGroups']} "
+    print(f"[dwookit] logs: {summary['counts']} groups={len(summary['groups'])} new={summary['newGroups']} "
           f"crashes={len(summary['crashes'])} newCrashes={summary['newCrashes']} verdict={summary['verdict']}")
     return 0
 
