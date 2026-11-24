@@ -414,6 +414,34 @@ class ForgeCliTests(unittest.TestCase):
         doc.update(state)
         write(self.project / "__dwookit" / "state.json", json.dumps(doc))
 
+    def test_library_selection_is_hidden_from_git_and_removed_by_uninstall(self):
+        lib = self.tmp / "library"
+        rules = write(self.tmp / "rules.md", "# Rules\nUse UPROPERTY for every UObject pointer.\n")
+        skill = write(self.tmp / "bp-review" / "SKILL.md", "---\nname: bp-review\ndescription: Reviews Blueprints.\n---\nSteps.\n")
+        code, out = self.forge("library", "add-instruction", str(rules), DWOOKIT_LIBRARY=str(lib))
+        self.assertEqual(code, 0, out)
+        code, out = self.forge("library", "add-skill", str(skill.parent), DWOOKIT_LIBRARY=str(lib))
+        self.assertEqual(code, 0, out)
+        self.assertFalse((self.project / "__dwookit").exists(), "the library needs no project")
+        if HAS_GIT:
+            subprocess.run(["git", "init", "-q", str(self.project)], check=True)
+            self.git("add", "Game.uproject")
+            self.git("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "base")
+        self.connect_fake(vcs="git" if HAS_GIT else "none")
+        code, out = self.forge("agent", "use", "--instructions", "rules", "--skills", "bp-review", "--targets", "claude,copilot",
+                               DWOOKIT_LIBRARY=str(lib))
+        self.assertEqual(code, 0, out)
+        for rel in (".claude/skills/bp-review/SKILL.md", ".github/skills/bp-review/SKILL.md",
+                    ".github/instructions/dwookit-rules.instructions.md", "__dwookit/context/instructions/rules.md"):
+            self.assertTrue((self.project / rel).exists(), f"{rel}\n{out}")
+        if HAS_GIT:
+            self.assertEqual(self.git("status", "--porcelain", "--untracked-files=all"), "", "the selection stays hidden from git")
+        code, out = self.forge("uninstall", "--delete-data", DWOOKIT_LIBRARY=str(lib))
+        self.assertIn(code, (0, 3), out)
+        for rel in (".claude", ".github", "CLAUDE.local.md", "__dwookit"):
+            self.assertFalse((self.project / rel).exists(), f"{rel} left behind\n{out}")
+        self.assertTrue((lib / "skills" / "bp-review" / "SKILL.md").exists(), "the library itself stays")
+
     def tools(self):
         code, out = self.forge("tools", "--json")
         self.assertEqual(code, 0, out)

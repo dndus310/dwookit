@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -977,6 +978,117 @@ class BlueprintPartsTests(TempDir):
         self.assertEqual(lens_bp.write_folder(root, None), 0)
         self.assertFalse((door / "parts").exists())
         self.assertIn("on BeginPlay():", (door / "BP_DoorFrame.md").read_text(encoding="utf-8"))
+
+
+class LibraryTests(TempDir):
+    """lens_library.py: the instruction and skill library, and what a project gets for Claude Code and Copilot."""
+
+    def setUp(self):
+        super().setUp()
+        self.lib = self.tmp / "library"
+        self.project = self.tmp / "Proj"
+        self.forge = self.project / "__dwookit"
+        self.forge.mkdir(parents=True)
+        self.old = os.environ.get("DWOOKIT_LIBRARY")
+        os.environ["DWOOKIT_LIBRARY"] = str(self.lib)
+
+    def tearDown(self):
+        if self.old is None:
+            os.environ.pop("DWOOKIT_LIBRARY", None)
+        else:
+            os.environ["DWOOKIT_LIBRARY"] = self.old
+        super().tearDown()
+
+    def add_samples(self):
+        import lens_library
+        ins = write(self.tmp / "src" / "Team Rules.instructions.md",
+                    "---\napplyTo: \"Source/**\"\ndescription: team C++ rules\n---\n# Team rules\nNo Tick in actors.\n")
+        skill = self.tmp / "src" / "My Skill"
+        write(skill / "SKILL.md", "# Review Blueprints\nChecks the exported pseudocode for Tick and casts.\n")
+        write(skill / "scripts" / "check.py", "print('ok')\n")
+        write(skill / ".git" / "HEAD", "x")
+        n1, _ = lens_library.add_instruction(self.lib, ins)
+        n2, notes = lens_library.add_skill(self.lib, skill)
+        return n1, n2, notes
+
+    def test_add_checks_names_and_front_matter(self):
+        import lens_library
+        n1, n2, notes = self.add_samples()
+        self.assertEqual((n1, n2), ("team-rules", "my-skill"))
+        self.assertTrue(any("description was missing" in n for n in notes))
+        text = (self.lib / "skills" / "my-skill" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertTrue(text.startswith("---\n"))
+        self.assertIn("name: my-skill", text)
+        self.assertIn("description: Review Blueprints", text)
+        self.assertTrue((self.lib / "skills" / "my-skill" / "scripts" / "check.py").exists())
+        self.assertFalse((self.lib / "skills" / "my-skill" / ".git").exists())
+        items = lens_library.list_items(self.lib)
+        self.assertEqual(items["defaults"], {"instructions": ["team-rules"], "skills": ["my-skill"]})   # new items are defaults
+        self.assertEqual(items["instructions"][0]["applyTo"], "Source/**")
+        self.assertEqual(items["targets"], ["claude", "copilot"])
+
+    def test_skill_from_a_zip_and_unsafe_zips(self):
+        import lens_library
+        import zipfile
+        z = self.tmp / "pack.zip"
+        with zipfile.ZipFile(z, "w") as f:
+            f.writestr("pack/deploy-check/SKILL.md", "---\nname: deploy-check\ndescription: Checks a package.\n---\nSteps.\n")
+        self.assertEqual(lens_library.add_skill(self.lib, z)[0], "deploy-check")
+        bad = self.tmp / "bad.zip"
+        with zipfile.ZipFile(bad, "w") as f:
+            f.writestr("../evil/SKILL.md", "x")
+        with self.assertRaises(lens_library.LibraryError):
+            lens_library.add_skill(self.lib, bad)
+        with self.assertRaises(lens_library.LibraryError):
+            lens_library.add_instruction(self.lib, write(self.tmp / "a.exe", "x"))
+
+    def test_project_gets_the_selection_per_agent_and_loses_it(self):
+        import lens_agent
+        self.add_samples()
+        write(self.project / ".claude" / "skills" / "my-skill" / "SKILL.md", "theirs")          # not dwookit's: kept
+        self.assertEqual(lens_agent.main(["write", "--project", str(self.project)]), 0)
+        claude = (self.project / "CLAUDE.local.md").read_text(encoding="utf-8")
+        self.assertIn("@__dwookit/context/instructions/team-rules.md", claude)
+        self.assertEqual((self.forge / "context" / "instructions" / "team-rules.md").read_text(encoding="utf-8").strip(),
+                         "# Team rules\nNo Tick in actors.")
+        cop = (self.project / ".github" / "instructions" / "dwookit-team-rules.instructions.md").read_text(encoding="utf-8")
+        self.assertIn('applyTo: "Source/**"', cop)
+        self.assertIn("No Tick in actors.", cop)
+        self.assertEqual((self.project / ".claude" / "skills" / "my-skill" / "SKILL.md").read_text(encoding="utf-8"), "theirs")
+        self.assertTrue((self.project / ".github" / "skills" / "my-skill" / ".dwookit-managed").exists())
+        installed = json.loads((self.forge / "context" / "installed.json").read_text(encoding="utf-8"))["paths"]
+        self.assertEqual(installed, [".github/instructions/dwookit-team-rules.instructions.md", ".github/skills/my-skill/"])
+        self.assertEqual(json.loads((self.forge / "agent.json").read_text(encoding="utf-8"))["skills"], ["my-skill"])
+
+        # Claude Code only: the Copilot files go, the Claude copy appears once the user's folder is gone
+        shutil.rmtree(self.project / ".claude")
+        self.assertEqual(lens_agent.main(["use", "--project", str(self.project), "--targets", "claude"]), 0)
+        self.assertFalse((self.project / ".github" / "skills").exists())
+        self.assertFalse((self.project / ".github" / "instructions" / "dwookit-team-rules.instructions.md").exists())
+        self.assertFalse((self.project / ".github" / "instructions" / "dwookit.instructions.md").exists())
+        self.assertTrue((self.project / ".claude" / "skills" / "my-skill" / ".dwookit-managed").exists())
+
+        # nothing selected: block and copies removed, the user's instructions file stays
+        self.assertEqual(lens_agent.main(["use", "--project", str(self.project), "--targets", "none"]), 0)
+        self.assertFalse((self.project / ".claude").exists())
+        self.assertFalse((self.project / "CLAUDE.local.md").exists())
+        self.assertFalse((self.forge / "context" / "installed.json").exists())
+
+        # uninstall removes every copy whatever the selection was
+        lens_agent.main(["use", "--project", str(self.project), "--targets", "claude,copilot"])
+        lens_agent.main(["remove", "--project", str(self.project)])
+        for rel in (".claude", ".github", "CLAUDE.local.md"):
+            self.assertFalse((self.project / rel).exists(), rel)
+
+    def test_library_command_line(self):
+        import lens_library
+        n1, n2, _ = self.add_samples()
+        self.assertEqual(lens_library.main(["defaults", "--instructions", "none", "--targets", "copilot"]), 0)
+        items = lens_library.list_items(self.lib)
+        self.assertEqual((items["defaults"]["instructions"], items["targets"]), ([], ["copilot"]))
+        self.assertEqual(lens_library.main(["remove", "skill", n2]), 0)
+        self.assertFalse((self.lib / "skills" / n2).exists())
+        self.assertEqual(lens_library.main(["remove", "skill", n2]), 1)
 
 
 class AgentContextTests(TempDir):

@@ -303,7 +303,9 @@ A/
 │  ├─ blueprints/                 # (bp export) 블루프린트별 폴더: <이름>.md 의사코드, <이름>.json 전체, 큰 것은 parts/,
 │  │                              #   <이름>.html·.explain.json 사람이 읽는 설명, index.html
 │  ├─ context/AGENT.md            # 에이전트 안내 (읽는 순서, 결과물 형식, 명령). 매번 다시 씀
-│  ├─ agent.json                  # (agent off) 안내 파일을 쓰지 않음
+│  ├─ context/instructions/       # library에서 고른 지침서 사본 (Claude Code가 import)
+│  ├─ context/installed.json      # 고른 지침서·스킬 때문에 __dwookit 밖에 쓴 경로 (git exclude, 제거에 씀)
+│  ├─ agent.json                  # 적용할 에이전트, 고른 지침서·스킬, (agent off) 안내 파일을 쓰지 않음
 │  ├─ sm-watch.txt                # DwoStateMonitor가 관찰할 클래스 (창에서 고름, 게임이 시작할 때 읽음)
 │  ├─ created-files.txt           # dwookit 실행이 프로젝트에 남긴 파일 (제거 때 처리)
 │  ├─ config.json                 # (선택) 프로젝트별 규칙 덮어쓰기
@@ -311,7 +313,10 @@ A/
 ├─ CLAUDE.local.md                # Claude Code 안내: 관리 블록 하나 (AGENT.md와 사용자 지침 import)
 ├─ .github/instructions/
 │  ├─ dwookit.instructions.md   # Copilot 안내: AGENT.md를 먼저 읽으라는 짧은 지침
+│  ├─ dwookit-<이름>.instructions.md  # (Copilot 선택 시) library에서 고른 지침서
 │  └─ project.instructions.md     # 사용자 지침 (빈 파일로 만들어 둠, 다시 쓰지 않음, 제거 때 백업 후 삭제)
+├─ .github/skills/<이름>/          # (Copilot 선택 시) library에서 고른 스킬 사본 (.dwookit-managed 표식)
+├─ .claude/skills/<이름>/          # (Claude Code 선택 시) library에서 고른 스킬 사본 (.dwookit-managed 표식)
 ├─ Plugins/__DwoLensInspector/    # (DwoLens) 미리 빌드된 에디터 전용 플러그인 (Source 없음, 기본 비활성)
 ├─ Plugins/__DwoStateMonitor/     # (DwoStateMonitor) 숨김
 └─ Plugins/__DwoCanvas/           # (DwoCanvas) 숨김
@@ -442,6 +447,23 @@ __dwookit.bat live off | status | rebuild
 | `.github/instructions/project.instructions.md` | 둘 다 | **사용자 지침**. 빈 파일(머리말만)로 만들어 두고 다시 쓰지 않습니다. 네이밍, 폴더 구조, "Tick 금지" 같은 규칙을 적으면 AGENT.md보다 우선합니다. `uninstall`은 내용이 있으면 `%LOCALAPPDATA%\dwookit\uninstalled\<프로젝트-시각>\instructions\`에 백업한 뒤 지웁니다. 팀과 공유하려면 `git add -f`로 커밋하세요(커밋된 파일은 지우지 않음) |
 
 `agent off`는 안내 파일을 지우고 이후에도 쓰지 않습니다(사용자 지침은 남김). `agent on`으로 되돌립니다. `agent status`는 파일별 상태를 보여 줍니다.
+
+### 지침서·스킬 library (창: 홈 › AI 지침·스킬)
+
+팀 규칙 같은 **지침서**(에이전트가 항상 읽는 규칙)와 **스킬**(필요할 때 불러 쓰는 작업 절차)을 dwookit 폴더의 `library/`에 올려 두고, 프로젝트마다 골라 적용합니다. 대상 에이전트는 **Claude Code와 GitHub Copilot 두 가지뿐**이며, 프로젝트마다 둘 중 무엇에 적용할지 고릅니다. `library/`는 git에서 제외되어 dwookit 저장소에 섞이지 않습니다.
+
+| 단계 | 창 | 명령 |
+|---|---|---|
+| 올리기 | 지침서 올리기(.md, .txt), 스킬 폴더 올리기(SKILL.md가 있는 폴더), ZIP·SKILL.md 올리기 | `dwookit.bat library add-instruction <파일>`, `library add-skill <폴더 \| SKILL.md \| zip>` |
+| 연결 전 고르기 | 체크한 항목과 에이전트가 이 PC의 기본값으로 저장됨 | `library defaults --instructions a,b --skills x --targets claude,copilot` |
+| 연결하며 적용 | 연결하고 적용 (도구 설치·연결만 하기도 기본값을 적용) | `__dwookit.bat connect --instructions a,b --skills x --targets claude,copilot` |
+| 연결 후 바꾸기 | 체크를 바꾸고 이 프로젝트에 적용 | `__dwookit.bat agent use ...` (뺀 항목은 프로젝트에서 지움) |
+| 연결 해제 | 연결 해제 | `uninstall`이 dwookit가 넣은 지침서·스킬을 모두 지움. library는 남음 |
+
+- 올릴 때 검사: 지침서는 256 KB 이하의 Markdown·텍스트. 스킬 이름은 소문자·숫자·하이픈(64자 이하)으로 바꾸고 폴더 이름과 맞춥니다(Copilot은 다르면 읽지 않음). SKILL.md에 `name`·`description`이 없으면 채웁니다(두 에이전트 모두 description으로 스킬을 고름). 스킬은 파일 200개·20 MB 이하, ZIP 안의 `..`·절대 경로는 거부합니다.
+- 프로젝트에 넣는 곳: Claude Code는 `CLAUDE.local.md` 관리 블록에 `@__dwookit/context/instructions/<이름>.md`를 더하고 스킬을 `.claude/skills/<이름>/`에, Copilot은 `.github/instructions/dwookit-<이름>.instructions.md`(지침서 앞머리의 `applyTo`, 없으면 `"**"`)와 `.github/skills/<이름>/`에 둡니다.
+- 같은 이름의 폴더·파일이 이미 있고 dwookit 표식(`.dwookit-managed`, 관리 주석)이 없거나 git에 커밋되어 있으면 건드리지 않고 알려 줍니다. 넣은 경로는 `__dwookit/context/installed.json`에 적어 git exclude에 더하므로 `git status`에 보이지 않습니다.
+- `DWOOKIT_LIBRARY` 환경 변수로 library 위치를 바꿀 수 있습니다(팀 공유 폴더 등).
 
 전체 목록과 계획 중인 도구(Insights 내보내기, PerfReportTool 리포트, 정적 분석 등)는 `tools/catalog.json` 또는 `__dwookit.bat tools`로 확인합니다. 카탈로그 항목은 `tool` 값(lens, statemonitor, canvas, forge)으로 묶입니다.
 

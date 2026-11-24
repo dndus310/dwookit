@@ -13,6 +13,8 @@ rem                        canvas-import ^<file^> [--reset] [--doc Name]
 rem        build           compile, package
 rem    dwookit.bat ci-bundle ^| ci-install [--bundle zip] ^| ci-start ^| ci-stop ^| ci-status ^| ci-remove
 rem        DwoBuilder (Jenkins on this PC, offline bundle). Per project: __dwookit.bat ci-job / ci-trigger
+rem    dwookit.bat library [list] ^| add-instruction ^<file.md^> ^| add-skill ^<folder^|SKILL.md^|zip^> ^| remove ^<kind^> ^<name^>
+rem        AI instructions and skills for Claude Code and GitHub Copilot, applied per project on connect
 rem ============================================================================
 setlocal EnableExtensions
 set "HOME_DIR=%~dp0"
@@ -37,6 +39,7 @@ pushd "%ARG%" 2>nul && (popd & goto :project)
 rem ---- DwoBuilder on this PC (no project needed): dwookit.bat ci-<command> [options] ----
 set "C1=%~1"
 if /i "%C1:~0,3%"=="ci-" goto :ci
+if /i "%C1%"=="library" goto :library
 
 rem ---- command line: dwookit.bat <command> <project> ----
 set "PROJ=%~2"
@@ -54,6 +57,11 @@ exit /b
 powershell -NoProfile -ExecutionPolicy Bypass -File "%HOME_DIR%\tools\gui.ps1" -SystemDir "%HOME_DIR%" -ForgeHome "%HOME_DIR%"
 if errorlevel 1 pause
 exit /b
+
+:library
+rem ---- AI instructions and skills library (no project needed) ----
+powershell -NoProfile -ExecutionPolicy Bypass -File "%HOME_DIR%\tools\dwookit.ps1" -Command library -Project "%HOME_DIR%" %2 %3 %4 %5 %6 %7 %8 %9
+exit /b %ERRORLEVEL%
 
 :ci
 powershell -NoProfile -ExecutionPolicy Bypass -File "%HOME_DIR%\tools\ci.ps1" -Command %1 %2 %3 %4 %5 %6 %7 %8 %9

@@ -13,7 +13,7 @@ param(
     [Parameter(Mandatory = $true)]
     [ValidateSet('connect', 'tool', 'attach', 'update', 'status', 'analyze', 'verify', 'logs', 'smoke', 'perf', 'sizes', 'trace', 'play', 'tools', 'gui',
                  'sm-install', 'sm-remove', 'canvas-install', 'canvas-remove', 'canvas-import', 'canvas-validate',
-                 'doctor', 'uninstall', 'detach', 'compile', 'package', 'bp', 'agent', 'live', 'live-ingest',
+                 'doctor', 'uninstall', 'detach', 'compile', 'package', 'bp', 'agent', 'live', 'live-ingest', 'library',
                  'ci-job', 'ci-trigger', 'ci-hook', 'ci-hooks', 'ci-status', 'ci-install', 'ci-start', 'ci-stop', 'ci-remove', 'ci-bundle')]
     [string]$Command,
     [Parameter(Mandatory = $true)]
@@ -189,7 +189,7 @@ function Set-ExcludeBlock {
     $id = Get-BlockId $vcs
     $lines = Get-ExcludeLines $vcs.Exclude
     $kept = Remove-Block $lines $id
-    $block = @("# >>> dwookit managed: $id (do not edit) >>>") + @($ManagedPaths | ForEach-Object { '/' + $vcs.Prefix + $_ }) + @($BlockEnd)
+    $block = @("# >>> dwookit managed: $id (do not edit) >>>") + @(@($ManagedPaths) + @(Get-InstalledPaths) | ForEach-Object { '/' + $vcs.Prefix + $_ }) + @($BlockEnd)
     $all = @($kept | Where-Object { $_ -ne $null }) + @('') + $block
     $dir = Split-Path -Parent $vcs.Exclude
     if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Force $dir | Out-Null }
@@ -972,7 +972,7 @@ function Invoke-Attach([string]$Mode) {
         tools                 = [pscustomobject]$records
     }
     Write-Json $StatePath $state
-    Update-AgentContext
+    Update-AgentContext -Selection
     Say "$(if ($Mode -eq 'update') { 'Connection refreshed' } else { 'Connected' }): $($uproject.Name) / UE $($engine.Version) / dwookit $($state.systemCommit)"
     if ($Mode -eq 'attach') { Install-Lens $engine }
     elseif ($Mode -eq 'update') { Update-AllTools }
@@ -2042,11 +2042,41 @@ function Invoke-Bp {
 # .github\instructions\project.instructions.md is the user's own (created as an empty shell, never overwritten).
 # CLAUDE.local.md (a managed block) and .github\instructions\dwookit.instructions.md make Claude Code and VS
 # Code Copilot read both. Uninstall backs the user's file up before removing it. Rewritten on connect, update, analyze and bp export.
-function Update-AgentContext {
+# Instruction files and skills from the dwookit library (tools\lens_library.py) go to the agents the project picked
+# (Claude Code, GitHub Copilot): connect --instructions a,b --skills x --targets claude,copilot, or 'agent use', or the
+# GUI. Without a choice a newly connected project gets the library defaults.
+function Get-SelectionArgs {
+    $out = @()
+    foreach ($k in @('--instructions', '--skills', '--targets')) {
+        $i = [array]::IndexOf(@($Rest), $k)
+        if ($i -ge 0 -and $i + 1 -lt @($Rest).Count) { $out += @($k, $Rest[$i + 1]) }
+    }
+    return $out
+}
+
+function Get-InstalledPaths {
+    # Files and folders written outside __dwookit for the library selection (lens_agent.py keeps the list).
+    $f = Join-Path $ForgeDir 'context\installed.json'
+    if (-not (Test-Path $f)) { return @() }
+    try { return @((Get-Content -Raw -Encoding UTF8 $f | ConvertFrom-Json).paths) } catch { return @() }
+}
+
+function Update-AgentContext([switch]$Selection) {
     if (-not (Read-State)) { return }
-    $null = Set-ExcludeBlock          # older connections lack the pointer files in the exclude block
-    & python (Join-Path $SystemDir 'tools\lens_agent.py') write --project $Project
+    $sel = if ($Selection) { @(Get-SelectionArgs) } else { @() }
+    $script = Join-Path $SystemDir 'tools\lens_agent.py'
+    if ($sel.Count) { & python $script use --project $Project @sel }
+    else { & python $script write --project $Project }
     if ($LASTEXITCODE -ne 0) { Say 'agent: writing the agent context failed (see above).' }
+    $null = Set-ExcludeBlock          # after the write: the block lists what the selection put outside __dwookit
+}
+
+function Invoke-Library {
+    # The library needs no project: <dwookit>\library (git-ignored). list, add-instruction, add-skill, remove, defaults.
+    $pyArgs = @((Join-Path $SystemDir 'tools\lens_library.py')) + @($Rest)
+    if (-not $Rest.Count) { $pyArgs += 'list' }
+    & python @pyArgs
+    exit $LASTEXITCODE
 }
 
 function Invoke-Agent {
@@ -2058,7 +2088,8 @@ function Invoke-Agent {
         'status'  { & python $script status --project $Project }
         'on'      { $null = Set-ExcludeBlock; & python $script on --project $Project }
         'off'     { & python $script off --project $Project; Say 'agent: pointer files removed; AGENT.md stays in __dwookit\context.' }
-        default   { Fail "Unknown agent action '$action'. Use: agent [refresh] | status | on | off" }
+        'use'     { $sel = @(Get-SelectionArgs); & python $script use --project $Project @sel; $null = Set-ExcludeBlock }
+        default   { Fail "Unknown agent action '$action'. Use: agent [refresh] | status | on | off | use [--instructions a,b|none] [--skills x|none] [--targets claude,copilot|none]" }
     }
 }
 
@@ -2359,6 +2390,7 @@ function Get-AgentPointers {
     if ((Test-Path $copilot) -and ([IO.File]::ReadAllText($copilot) -like '*dwookit managed: removed by*')) { $found += '.github\instructions\dwookit.instructions.md' }
     $user = Join-Path $Project '.github\instructions\project.instructions.md'
     if ((Test-Path $user) -and ([IO.File]::ReadAllText($user) -like '*<!-- dwookit: project instructions*')) { $found += '.github\instructions\project.instructions.md (yours: backed up, then removed)' }
+    foreach ($rel in @(Get-InstalledPaths)) { if (Test-Path (Join-Path $Project $rel)) { $found += ($rel -replace '/', '\') } }
     return $found
 }
 
@@ -2668,8 +2700,8 @@ function Invoke-Uninstall {
 }
 
 # Every command first migrates what dwo-Lens 1.x left in the project ('tools' does not touch a project).
-if ($Command -notin @('tools', 'tool') -and $Command -notlike 'ci-*') { Invoke-Migration }
-if ($Command -notin @('tools', 'tool', 'uninstall', 'detach', 'connect', 'attach', 'update') -and $Command -notlike 'ci-*') { Sync-ConnectionFiles }
+if ($Command -notin @('tools', 'tool', 'library') -and $Command -notlike 'ci-*') { Invoke-Migration }
+if ($Command -notin @('tools', 'tool', 'library', 'uninstall', 'detach', 'connect', 'attach', 'update') -and $Command -notlike 'ci-*') { Sync-ConnectionFiles }
 
 switch ($Command) {
     'connect' { Invoke-Attach 'connect' }
@@ -2681,6 +2713,7 @@ switch ($Command) {
     'analyze' { Invoke-Analyze }
     'bp'      { Invoke-Bp }
     'agent'   { Invoke-Agent }
+    'library' { Invoke-Library }
     'live'    { Invoke-Live }
     'live-ingest' { Invoke-LiveIngest }
     'compile' { Invoke-Compile }

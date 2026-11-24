@@ -4,6 +4,7 @@
 #pragma once
 
 #include "views_ci.h"
+#include "views_agentlib.h"
 
 // ============================================================================ tool identity
 
@@ -185,7 +186,7 @@ enum Page { Project, Pc, About };
 struct Ui
 {
 	Page page = Project;
-	int tab = 0;                   // 0 all tools, 1 installed, 2 updates
+	int tab = 0;                   // 0 all tools, 1 installed, 2 updates, 3 AI instructions and skills
 	int pcTab = 0;                 // 0 Jenkins, 1 engines
 	char search[96] = {};
 	std::string confirmRemove;     // tool id waiting for confirmation
@@ -208,6 +209,7 @@ static void ConsumeLauncherRequest()
 	if (g_launcherPageRequest < 0) return;
 	if (g_launcherPageRequest == 1 || g_launcherPageRequest == 2) { u.page = launcher::Pc; u.pcTab = g_launcherPageRequest - 1; }
 	else if (g_launcherPageRequest == 3) u.page = launcher::About;
+	else if (g_launcherPageRequest == 4) { u.page = launcher::Project; u.tab = 3; }
 	else u.page = launcher::Project;
 	g_launcherPageRequest = -1;
 }
@@ -631,6 +633,8 @@ static void DrawProjectPage(App& app)
 	if (UnderlineTab(Fmt("설치됨 (%d)##installed", installed).c_str(), u.tab == 1)) u.tab = 1;
 	ImGui::SameLine(0, S(4));
 	if (UnderlineTab(Fmt("업데이트 (%d)##updates", updates).c_str(), u.tab == 2)) u.tab = 2;
+	ImGui::SameLine(0, S(4));
+	if (UnderlineTab("AI 지침·스킬##agentlib", u.tab == 3)) u.tab = 3;
 	CardRule();
 	ImGui::Dummy(ImVec2(0, S(6)));
 
@@ -660,6 +664,11 @@ static void DrawProjectPage(App& app)
 	ProjectMenu(app);
 	ImGui::Dummy(ImVec2(0, S(6)));
 
+	if (u.tab == 3)            // the library works before a project is opened or connected
+	{
+		agentlib::Draw(app);
+		return;
+	}
 	if (!app.hasUProject)
 	{
 		if (EmptyState(ICON_FOLDER, "프로젝트를 여세요", "언리얼 프로젝트 폴더(.uproject가 있는 폴더)를 고르거나 이 창으로 끌어다 놓으세요. 그다음 쓸 도구를 설치하면 됩니다.", "프로젝트 열기..."))

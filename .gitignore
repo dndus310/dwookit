@@ -11,3 +11,6 @@ __pycache__/
 
 # Local CI offline bundles (large; made with ci-bundle)
 bundles/
+
+# Instruction files and skills users upload (dwookit library; tools/lens_library.py)
+library/

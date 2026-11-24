@@ -1599,11 +1599,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		if (viewArg == ToWide(a.key)) app.activity = a.id;
 	if (viewArg == L"result" || viewArg == L"history") app.activity = Activity::History;
 	if (viewArg == L"tools") app.activity = Activity::Launcher;   // the tools screen became the launcher (3.0)
-	// launcher pages (docs, screenshots): --view jenkins | engines | about
-	if (viewArg == L"jenkins" || viewArg == L"engines" || viewArg == L"about")
+	// launcher pages (docs, screenshots): --view jenkins | engines | about | agentlib
+	if (viewArg == L"jenkins" || viewArg == L"engines" || viewArg == L"about" || viewArg == L"agentlib")
 	{
 		app.activity = Activity::Launcher;
-		g_launcherPageRequest = viewArg == L"jenkins" ? 1 : viewArg == L"engines" ? 2 : 3;
+		g_launcherPageRequest = viewArg == L"jenkins" ? 1 : viewArg == L"engines" ? 2 : viewArg == L"about" ? 3 : 4;
 	}
 	if (!selectArg.empty() && app.activity == Activity::Architecture) ui.archSel = ToUtf8(selectArg);
 	if (!selectArg.empty() && app.activity == Activity::Files) g_files.sel = ToUtf8(selectArg);
