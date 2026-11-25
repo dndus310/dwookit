@@ -21,6 +21,8 @@ public class DwoLensInspector : ModuleRules
 			"UMGEditor",
 			"Slate",
 			"SlateCore",
+			"AIModule",
+			"GameplayTasks",
 			"EditorSubsystem"
 		});
 	}

@@ -1,0 +1,44 @@
+{
+  "path": "/Game/DwoQA/BTT_LabCount",
+  "parent": "/Script/AIModule.BTTask_BlueprintBase",
+  "variables": [
+    {"name": "CountKey", "type": {"category": "struct", "object": "/Script/AIModule.BlackboardKeySelector"}, "default": "(SelectedKeyName=\"Count\")", "expose": true},
+    {"name": "Step", "type": {"category": "int"}, "default": "2", "expose": true},
+    {"name": "Runs", "type": {"category": "int"}}
+  ],
+  "nodes": [
+    {"id": "exec", "event": "/Script/AIModule.BTTask_BlueprintBase:ReceiveExecuteAI"},
+    {"id": "getBB", "function": "/Script/AIModule.BTFunctionLibrary:GetBlackboardValueAsInt"},
+    {"id": "gKey1", "get": "CountKey"},
+    {"id": "gStep", "get": "Step"},
+    {"id": "sum", "function": "/Script/Engine.KismetMathLibrary:Add_IntInt"},
+    {"id": "setBB", "function": "/Script/AIModule.BTFunctionLibrary:SetBlackboardValueAsInt"},
+    {"id": "gKey2", "get": "CountKey"},
+    {"id": "gRuns", "get": "Runs"},
+    {"id": "incRuns", "function": "/Script/Engine.KismetMathLibrary:Add_IntInt"},
+    {"id": "setRuns", "set": "Runs"},
+    {"id": "odd", "function": "/Script/Engine.KismetMathLibrary:Percent_IntInt"},
+    {"id": "isOdd", "function": "/Script/Engine.KismetMathLibrary:EqualEqual_IntInt"},
+    {"id": "finish", "function": "/Script/AIModule.BTTask_BlueprintBase:FinishExecute"}
+  ],
+  "defaults": {
+    "incRuns.B": "1",
+    "odd.B": "3",
+    "isOdd.B": "0"
+  },
+  "links": [
+    ["exec.then", "setBB.execute"],
+    ["gKey1.CountKey", "getBB.Key"],
+    ["getBB.ReturnValue", "sum.A"],
+    ["gStep.Step", "sum.B"],
+    ["gKey2.CountKey", "setBB.Key"],
+    ["sum.ReturnValue", "setBB.Value"],
+    ["setBB.then", "setRuns.execute"],
+    ["gRuns.Runs", "incRuns.A"],
+    ["incRuns.ReturnValue", "setRuns.Runs"],
+    ["setRuns.then", "finish.execute"],
+    ["incRuns.ReturnValue", "odd.A"],
+    ["odd.ReturnValue", "isOdd.A"],
+    ["isOdd.ReturnValue", "finish.bSuccess"]
+  ]
+}

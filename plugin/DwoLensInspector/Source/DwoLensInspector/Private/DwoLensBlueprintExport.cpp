@@ -865,6 +865,7 @@ namespace DwoLensInspector::BpExport
 		SetIf(Out, TEXT("latentInfo"), Function->GetMetaData(TEXT("LatentInfo")));
 		SetIf(Out, TEXT("expandEnumAsExecs"), Function->GetMetaData(TEXT("ExpandEnumAsExecs")));
 		SetIf(Out, TEXT("worldContext"), Function->GetMetaData(TEXT("WorldContext")));
+		SetIf(Out, TEXT("defaultToSelf"), Function->GetMetaData(TEXT("DefaultToSelf")));     // a hidden pin that means self
 		SetIf(Out, TEXT("deterministic"), Function->HasMetaData(TEXT("NativeMakeFunc")) ? TEXT("make") : Function->HasMetaData(TEXT("NativeBreakFunc")) ? TEXT("break") : FString());
 		SetIf(Out, TEXT("scriptName"), Function->GetMetaData(TEXT("ScriptName")));
 		FJsonValues Params;

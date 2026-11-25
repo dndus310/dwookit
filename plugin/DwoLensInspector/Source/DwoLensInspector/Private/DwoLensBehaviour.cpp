@@ -18,7 +18,25 @@
 // the character's movement and a sample of the pose.
 #include "DwoLensBehaviour.h"
 
+#include "AIController.h"
 #include "Animation/AnimBlueprint.h"
+#include "BehaviorTree/BehaviorTree.h"
+#include "BehaviorTree/BehaviorTreeComponent.h"
+#include "BehaviorTree/BlackboardComponent.h"
+#include "BehaviorTree/BlackboardData.h"
+#include "BehaviorTree/BTDecorator.h"
+#include "BehaviorTree/BTService.h"
+#include "BehaviorTree/BTTaskNode.h"
+#include "BehaviorTree/Blackboard/BlackboardKeyType_Bool.h"
+#include "BehaviorTree/Blackboard/BlackboardKeyType_Float.h"
+#include "BehaviorTree/Blackboard/BlackboardKeyType_Int.h"
+#include "BehaviorTree/Blackboard/BlackboardKeyType_Name.h"
+#include "BehaviorTree/Blackboard/BlackboardKeyType_Object.h"
+#include "BehaviorTree/Blackboard/BlackboardKeyType_String.h"
+#include "BehaviorTree/Blackboard/BlackboardKeyType_Vector.h"
+#include "BehaviorTree/Composites/BTComposite_Sequence.h"
+#include "BehaviorTree/Tasks/BTTask_Wait.h"
+#include "UObject/UObjectHash.h"
 #include "Animation/AnimInstance.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetRegistry/IAssetRegistry.h"
@@ -150,6 +168,33 @@ namespace DwoLensInspector::Behaviour
 		return Out;
 	}
 
+	/** A behavior tree node Blueprint's run: its instances' variables (the tree makes one per Blueprint node), the
+	 *  blackboard and the node the tree is running. */
+	static FJson DescribeTree(const UBehaviorTreeComponent* Tree, const UClass* Subject, const TArray<FName>& Keys)
+	{
+		FJson Out = MakeShared<FJsonObject>();
+		FJson Parts = MakeShared<FJsonObject>();
+		TArray<UObject*> Instances;
+		GetObjectsWithOuter(Tree, Instances, false);
+		Instances.RemoveAll([Subject](const UObject* O) { return !O || !O->IsA(Subject); });
+		Instances.Sort([](const UObject& A, const UObject& B) { return A.GetName() < B.GetName(); });
+		if (Instances.Num() > 0) { Out->SetObjectField(TEXT("props"), Properties(Instances[0])); }
+		for (int32 Index = 1; Index < Instances.Num(); ++Index) { Parts->SetObjectField(FString::Printf(TEXT("Instance%d"), Index), Properties(Instances[Index])); }
+		FJson Board = MakeShared<FJsonObject>();
+		if (const UBlackboardComponent* Blackboard = Tree->GetBlackboardComponent())
+		{
+			for (const FName& Key : Keys) { Board->SetStringField(Key.ToString(), Blackboard->DescribeKeyValue(Key, EBlackboardDescription::OnlyValue)); }
+		}
+		Parts->SetObjectField(TEXT("Blackboard"), Board);
+		FJson State = MakeShared<FJsonObject>();
+		const UBTNode* Active = Tree->GetActiveNode();
+		State->SetStringField(TEXT("activeNode"), Active ? Active->GetClass()->GetName() : TEXT("None"));
+		State->SetBoolField(TEXT("running"), Tree->IsRunning());
+		Parts->SetObjectField(TEXT("Tree"), State);
+		Out->SetObjectField(TEXT("components"), Parts);
+		return Out;
+	}
+
 	static FJson DescribePawn(const APawn* Pawn)
 	{
 		FJson Out = MakeShared<FJsonObject>();
@@ -277,15 +322,16 @@ int32 DwoLensInspector::RunBehaviour(const FString& ScenarioFile, const FString&
 	UBlueprint* Blueprint = LoadObject<UBlueprint>(nullptr, *BlueprintPath);
 	UClass* Class = Blueprint ? Blueprint->GeneratedClass.Get() : nullptr;
 	if (!Class) { return Write(false, TEXT("Blueprint not found: ") + BlueprintPath); }
-	enum class EKind { Actor, Widget, Anim } Kind = EKind::Actor;
+	enum class EKind { Actor, Widget, Anim, Tree } Kind = EKind::Actor;
 	if (Class->IsChildOf(UUserWidget::StaticClass())) { Kind = EKind::Widget; bProbe = false; }
 	else if (Class->IsChildOf(UAnimInstance::StaticClass())) { Kind = EKind::Anim; bProbe = false; }
+	else if (Class->IsChildOf(UBTNode::StaticClass())) { Kind = EKind::Tree; bProbe = false; }
 	else if (!Class->IsChildOf(AActor::StaticClass()))
 	{
-		return Write(false, TEXT("the behaviour check runs actor, widget and animation Blueprints (this is a ") + Class->GetSuperClass()->GetName() + TEXT(")"));
+		return Write(false, TEXT("the behaviour check runs actor, widget, animation and behavior tree node Blueprints (this is a ") + Class->GetSuperClass()->GetName() + TEXT(")"));
 	}
 	Trace->SetStringField(TEXT("parent"), GetNameSafe(Class->GetSuperClass()));
-	Trace->SetStringField(TEXT("kind"), Kind == EKind::Widget ? TEXT("widget") : Kind == EKind::Anim ? TEXT("anim") : TEXT("actor"));
+	Trace->SetStringField(TEXT("kind"), Kind == EKind::Widget ? TEXT("widget") : Kind == EKind::Anim ? TEXT("anim") : Kind == EKind::Tree ? TEXT("tree") : TEXT("actor"));
 
 	// The engine's own test world: a game instance, the project's game mode (so BeginPlay is dispatched the normal
 	// way) and a frame counter advanced after every tick (the tick manager skips functions it thinks already ran this
@@ -304,6 +350,8 @@ int32 DwoLensInspector::RunBehaviour(const FString& ScenarioFile, const FString&
 	ACharacter* Owner = nullptr;
 	ACharacter* Probe = nullptr;
 	APawn* PlayerPawn = nullptr;
+	UBehaviorTreeComponent* TreeComponent = nullptr;
+	TArray<FName> BlackboardKeys;
 	UObject* Target = nullptr;                // what calls run on
 	const FGeometry Geometry = FGeometry::MakeRoot(FVector2D(1920, 1080), FSlateLayoutTransform());
 	double SlateTime = 0;
@@ -328,6 +376,7 @@ int32 DwoLensInspector::RunBehaviour(const FString& ScenarioFile, const FString&
 	};
 	auto Alive = [&]() -> bool
 	{
+		if (Kind == EKind::Tree) { return IsValid(TreeComponent); }
 		return Kind == EKind::Actor ? IsValid(Subject) : Kind == EKind::Widget ? IsValid(Widget) : (IsValid(Owner) && Owner->GetMesh() && Owner->GetMesh()->GetAnimInstance());
 	};
 	auto Record = [&](const FString& Name, int32 Frame)
@@ -342,6 +391,7 @@ int32 DwoLensInspector::RunBehaviour(const FString& ScenarioFile, const FString&
 		{
 			if (Kind == EKind::Actor) { Step->SetObjectField(TEXT("subject"), DescribeActor(Subject)); }
 			else if (Kind == EKind::Widget) { Step->SetObjectField(TEXT("subject"), DescribeWidget(Widget)); }
+			else if (Kind == EKind::Tree) { Step->SetObjectField(TEXT("subject"), DescribeTree(TreeComponent, Class, BlackboardKeys)); }
 			else { Step->SetObjectField(TEXT("subject"), DescribeAnim(Owner)); }
 		}
 		if (Probe) { Step->SetObjectField(TEXT("probe"), DescribeProbe(Probe)); }
@@ -383,6 +433,83 @@ int32 DwoLensInspector::RunBehaviour(const FString& ScenarioFile, const FString&
 		Widget = Player ? CreateWidget<UUserWidget>(Player, Class, TEXT("Subject")) : CreateWidget<UUserWidget>(World->GetGameInstance(), Class, TEXT("Subject"));
 		if (Widget) { SlateWidget = Widget->TakeWidget(); }     // builds the tree: PreConstruct, Construct
 		Target = Widget;
+	}
+	else if (Kind == EKind::Tree)
+	{
+		// a tree made for the check: a Sequence over the task (the subject, the scenario's other task, or a short
+		// Wait), with the decorators on that child and the services on the Sequence. It loops as a tree does.
+		// a game world gets its AI system at InitializeNewWorld; this test world does not, and blackboards need it
+		if (!World->GetAISystem()) { World->CreateAISystem(); }
+		UBlackboardData* Board = NewObject<UBlackboardData>(GetTransientPackage(), TEXT("DwoBehaviourBlackboard"));
+		const TArray<TSharedPtr<FJsonValue>>* Keys = nullptr;
+		if (Scenario->TryGetArrayField(TEXT("blackboard"), Keys))
+		{
+			for (const TSharedPtr<FJsonValue>& V : *Keys)
+			{
+				FString Name, Type;
+				if (!V->AsString().Split(TEXT(":"), &Name, &Type)) { Name = V->AsString(); Type = TEXT("Int"); }
+				const FName Key(*Name);
+				if (Type == TEXT("Int")) { Board->UpdatePersistentKey<UBlackboardKeyType_Int>(Key); }
+				else if (Type == TEXT("Float")) { Board->UpdatePersistentKey<UBlackboardKeyType_Float>(Key); }
+				else if (Type == TEXT("Bool")) { Board->UpdatePersistentKey<UBlackboardKeyType_Bool>(Key); }
+				else if (Type == TEXT("String")) { Board->UpdatePersistentKey<UBlackboardKeyType_String>(Key); }
+				else if (Type == TEXT("Name")) { Board->UpdatePersistentKey<UBlackboardKeyType_Name>(Key); }
+				else if (Type == TEXT("Vector")) { Board->UpdatePersistentKey<UBlackboardKeyType_Vector>(Key); }
+				else if (Type == TEXT("Object")) { Board->UpdatePersistentKey<UBlackboardKeyType_Object>(Key); }
+				else { Wrapper.DestroyTestWorld(false); return Write(false, TEXT("blackboard key type must be Int, Float, Bool, String, Name, Vector or Object: ") + Type); }
+				BlackboardKeys.Add(Key);
+			}
+		}
+		UBehaviorTree* Tree = NewObject<UBehaviorTree>(GetTransientPackage(), TEXT("DwoBehaviourTree"));
+		Tree->BlackboardAsset = Board;
+		UBTComposite_Sequence* Root = NewObject<UBTComposite_Sequence>(Tree, TEXT("Root"));
+		TArray<UClass*> NodeClasses = { Class };
+		const TArray<TSharedPtr<FJsonValue>>* Others = nullptr;
+		if (Scenario->TryGetArrayField(TEXT("btNodes"), Others))
+		{
+			for (const TSharedPtr<FJsonValue>& V : *Others)
+			{
+				UBlueprint* Other = LoadObject<UBlueprint>(nullptr, *V->AsString());
+				UClass* OtherClass = Other ? Other->GeneratedClass.Get() : LoadObject<UClass>(nullptr, *V->AsString());
+				if (!OtherClass || !OtherClass->IsChildOf(UBTNode::StaticClass())) { Wrapper.DestroyTestWorld(false); return Write(false, TEXT("not a behavior tree node: ") + V->AsString()); }
+				NodeClasses.Add(OtherClass);
+			}
+		}
+		FBTCompositeChild Child;
+		for (UClass* NodeClass : NodeClasses)
+		{
+			if (NodeClass->IsChildOf(UBTTaskNode::StaticClass()) && !Child.ChildTask) { Child.ChildTask = NewObject<UBTTaskNode>(Tree, NodeClass); }
+			else if (NodeClass->IsChildOf(UBTDecorator::StaticClass())) { Child.Decorators.Add(NewObject<UBTDecorator>(Tree, NodeClass)); }
+			else if (NodeClass->IsChildOf(UBTService::StaticClass())) { Root->Services.Add(NewObject<UBTService>(Root, NodeClass)); }
+		}
+		if (!Child.ChildTask)
+		{
+			UBTTask_Wait* Wait = NewObject<UBTTask_Wait>(Tree, TEXT("Wait"));
+			Wait->WaitTime = 0.1f;
+			Wait->RandomDeviation = 0.f;
+			Child.ChildTask = Wait;
+		}
+		Root->Children.Add(Child);
+		Tree->RootNode = Root;
+		// the AI runs it on a pawn (the scenario's, else a Character), as a game would
+		UClass* PawnClass = ACharacter::StaticClass();
+		if (!PawnPath.IsEmpty())
+		{
+			if (UBlueprint* PawnBlueprint = LoadObject<UBlueprint>(nullptr, *PawnPath)) { PawnClass = PawnBlueprint->GeneratedClass; }
+			else { PawnClass = LoadObject<UClass>(nullptr, *PawnPath); }
+		}
+		FActorSpawnParameters PawnParams;
+		PawnParams.Name = TEXT("AIPawn");
+		PawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		APawn* Pawn = PawnClass ? World->SpawnActor<APawn>(PawnClass, FTransform(FVector(0, 0, 200)), PawnParams) : nullptr;
+		AAIController* Controller = World->SpawnActor<AAIController>();
+		if (!Pawn || !Controller) { Wrapper.DestroyTestWorld(false); return Write(false, TEXT("could not spawn the AI pawn and controller")); }
+		Controller->Possess(Pawn);
+		if (!Controller->RunBehaviorTree(Tree)) { Wrapper.DestroyTestWorld(false); return Write(false, TEXT("the behavior tree did not start")); }
+		TreeComponent = Cast<UBehaviorTreeComponent>(Controller->GetBrainComponent());
+		Target = TreeComponent;
+		Trace->SetStringField(TEXT("tree"), FString::Printf(TEXT("Sequence[%s%s]"), *Child.ChildTask->GetClass()->GetName(),
+			*FString::JoinBy(Child.Decorators, TEXT(""), [](const UBTDecorator* D) { return TEXT(" +") + D->GetClass()->GetName(); })));
 	}
 	else
 	{

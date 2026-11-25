@@ -4,6 +4,7 @@
 //   type       "interface": a Blueprint interface; functions: [{name, inputs: [{name, type}], outputs: [...]}]
 //   parent     native parent class path (/Script/Engine.Actor)
 //   interfaces Blueprint interface classes it implements (/Game/X/BPI_Y.BPI_Y_C)
+//   overrides  parent functions it implements as graphs (PerformConditionCheckAI)
 //   variables  [{name, type: {category, subCategory?, object?, container?}, default?, expose?}]
 //   nodes      [{id, and one of:
 //                  event: "<class path>:<function>"   an override (ReceiveBeginPlay)
@@ -159,6 +160,17 @@ int32 DwoLensInspector::BuildBlueprint(const FString& SpecFile)
 			{
 				Problem(TEXT("cannot implement ") + V->AsString());
 			}
+		}
+	}
+	// overrides: a parent's function implemented as a graph (an implementable event with a return value)
+	if (Spec->TryGetArrayField(TEXT("overrides"), Interfaces))
+	{
+		for (const TSharedPtr<FJsonValue>& V : *Interfaces)
+		{
+			UFunction* ParentFunction = Parent->FindFunctionByName(FName(*V->AsString()));
+			if (!ParentFunction) { Problem(TEXT("no parent function ") + V->AsString()); continue; }
+			UEdGraph* Graph = FBlueprintEditorUtils::CreateNewGraph(Blueprint, ParentFunction->GetFName(), UEdGraph::StaticClass(), UEdGraphSchema_K2::StaticClass());
+			FBlueprintEditorUtils::AddFunctionGraph<UClass>(Blueprint, Graph, false, ParentFunction->GetOwnerClass());   // as the editor's Override menu does
 		}
 	}
 	auto GraphNamed = [Blueprint](const FString& Name) -> UEdGraph*

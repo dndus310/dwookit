@@ -2059,6 +2059,10 @@ function Invoke-Bp {
 #                                    Child.Name: a function or dispatcher of a child widget or component (fires a
 #                                    button's OnPressed, a child widget's dispatcher). --pawn: the pawn a widget's
 #                                    owning player possesses (recorded). A pawn subject is possessed by a player.
+#                                    Behavior tree nodes (task, decorator, service) run in a tree made for the check:
+#                                    a Sequence over the task (or a short Wait) with the decorators and services,
+#                                    run by an AIController on a pawn. --blackboard Name:Type,... (Int, Float, Bool,
+#                                    String, Name, Vector, Object) makes its keys; --bt-node <bp> adds another node.
 #   native status                    what was generated and rebased
 $NativeDir = Join-Path $ForgeDir 'native'
 
@@ -2155,6 +2159,11 @@ function Invoke-NativeVerify($Target, $UProject) {
                        calls = @() }
     $pawn = Get-NativeArg '--pawn'
     if ($pawn) { $doc.pawn = $pawn }
+    $board = Get-NativeArg '--blackboard'
+    if ($board) { $doc.blackboard = @($board -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ }) }
+    $others = @()
+    for ($i = 0; $i -lt @($Rest).Count - 1; $i++) { if ($Rest[$i] -eq '--bt-node') { $others += (Get-NativeTarget "$($Rest[$i + 1])").Entry } }
+    if ($others.Count) { $doc.btNodes = $others }
     $every = Get-NativeArg '--record-every'
     if ($every) {
         if ($every -notmatch '^\d+$' -or [int]$every -lt 1) { Fail "--record-every takes a frame count, for example --record-every 1" }
@@ -2175,7 +2184,7 @@ function Invoke-NativeVerify($Target, $UProject) {
     Write-Json $scenario $doc
     $logDir = Join-Path $DataDir 'logs'
     New-Item -ItemType Directory -Force $logDir | Out-Null
-    $what = switch ("$($j.kind)") { 'widget' { 'widget created and ticked' } 'anim' { 'on a Character launched at frame 20' } default { "probe $($doc.probe)" } }
+    $what = switch ("$($j.kind)") { 'widget' { 'widget created and ticked' } 'anim' { 'on a Character launched at frame 20' } 'object' { 'in a behavior tree run by an AI (a behavior tree node)' } default { "probe $($doc.probe)" } }
     Say "native verify: $($Target.Name), $frames frames, $what$(if ($doc.calls.Count) { ", $($doc.calls.Count) call(s)" })"
     $after = Join-Path $dir 'after.json'
     $before = Join-Path $dir 'before.json'

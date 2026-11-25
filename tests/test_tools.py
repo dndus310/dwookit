@@ -1322,6 +1322,25 @@ class NativeMigrationTests(TempDir):
         # BeginPlay and Tick both run into MulticastPing: no label that nothing jumps to (C4102 is an error)
         self.assertNotIn("L_052993C9:", cpp)
 
+    def test_behavior_tree_task_and_decorator(self):
+        # BTTask_BlueprintBase / BTDecorator_BlueprintBase declare their events as implementable events: the Blueprint
+        # keeps the event (the node still counts as implementing it) and calls the C++ body
+        plan, s, files = self.generate("BTT_LabCount")
+        self.assertEqual(s["coverage"]["migrated"], s["coverage"]["nodes"])
+        self.assertIn("class GAME_API ULabCountBase : public UBTTask_BlueprintBase", files["LabCountBase.h"])
+        cpp = files["LabCountBase.cpp"]
+        self.assertIn("void ULabCountBase::ReceiveExecuteAINative(AAIController* OwnerController, APawn* ControlledPawn)", cpp)
+        # NodeOwner is DefaultToSelf: its hidden pin is self, not None
+        self.assertIn("UBTFunctionLibrary::GetBlackboardValueAsInt(this, CountKey)", cpp)
+        self.assertIn("FinishExecute(", cpp)
+        self.assertIn("AIModule", s["modules"])
+        plan, s, files = self.generate("BTD_LabBelow")
+        self.assertEqual(s["coverage"]["migrated"], s["coverage"]["nodes"])
+        self.assertIn("bool PerformConditionCheckAINative(AAIController* OwnerController, APawn* ControlledPawn);", files["LabBelowBase.h"])
+        self.assertIn("return UKismetMathLibrary::Less_IntInt(UBTFunctionLibrary::GetBlackboardValueAsInt(this, CountKey), Limit);", files["LabBelowBase.cpp"])
+        f = next(f for f in s["functions"] if f["bp"] == "PerformConditionCheckAI")
+        self.assertTrue(f["thunk"])
+
     def test_signature_helpers(self):
         import lens_native
         self.assertEqual(lens_native.enum_exec_value("TEnumAsByte<EMoveComponentAction::Type>", "Stop"), "EMoveComponentAction::Stop")

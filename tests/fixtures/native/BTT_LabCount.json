@@ -1,0 +1,1329 @@
+{
+	"schema": "lens.bp/1",
+	"name": "BTT_LabCount",
+	"asset": "/Game/DwoQA/BTT_LabCount.BTT_LabCount",
+	"package": "/Game/DwoQA/BTT_LabCount",
+	"assetClass": "Blueprint",
+	"blueprintType": "BPTYPE_Normal",
+	"status": "BS_UpToDate",
+	"engineVersion": "5.7.4-51494982+++UE5+Release-5.7",
+	"exportedAtUtc": "2026-11-25T17:41:30.303Z",
+	"source":
+	{
+		"file": "Content/DwoQA/BTT_LabCount.uasset",
+		"bytes": 50042,
+		"modifiedUtc": "2026-11-25T17:36:07.000Z"
+	},
+	"parent": "/Script/AIModule.BTTask_BlueprintBase",
+	"parentChain": [
+		"/Script/AIModule.BTTask_BlueprintBase"
+	],
+	"generatedClass": "/Game/DwoQA/BTT_LabCount.BTT_LabCount_C",
+	"interfaces": [],
+	"variables": [
+		{
+			"name": "CountKey",
+			"type":
+			{
+				"text": "BlackboardKeySelector",
+				"category": "struct",
+				"object": "/Script/AIModule.BlackboardKeySelector"
+			},
+			"category": "디폴트",
+			"default": "(SelectedKeyName=\"Count\")",
+			"flags": [
+				"InstanceEditable",
+				"ExposeOnSpawn"
+			]
+		},
+		{
+			"name": "Step",
+			"type":
+			{
+				"text": "int",
+				"category": "int"
+			},
+			"category": "디폴트",
+			"default": "2",
+			"flags": [
+				"InstanceEditable",
+				"ExposeOnSpawn"
+			]
+		},
+		{
+			"name": "Runs",
+			"type":
+			{
+				"text": "int",
+				"category": "int"
+			},
+			"category": "디폴트",
+			"default": "0"
+		}
+	],
+	"components": [],
+	"graphs": [
+		{
+			"name": "EventGraph",
+			"kind": "event",
+			"nodes": [
+				{
+					"id": "E8B26BBB478F0432E6AB109F3BE80209",
+					"class": "K2Node_Event",
+					"title": "ReceiveExecuteAI 이벤트",
+					"member": "ReceiveExecuteAI",
+					"memberOwner": "/Script/AIModule.BTTask_BlueprintBase",
+					"override": true,
+					"role": "event",
+					"kind": "event",
+					"pos": [
+						0,
+						0
+					],
+					"pins": [
+						{
+							"name": "OutputDelegate",
+							"dir": "out",
+							"type":
+							{
+								"text": "delegate",
+								"category": "delegate"
+							}
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "38824F7A48465A44356CC8A080CE8DFB",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "OwnerController",
+							"dir": "out",
+							"type":
+							{
+								"text": "AIController",
+								"category": "object",
+								"object": "/Script/AIModule.AIController"
+							}
+						},
+						{
+							"name": "ControlledPawn",
+							"dir": "out",
+							"type":
+							{
+								"text": "Pawn",
+								"category": "object",
+								"object": "/Script/Engine.Pawn"
+							}
+						}
+					]
+				},
+				{
+					"id": "0279B0774B3ACEDBE71AC8AE44C13BC0",
+					"class": "K2Node_CallFunction",
+					"title": "Get Blackboard Value as Int",
+					"member": "GetBlackboardValueAsInt",
+					"memberOwner": "/Script/AIModule.BTFunctionLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						360,
+						0
+					],
+					"pins": [
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BTFunctionLibrary",
+								"category": "object",
+								"object": "/Script/AIModule.BTFunctionLibrary"
+							},
+							"defaultObject": "/Script/AIModule.Default__BTFunctionLibrary",
+							"hidden": true
+						},
+						{
+							"name": "NodeOwner",
+							"dir": "in",
+							"type":
+							{
+								"text": "BTNode",
+								"category": "object",
+								"object": "/Script/AIModule.BTNode"
+							},
+							"hidden": true
+						},
+						{
+							"name": "Key",
+							"dir": "in",
+							"type":
+							{
+								"text": "BlackboardKeySelector&",
+								"category": "struct",
+								"object": "/Script/AIModule.BlackboardKeySelector",
+								"ref": true,
+								"const": true
+							},
+							"links": [
+								{
+									"node": "6D2731FE456E31AA4EF848BCEF90E2BB",
+									"pin": "CountKey"
+								}
+							]
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "C524E3B14994E375C85D1EA150E81911",
+									"pin": "A"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "6D2731FE456E31AA4EF848BCEF90E2BB",
+					"class": "K2Node_VariableGet",
+					"title": "Get CountKey",
+					"member": "CountKey",
+					"memberOwner": "/Game/DwoQA/BTT_LabCount.SKEL_BTT_LabCount_C",
+					"memberCpp": "FBlackboardKeySelector",
+					"memberName": "CountKey",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						720,
+						0
+					],
+					"pins": [
+						{
+							"name": "CountKey",
+							"dir": "out",
+							"type":
+							{
+								"text": "BlackboardKeySelector",
+								"category": "struct",
+								"object": "/Script/AIModule.BlackboardKeySelector"
+							},
+							"links": [
+								{
+									"node": "0279B0774B3ACEDBE71AC8AE44C13BC0",
+									"pin": "Key"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BTT_LabCount",
+								"category": "object",
+								"object": "/Game/DwoQA/BTT_LabCount.BTT_LabCount_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "6194B76B4EC5C3D8BE5AD68C1557FCBF",
+					"class": "K2Node_VariableGet",
+					"title": "Get Step",
+					"member": "Step",
+					"memberOwner": "/Game/DwoQA/BTT_LabCount.SKEL_BTT_LabCount_C",
+					"memberCpp": "int32",
+					"memberName": "Step",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						1080,
+						0
+					],
+					"pins": [
+						{
+							"name": "Step",
+							"dir": "out",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "C524E3B14994E375C85D1EA150E81911",
+									"pin": "B"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BTT_LabCount",
+								"category": "object",
+								"object": "/Game/DwoQA/BTT_LabCount.BTT_LabCount_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "C524E3B14994E375C85D1EA150E81911",
+					"class": "K2Node_CallFunction",
+					"title": "int + int",
+					"member": "Add_IntInt",
+					"memberOwner": "/Script/Engine.KismetMathLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						1440,
+						0
+					],
+					"pins": [
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "KismetMathLibrary",
+								"category": "object",
+								"object": "/Script/Engine.KismetMathLibrary"
+							},
+							"defaultObject": "/Script/Engine.Default__KismetMathLibrary",
+							"hidden": true
+						},
+						{
+							"name": "A",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "0279B0774B3ACEDBE71AC8AE44C13BC0",
+									"pin": "ReturnValue"
+								}
+							]
+						},
+						{
+							"name": "B",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "1",
+							"autoDefault": "1",
+							"links": [
+								{
+									"node": "6194B76B4EC5C3D8BE5AD68C1557FCBF",
+									"pin": "Step"
+								}
+							]
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "38824F7A48465A44356CC8A080CE8DFB",
+									"pin": "Value"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "38824F7A48465A44356CC8A080CE8DFB",
+					"class": "K2Node_CallFunction",
+					"title": "Set Blackboard Value as Int",
+					"member": "SetBlackboardValueAsInt",
+					"memberOwner": "/Script/AIModule.BTFunctionLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pos": [
+						1800,
+						0
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "E8B26BBB478F0432E6AB109F3BE80209",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "DD1C8AC54F091E66C11F6C9A11934DE6",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BTFunctionLibrary",
+								"category": "object",
+								"object": "/Script/AIModule.BTFunctionLibrary"
+							},
+							"defaultObject": "/Script/AIModule.Default__BTFunctionLibrary",
+							"hidden": true
+						},
+						{
+							"name": "NodeOwner",
+							"dir": "in",
+							"type":
+							{
+								"text": "BTNode",
+								"category": "object",
+								"object": "/Script/AIModule.BTNode"
+							},
+							"hidden": true
+						},
+						{
+							"name": "Key",
+							"dir": "in",
+							"type":
+							{
+								"text": "BlackboardKeySelector&",
+								"category": "struct",
+								"object": "/Script/AIModule.BlackboardKeySelector",
+								"ref": true,
+								"const": true
+							},
+							"links": [
+								{
+									"node": "03FCB7564CDFF3B6D48C39B0C52309E1",
+									"pin": "CountKey"
+								}
+							]
+						},
+						{
+							"name": "Value",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "C524E3B14994E375C85D1EA150E81911",
+									"pin": "ReturnValue"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "03FCB7564CDFF3B6D48C39B0C52309E1",
+					"class": "K2Node_VariableGet",
+					"title": "Get CountKey",
+					"member": "CountKey",
+					"memberOwner": "/Game/DwoQA/BTT_LabCount.SKEL_BTT_LabCount_C",
+					"memberCpp": "FBlackboardKeySelector",
+					"memberName": "CountKey",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						0,
+						260
+					],
+					"pins": [
+						{
+							"name": "CountKey",
+							"dir": "out",
+							"type":
+							{
+								"text": "BlackboardKeySelector",
+								"category": "struct",
+								"object": "/Script/AIModule.BlackboardKeySelector"
+							},
+							"links": [
+								{
+									"node": "38824F7A48465A44356CC8A080CE8DFB",
+									"pin": "Key"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BTT_LabCount",
+								"category": "object",
+								"object": "/Game/DwoQA/BTT_LabCount.BTT_LabCount_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "134BF2CD48871604670D05880B427D78",
+					"class": "K2Node_VariableGet",
+					"title": "Get Runs",
+					"member": "Runs",
+					"memberOwner": "/Game/DwoQA/BTT_LabCount.SKEL_BTT_LabCount_C",
+					"memberCpp": "int32",
+					"memberName": "Runs",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						360,
+						260
+					],
+					"pins": [
+						{
+							"name": "Runs",
+							"dir": "out",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "786B97CC4640459D33060DA5A2BAACCA",
+									"pin": "A"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BTT_LabCount",
+								"category": "object",
+								"object": "/Game/DwoQA/BTT_LabCount.BTT_LabCount_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "786B97CC4640459D33060DA5A2BAACCA",
+					"class": "K2Node_CallFunction",
+					"title": "int + int",
+					"member": "Add_IntInt",
+					"memberOwner": "/Script/Engine.KismetMathLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						720,
+						260
+					],
+					"pins": [
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "KismetMathLibrary",
+								"category": "object",
+								"object": "/Script/Engine.KismetMathLibrary"
+							},
+							"defaultObject": "/Script/Engine.Default__KismetMathLibrary",
+							"hidden": true
+						},
+						{
+							"name": "A",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "134BF2CD48871604670D05880B427D78",
+									"pin": "Runs"
+								}
+							]
+						},
+						{
+							"name": "B",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "1",
+							"autoDefault": "1"
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "DD1C8AC54F091E66C11F6C9A11934DE6",
+									"pin": "Runs"
+								},
+								{
+									"node": "49DD582B4B71413318E1F895C5036963",
+									"pin": "A"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "DD1C8AC54F091E66C11F6C9A11934DE6",
+					"class": "K2Node_VariableSet",
+					"title": "Set Runs",
+					"member": "Runs",
+					"memberOwner": "/Game/DwoQA/BTT_LabCount.SKEL_BTT_LabCount_C",
+					"memberCpp": "int32",
+					"memberName": "Runs",
+					"role": "variable",
+					"kind": "set",
+					"pos": [
+						1080,
+						260
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "38824F7A48465A44356CC8A080CE8DFB",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "353168864EFD643EA206F6AFE4E39F0A",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "Runs",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "786B97CC4640459D33060DA5A2BAACCA",
+									"pin": "ReturnValue"
+								}
+							]
+						},
+						{
+							"name": "Output_Get",
+							"dir": "out",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0"
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BTT_LabCount",
+								"category": "object",
+								"object": "/Game/DwoQA/BTT_LabCount.BTT_LabCount_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "49DD582B4B71413318E1F895C5036963",
+					"class": "K2Node_CallFunction",
+					"title": "% (Integer)",
+					"member": "Percent_IntInt",
+					"memberOwner": "/Script/Engine.KismetMathLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						1440,
+						260
+					],
+					"pins": [
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "KismetMathLibrary",
+								"category": "object",
+								"object": "/Script/Engine.KismetMathLibrary"
+							},
+							"defaultObject": "/Script/Engine.Default__KismetMathLibrary",
+							"hidden": true
+						},
+						{
+							"name": "A",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "786B97CC4640459D33060DA5A2BAACCA",
+									"pin": "ReturnValue"
+								}
+							]
+						},
+						{
+							"name": "B",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "3",
+							"autoDefault": "1"
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "C962A8A04FABC5FA675215BCC61A2472",
+									"pin": "A"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "C962A8A04FABC5FA675215BCC61A2472",
+					"class": "K2Node_CallFunction",
+					"title": "Equal (Integer)",
+					"member": "EqualEqual_IntInt",
+					"memberOwner": "/Script/Engine.KismetMathLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						1800,
+						260
+					],
+					"pins": [
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "KismetMathLibrary",
+								"category": "object",
+								"object": "/Script/Engine.KismetMathLibrary"
+							},
+							"defaultObject": "/Script/Engine.Default__KismetMathLibrary",
+							"hidden": true
+						},
+						{
+							"name": "A",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "49DD582B4B71413318E1F895C5036963",
+									"pin": "ReturnValue"
+								}
+							]
+						},
+						{
+							"name": "B",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0"
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false",
+							"links": [
+								{
+									"node": "353168864EFD643EA206F6AFE4E39F0A",
+									"pin": "bSuccess"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "353168864EFD643EA206F6AFE4E39F0A",
+					"class": "K2Node_CallFunction",
+					"title": "Finish Execute\n타깃은 BTTask Blueprint Base",
+					"member": "FinishExecute",
+					"memberOwner": "/Script/AIModule.BTTask_BlueprintBase",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Protected"
+					],
+					"role": "call",
+					"kind": "call",
+					"pos": [
+						0,
+						520
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "DD1C8AC54F091E66C11F6C9A11934DE6",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BTTask_BlueprintBase",
+								"category": "object",
+								"object": "/Script/AIModule.BTTask_BlueprintBase"
+							}
+						},
+						{
+							"name": "bSuccess",
+							"dir": "in",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false",
+							"links": [
+								{
+									"node": "C962A8A04FABC5FA675215BCC61A2472",
+									"pin": "ReturnValue"
+								}
+							]
+						}
+					]
+				}
+			]
+		}
+	],
+	"native":
+	{
+		"types":
+		{
+			"/Script/AIModule.BTTask_BlueprintBase":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UBTTask_BlueprintBase",
+				"include": "BehaviorTree/Tasks/BTTask_BlueprintBase.h",
+				"module": "AIModule",
+				"nativeParent": "/Script/AIModule.BTTask_BlueprintBase",
+				"super": "/Script/AIModule.BTTaskNode",
+				"abstract": true
+			},
+			"/Script/AIModule.BTTaskNode":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UBTTaskNode",
+				"include": "BehaviorTree/BTTaskNode.h",
+				"module": "AIModule",
+				"nativeParent": "/Script/AIModule.BTTaskNode",
+				"super": "/Script/AIModule.BTNode",
+				"abstract": true
+			},
+			"/Script/AIModule.BTNode":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UBTNode",
+				"include": "BehaviorTree/BTNode.h",
+				"module": "AIModule",
+				"nativeParent": "/Script/AIModule.BTNode",
+				"super": "/Script/CoreUObject.Object",
+				"abstract": true
+			},
+			"/Script/CoreUObject.Object":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UObject",
+				"include": "UObject/Object.h",
+				"module": "CoreUObject",
+				"nativeParent": "/Script/CoreUObject.Object",
+				"abstract": true
+			},
+			"/Script/AIModule.BlackboardKeySelector":
+			{
+				"kind": "struct",
+				"native": true,
+				"cpp": "FBlackboardKeySelector",
+				"include": "BehaviorTree/BehaviorTreeTypes.h",
+				"module": "AIModule"
+			},
+			"/Script/AIModule.AIController":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "AAIController",
+				"include": "AIController.h",
+				"module": "AIModule",
+				"nativeParent": "/Script/AIModule.AIController",
+				"super": "/Script/Engine.Controller",
+				"actor": true
+			},
+			"/Script/Engine.Pawn":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "APawn",
+				"include": "GameFramework/Pawn.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.Pawn",
+				"super": "/Script/Engine.Actor",
+				"actor": true
+			},
+			"/Script/AIModule.BTFunctionLibrary":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UBTFunctionLibrary",
+				"include": "BehaviorTree/BTFunctionLibrary.h",
+				"module": "AIModule",
+				"nativeParent": "/Script/AIModule.BTFunctionLibrary",
+				"super": "/Script/Engine.BlueprintFunctionLibrary"
+			},
+			"/Game/DwoQA/BTT_LabCount.BTT_LabCount_C":
+			{
+				"kind": "class",
+				"native": false,
+				"cpp": "UBTT_LabCount_C",
+				"nativeParent": "/Script/AIModule.BTTask_BlueprintBase",
+				"super": "/Script/AIModule.BTTask_BlueprintBase"
+			},
+			"/Script/Engine.KismetMathLibrary":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UKismetMathLibrary",
+				"include": "Kismet/KismetMathLibrary.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.KismetMathLibrary",
+				"super": "/Script/Engine.BlueprintFunctionLibrary"
+			}
+		},
+		"enums":
+		{
+		},
+		"functions":
+		{
+			"/Script/AIModule.BTTask_BlueprintBase:ReceiveExecuteAI":
+			{
+				"name": "ReceiveExecuteAI",
+				"owner": "/Script/AIModule.BTTask_BlueprintBase",
+				"flags": [
+					"Event",
+					"BlueprintEvent",
+					"Protected"
+				],
+				"native": true,
+				"access": "protected",
+				"params": [
+					{
+						"name": "OwnerController",
+						"cpp": "AAIController*"
+					},
+					{
+						"name": "ControlledPawn",
+						"cpp": "APawn*"
+					}
+				]
+			},
+			"/Script/AIModule.BTFunctionLibrary:GetBlackboardValueAsInt":
+			{
+				"name": "GetBlackboardValueAsInt",
+				"owner": "/Script/AIModule.BTFunctionLibrary",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Pure",
+					"Static"
+				],
+				"native": true,
+				"access": "public",
+				"defaultToSelf": "NodeOwner",
+				"params": [
+					{
+						"name": "NodeOwner",
+						"cpp": "UBTNode*"
+					},
+					{
+						"name": "Key",
+						"cpp": "FBlackboardKeySelector",
+						"ref": true,
+						"const": true
+					},
+					{
+						"name": "ReturnValue",
+						"cpp": "int32",
+						"return": true
+					}
+				]
+			},
+			"/Script/Engine.KismetMathLibrary:Add_IntInt":
+			{
+				"name": "Add_IntInt",
+				"owner": "/Script/Engine.KismetMathLibrary",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Pure",
+					"Static"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "A",
+						"cpp": "int32"
+					},
+					{
+						"name": "B",
+						"cpp": "int32",
+						"cppDefault": "1"
+					},
+					{
+						"name": "ReturnValue",
+						"cpp": "int32",
+						"return": true
+					}
+				]
+			},
+			"/Script/AIModule.BTFunctionLibrary:SetBlackboardValueAsInt":
+			{
+				"name": "SetBlackboardValueAsInt",
+				"owner": "/Script/AIModule.BTFunctionLibrary",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Static"
+				],
+				"native": true,
+				"access": "public",
+				"defaultToSelf": "NodeOwner",
+				"params": [
+					{
+						"name": "NodeOwner",
+						"cpp": "UBTNode*"
+					},
+					{
+						"name": "Key",
+						"cpp": "FBlackboardKeySelector",
+						"ref": true,
+						"const": true
+					},
+					{
+						"name": "Value",
+						"cpp": "int32"
+					}
+				]
+			},
+			"/Script/Engine.KismetMathLibrary:Percent_IntInt":
+			{
+				"name": "Percent_IntInt",
+				"owner": "/Script/Engine.KismetMathLibrary",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Pure",
+					"Static"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "A",
+						"cpp": "int32"
+					},
+					{
+						"name": "B",
+						"cpp": "int32",
+						"cppDefault": "1"
+					},
+					{
+						"name": "ReturnValue",
+						"cpp": "int32",
+						"return": true
+					}
+				]
+			},
+			"/Script/Engine.KismetMathLibrary:EqualEqual_IntInt":
+			{
+				"name": "EqualEqual_IntInt",
+				"owner": "/Script/Engine.KismetMathLibrary",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Pure",
+					"Static"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "A",
+						"cpp": "int32"
+					},
+					{
+						"name": "B",
+						"cpp": "int32"
+					},
+					{
+						"name": "ReturnValue",
+						"cpp": "bool",
+						"return": true
+					}
+				]
+			},
+			"/Script/AIModule.BTTask_BlueprintBase:FinishExecute":
+			{
+				"name": "FinishExecute",
+				"owner": "/Script/AIModule.BTTask_BlueprintBase",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Protected"
+				],
+				"native": true,
+				"access": "protected",
+				"params": [
+					{
+						"name": "bSuccess",
+						"cpp": "bool"
+					}
+				]
+			}
+		},
+		"parentMembers": [
+			"AIOwner",
+			"ActorOwner",
+			"TickInterval",
+			"CustomDescription",
+			"bShowPropertyDetails",
+			"Services",
+			"bIgnoreRestartSelf",
+			"NodeName",
+			"TreeAsset",
+			"ParentNode",
+			"ExecutionIndex",
+			"MemoryOffset",
+			"TreeDepth",
+			"bIsInstanced",
+			"bIsInjected",
+			"bCreateNodeInstance",
+			"bOwnsGameplayTasks",
+			"SetFinishOnMessageWithId",
+			"SetFinishOnMessage",
+			"ReceiveTickAI",
+			"ReceiveTick",
+			"ReceiveExecuteAI",
+			"ReceiveExecute",
+			"ReceiveAbortAI",
+			"ReceiveAbort",
+			"IsTaskExecuting",
+			"IsTaskAborting",
+			"FinishExecute",
+			"FinishAbort",
+			"ExecuteUbergraph"
+		]
+	}
+}

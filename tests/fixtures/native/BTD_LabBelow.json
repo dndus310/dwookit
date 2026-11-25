@@ -1,0 +1,925 @@
+{
+	"schema": "lens.bp/1",
+	"name": "BTD_LabBelow",
+	"asset": "/Game/DwoQA/BTD_LabBelow.BTD_LabBelow",
+	"package": "/Game/DwoQA/BTD_LabBelow",
+	"assetClass": "Blueprint",
+	"blueprintType": "BPTYPE_Normal",
+	"status": "BS_UpToDate",
+	"engineVersion": "5.7.4-51494982+++UE5+Release-5.7",
+	"exportedAtUtc": "2026-11-25T17:41:30.296Z",
+	"source":
+	{
+		"file": "Content/DwoQA/BTD_LabBelow.uasset",
+		"bytes": 39329,
+		"modifiedUtc": "2026-11-25T17:37:40.000Z"
+	},
+	"parent": "/Script/AIModule.BTDecorator_BlueprintBase",
+	"parentChain": [
+		"/Script/AIModule.BTDecorator_BlueprintBase"
+	],
+	"generatedClass": "/Game/DwoQA/BTD_LabBelow.BTD_LabBelow_C",
+	"interfaces": [],
+	"variables": [
+		{
+			"name": "CountKey",
+			"type":
+			{
+				"text": "BlackboardKeySelector",
+				"category": "struct",
+				"object": "/Script/AIModule.BlackboardKeySelector"
+			},
+			"category": "디폴트",
+			"default": "(SelectedKeyName=\"Count\")",
+			"flags": [
+				"InstanceEditable",
+				"ExposeOnSpawn"
+			]
+		},
+		{
+			"name": "Limit",
+			"type":
+			{
+				"text": "int",
+				"category": "int"
+			},
+			"category": "디폴트",
+			"default": "21",
+			"flags": [
+				"InstanceEditable",
+				"ExposeOnSpawn"
+			]
+		},
+		{
+			"name": "Checks",
+			"type":
+			{
+				"text": "int",
+				"category": "int"
+			},
+			"category": "디폴트",
+			"default": "0"
+		}
+	],
+	"components": [],
+	"graphs": [
+		{
+			"name": "PerformConditionCheckAI",
+			"kind": "function",
+			"nodes": [
+				{
+					"id": "0773405B44ECFC8D7795D3A2D4DE697A",
+					"class": "K2Node_FunctionEntry",
+					"title": "PerformConditionCheckAI",
+					"member": "PerformConditionCheckAI",
+					"role": "other",
+					"kind": "entry",
+					"pos": [
+						0,
+						0
+					],
+					"functionFlags": [
+						"Event",
+						"BlueprintEvent",
+						"Protected"
+					],
+					"pins": [
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "287475BC40770EE91A94CCA6D2C6E026",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "OwnerController",
+							"dir": "out",
+							"type":
+							{
+								"text": "AIController",
+								"category": "object",
+								"object": "/Script/AIModule.AIController"
+							}
+						},
+						{
+							"name": "ControlledPawn",
+							"dir": "out",
+							"type":
+							{
+								"text": "Pawn",
+								"category": "object",
+								"object": "/Script/Engine.Pawn"
+							}
+						}
+					]
+				},
+				{
+					"id": "4907389947BD0D2D87648DAF01D88D67",
+					"class": "K2Node_FunctionResult",
+					"title": "반환 노드",
+					"role": "other",
+					"kind": "result",
+					"pos": [
+						256,
+						0
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "287475BC40770EE91A94CCA6D2C6E026",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "in",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false",
+							"links": [
+								{
+									"node": "27D110AF46FF04CC4AE4E98A8D8AD519",
+									"pin": "ReturnValue"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "4C8DFB584C08D0B441FD1E95C959AB3A",
+					"class": "K2Node_VariableGet",
+					"title": "Get Checks",
+					"member": "Checks",
+					"memberOwner": "/Game/DwoQA/BTD_LabBelow.SKEL_BTD_LabBelow_C",
+					"memberCpp": "int32",
+					"memberName": "Checks",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						0,
+						0
+					],
+					"pins": [
+						{
+							"name": "Checks",
+							"dir": "out",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "45D35A6C4BCF97F65220508D139FD386",
+									"pin": "A"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BTD_LabBelow",
+								"category": "object",
+								"object": "/Game/DwoQA/BTD_LabBelow.BTD_LabBelow_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "45D35A6C4BCF97F65220508D139FD386",
+					"class": "K2Node_CallFunction",
+					"title": "int + int",
+					"member": "Add_IntInt",
+					"memberOwner": "/Script/Engine.KismetMathLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						360,
+						0
+					],
+					"pins": [
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "KismetMathLibrary",
+								"category": "object",
+								"object": "/Script/Engine.KismetMathLibrary"
+							},
+							"defaultObject": "/Script/Engine.Default__KismetMathLibrary",
+							"hidden": true
+						},
+						{
+							"name": "A",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "4C8DFB584C08D0B441FD1E95C959AB3A",
+									"pin": "Checks"
+								}
+							]
+						},
+						{
+							"name": "B",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "1",
+							"autoDefault": "1"
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "287475BC40770EE91A94CCA6D2C6E026",
+									"pin": "Checks"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "287475BC40770EE91A94CCA6D2C6E026",
+					"class": "K2Node_VariableSet",
+					"title": "Set Checks",
+					"member": "Checks",
+					"memberOwner": "/Game/DwoQA/BTD_LabBelow.SKEL_BTD_LabBelow_C",
+					"memberCpp": "int32",
+					"memberName": "Checks",
+					"role": "variable",
+					"kind": "set",
+					"pos": [
+						720,
+						0
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "0773405B44ECFC8D7795D3A2D4DE697A",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "4907389947BD0D2D87648DAF01D88D67",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "Checks",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "45D35A6C4BCF97F65220508D139FD386",
+									"pin": "ReturnValue"
+								}
+							]
+						},
+						{
+							"name": "Output_Get",
+							"dir": "out",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0"
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BTD_LabBelow",
+								"category": "object",
+								"object": "/Game/DwoQA/BTD_LabBelow.BTD_LabBelow_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "CE3A15044189AEB2D0BA43896E598AD8",
+					"class": "K2Node_CallFunction",
+					"title": "Get Blackboard Value as Int",
+					"member": "GetBlackboardValueAsInt",
+					"memberOwner": "/Script/AIModule.BTFunctionLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						1080,
+						0
+					],
+					"pins": [
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BTFunctionLibrary",
+								"category": "object",
+								"object": "/Script/AIModule.BTFunctionLibrary"
+							},
+							"defaultObject": "/Script/AIModule.Default__BTFunctionLibrary",
+							"hidden": true
+						},
+						{
+							"name": "NodeOwner",
+							"dir": "in",
+							"type":
+							{
+								"text": "BTNode",
+								"category": "object",
+								"object": "/Script/AIModule.BTNode"
+							},
+							"hidden": true
+						},
+						{
+							"name": "Key",
+							"dir": "in",
+							"type":
+							{
+								"text": "BlackboardKeySelector&",
+								"category": "struct",
+								"object": "/Script/AIModule.BlackboardKeySelector",
+								"ref": true,
+								"const": true
+							},
+							"links": [
+								{
+									"node": "3A7F4D0C4A3993827C4925AE8A9DB244",
+									"pin": "CountKey"
+								}
+							]
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "27D110AF46FF04CC4AE4E98A8D8AD519",
+									"pin": "A"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "3A7F4D0C4A3993827C4925AE8A9DB244",
+					"class": "K2Node_VariableGet",
+					"title": "Get CountKey",
+					"member": "CountKey",
+					"memberOwner": "/Game/DwoQA/BTD_LabBelow.SKEL_BTD_LabBelow_C",
+					"memberCpp": "FBlackboardKeySelector",
+					"memberName": "CountKey",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						1440,
+						0
+					],
+					"pins": [
+						{
+							"name": "CountKey",
+							"dir": "out",
+							"type":
+							{
+								"text": "BlackboardKeySelector",
+								"category": "struct",
+								"object": "/Script/AIModule.BlackboardKeySelector"
+							},
+							"links": [
+								{
+									"node": "CE3A15044189AEB2D0BA43896E598AD8",
+									"pin": "Key"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BTD_LabBelow",
+								"category": "object",
+								"object": "/Game/DwoQA/BTD_LabBelow.BTD_LabBelow_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "BF3C36B9444F41DC415AE0950F96AC85",
+					"class": "K2Node_VariableGet",
+					"title": "Get Limit",
+					"member": "Limit",
+					"memberOwner": "/Game/DwoQA/BTD_LabBelow.SKEL_BTD_LabBelow_C",
+					"memberCpp": "int32",
+					"memberName": "Limit",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						1800,
+						0
+					],
+					"pins": [
+						{
+							"name": "Limit",
+							"dir": "out",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "27D110AF46FF04CC4AE4E98A8D8AD519",
+									"pin": "B"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BTD_LabBelow",
+								"category": "object",
+								"object": "/Game/DwoQA/BTD_LabBelow.BTD_LabBelow_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "27D110AF46FF04CC4AE4E98A8D8AD519",
+					"class": "K2Node_CallFunction",
+					"title": "integer < integer",
+					"member": "Less_IntInt",
+					"memberOwner": "/Script/Engine.KismetMathLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						0,
+						260
+					],
+					"pins": [
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "KismetMathLibrary",
+								"category": "object",
+								"object": "/Script/Engine.KismetMathLibrary"
+							},
+							"defaultObject": "/Script/Engine.Default__KismetMathLibrary",
+							"hidden": true
+						},
+						{
+							"name": "A",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "CE3A15044189AEB2D0BA43896E598AD8",
+									"pin": "ReturnValue"
+								}
+							]
+						},
+						{
+							"name": "B",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "BF3C36B9444F41DC415AE0950F96AC85",
+									"pin": "Limit"
+								}
+							]
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false",
+							"links": [
+								{
+									"node": "4907389947BD0D2D87648DAF01D88D67",
+									"pin": "ReturnValue"
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "EventGraph",
+			"kind": "event",
+			"nodes": []
+		}
+	],
+	"native":
+	{
+		"types":
+		{
+			"/Script/AIModule.BTDecorator_BlueprintBase":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UBTDecorator_BlueprintBase",
+				"include": "BehaviorTree/Decorators/BTDecorator_BlueprintBase.h",
+				"module": "AIModule",
+				"nativeParent": "/Script/AIModule.BTDecorator_BlueprintBase",
+				"super": "/Script/AIModule.BTDecorator",
+				"abstract": true
+			},
+			"/Script/AIModule.BTDecorator":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UBTDecorator",
+				"include": "BehaviorTree/BTDecorator.h",
+				"module": "AIModule",
+				"nativeParent": "/Script/AIModule.BTDecorator",
+				"super": "/Script/AIModule.BTAuxiliaryNode",
+				"abstract": true
+			},
+			"/Script/AIModule.BTAuxiliaryNode":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UBTAuxiliaryNode",
+				"include": "BehaviorTree/BTAuxiliaryNode.h",
+				"module": "AIModule",
+				"nativeParent": "/Script/AIModule.BTAuxiliaryNode",
+				"super": "/Script/AIModule.BTNode",
+				"abstract": true
+			},
+			"/Script/AIModule.BTNode":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UBTNode",
+				"include": "BehaviorTree/BTNode.h",
+				"module": "AIModule",
+				"nativeParent": "/Script/AIModule.BTNode",
+				"super": "/Script/CoreUObject.Object",
+				"abstract": true
+			},
+			"/Script/CoreUObject.Object":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UObject",
+				"include": "UObject/Object.h",
+				"module": "CoreUObject",
+				"nativeParent": "/Script/CoreUObject.Object",
+				"abstract": true
+			},
+			"/Script/AIModule.BlackboardKeySelector":
+			{
+				"kind": "struct",
+				"native": true,
+				"cpp": "FBlackboardKeySelector",
+				"include": "BehaviorTree/BehaviorTreeTypes.h",
+				"module": "AIModule"
+			},
+			"/Script/AIModule.AIController":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "AAIController",
+				"include": "AIController.h",
+				"module": "AIModule",
+				"nativeParent": "/Script/AIModule.AIController",
+				"super": "/Script/Engine.Controller",
+				"actor": true
+			},
+			"/Script/Engine.Pawn":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "APawn",
+				"include": "GameFramework/Pawn.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.Pawn",
+				"super": "/Script/Engine.Actor",
+				"actor": true
+			},
+			"/Game/DwoQA/BTD_LabBelow.BTD_LabBelow_C":
+			{
+				"kind": "class",
+				"native": false,
+				"cpp": "UBTD_LabBelow_C",
+				"nativeParent": "/Script/AIModule.BTDecorator_BlueprintBase",
+				"super": "/Script/AIModule.BTDecorator_BlueprintBase"
+			},
+			"/Script/Engine.KismetMathLibrary":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UKismetMathLibrary",
+				"include": "Kismet/KismetMathLibrary.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.KismetMathLibrary",
+				"super": "/Script/Engine.BlueprintFunctionLibrary"
+			},
+			"/Script/AIModule.BTFunctionLibrary":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UBTFunctionLibrary",
+				"include": "BehaviorTree/BTFunctionLibrary.h",
+				"module": "AIModule",
+				"nativeParent": "/Script/AIModule.BTFunctionLibrary",
+				"super": "/Script/Engine.BlueprintFunctionLibrary"
+			}
+		},
+		"enums":
+		{
+		},
+		"functions":
+		{
+			"/Script/AIModule.BTDecorator_BlueprintBase:PerformConditionCheckAI":
+			{
+				"name": "PerformConditionCheckAI",
+				"owner": "/Script/AIModule.BTDecorator_BlueprintBase",
+				"flags": [
+					"Event",
+					"BlueprintEvent",
+					"Protected"
+				],
+				"native": true,
+				"access": "protected",
+				"params": [
+					{
+						"name": "OwnerController",
+						"cpp": "AAIController*"
+					},
+					{
+						"name": "ControlledPawn",
+						"cpp": "APawn*"
+					},
+					{
+						"name": "ReturnValue",
+						"cpp": "bool",
+						"return": true
+					}
+				]
+			},
+			"/Script/Engine.KismetMathLibrary:Add_IntInt":
+			{
+				"name": "Add_IntInt",
+				"owner": "/Script/Engine.KismetMathLibrary",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Pure",
+					"Static"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "A",
+						"cpp": "int32"
+					},
+					{
+						"name": "B",
+						"cpp": "int32",
+						"cppDefault": "1"
+					},
+					{
+						"name": "ReturnValue",
+						"cpp": "int32",
+						"return": true
+					}
+				]
+			},
+			"/Script/AIModule.BTFunctionLibrary:GetBlackboardValueAsInt":
+			{
+				"name": "GetBlackboardValueAsInt",
+				"owner": "/Script/AIModule.BTFunctionLibrary",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Pure",
+					"Static"
+				],
+				"native": true,
+				"access": "public",
+				"defaultToSelf": "NodeOwner",
+				"params": [
+					{
+						"name": "NodeOwner",
+						"cpp": "UBTNode*"
+					},
+					{
+						"name": "Key",
+						"cpp": "FBlackboardKeySelector",
+						"ref": true,
+						"const": true
+					},
+					{
+						"name": "ReturnValue",
+						"cpp": "int32",
+						"return": true
+					}
+				]
+			},
+			"/Script/Engine.KismetMathLibrary:Less_IntInt":
+			{
+				"name": "Less_IntInt",
+				"owner": "/Script/Engine.KismetMathLibrary",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Pure",
+					"Static"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "A",
+						"cpp": "int32"
+					},
+					{
+						"name": "B",
+						"cpp": "int32"
+					},
+					{
+						"name": "ReturnValue",
+						"cpp": "bool",
+						"return": true
+					}
+				]
+			}
+		},
+		"parentMembers": [
+			"AIOwner",
+			"ActorOwner",
+			"ObservedKeyNames",
+			"CustomDescription",
+			"bShowPropertyDetails",
+			"bCheckConditionOnlyBlackBoardChanges",
+			"bInverseCondition",
+			"FlowAbortMode",
+			"NodeName",
+			"TreeAsset",
+			"ParentNode",
+			"ExecutionIndex",
+			"MemoryOffset",
+			"TreeDepth",
+			"bIsInstanced",
+			"bIsInjected",
+			"bCreateNodeInstance",
+			"bOwnsGameplayTasks",
+			"ReceiveTickAI",
+			"ReceiveTick",
+			"ReceiveObserverDeactivatedAI",
+			"ReceiveObserverDeactivated",
+			"ReceiveObserverActivatedAI",
+			"ReceiveObserverActivated",
+			"ReceiveExecutionStartAI",
+			"ReceiveExecutionStart",
+			"ReceiveExecutionFinishAI",
+			"ReceiveExecutionFinish",
+			"PerformConditionCheckAI",
+			"PerformConditionCheck",
+			"IsDecoratorObserverActive",
+			"IsDecoratorExecutionActive",
+			"ExecuteUbergraph"
+		]
+	}
+}

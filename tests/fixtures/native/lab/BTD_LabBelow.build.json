@@ -1,0 +1,32 @@
+{
+  "path": "/Game/DwoQA/BTD_LabBelow",
+  "parent": "/Script/AIModule.BTDecorator_BlueprintBase",
+  "overrides": ["PerformConditionCheckAI"],
+  "variables": [
+    {"name": "CountKey", "type": {"category": "struct", "object": "/Script/AIModule.BlackboardKeySelector"}, "default": "(SelectedKeyName=\"Count\")", "expose": true},
+    {"name": "Limit", "type": {"category": "int"}, "default": "21", "expose": true},
+    {"name": "Checks", "type": {"category": "int"}}
+  ],
+  "nodes": [
+    {"id": "e", "entry": "PerformConditionCheckAI"},
+    {"id": "r", "result": "PerformConditionCheckAI"},
+    {"id": "gChecks", "graph": "PerformConditionCheckAI", "get": "Checks"},
+    {"id": "inc", "graph": "PerformConditionCheckAI", "function": "/Script/Engine.KismetMathLibrary:Add_IntInt"},
+    {"id": "setChecks", "graph": "PerformConditionCheckAI", "set": "Checks"},
+    {"id": "getBB", "graph": "PerformConditionCheckAI", "function": "/Script/AIModule.BTFunctionLibrary:GetBlackboardValueAsInt"},
+    {"id": "gKey", "graph": "PerformConditionCheckAI", "get": "CountKey"},
+    {"id": "gLimit", "graph": "PerformConditionCheckAI", "get": "Limit"},
+    {"id": "less", "graph": "PerformConditionCheckAI", "function": "/Script/Engine.KismetMathLibrary:Less_IntInt"}
+  ],
+  "defaults": {"inc.B": "1"},
+  "links": [
+    ["e.then", "setChecks.execute"],
+    ["gChecks.Checks", "inc.A"],
+    ["inc.ReturnValue", "setChecks.Checks"],
+    ["setChecks.then", "r.execute"],
+    ["gKey.CountKey", "getBB.Key"],
+    ["getBB.ReturnValue", "less.A"],
+    ["gLimit.Limit", "less.B"],
+    ["less.ReturnValue", "r.ReturnValue"]
+  ]
+}

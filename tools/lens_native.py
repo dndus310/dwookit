@@ -800,6 +800,9 @@ class Fn:
             if f.get("worldContext") == name:
                 args.append("this")
                 continue
+            if f.get("defaultToSelf") == name and not (node["_pins"].get(name) or {}).get("links"):
+                args.append("this")                 # DefaultToSelf: an unconnected pin is self, as in the Blueprint
+                continue
             pin = node["_pins"].get(name)
             if pin is None:
                 if prm.get("cppDefault") is not None:

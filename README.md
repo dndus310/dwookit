@@ -471,6 +471,7 @@ __dwookit.bat native restore  /Game/Props/BP_JumpPad        :: 마지막 백업�
   - 액터: 블루프린트를 놓고 20프레임에 프로브 캐릭터를 위에서 쓸어내리듯 내려 겹침, 캐스트, 발사 같은 상호작용을 일으킵니다.
   - 위젯: 로컬 플레이어의 컨트롤러가 소유하도록 만들고(Initialized), 뷰포트처럼 위젯 트리를 짓고(PreConstruct, Construct), 매 프레임 Slate 위젯으로 틱합니다. 기록: 위젯과 트리 안 모든 위젯의 값, 보이기 상태. `--pawn <블루프린트>`를 주면 그 플레이어가 그 폰을 빙의하고(`GetOwningPlayer().GetPawn()`이 닿는 곳) 폰의 위치·회전·속도·이동 입력·점프도 기록합니다.
   - 폰인 액터는 플레이어 컨트롤러가 빙의한 상태로 실행합니다(이동·컨트롤러 기준 입력이 게임에서처럼 동작).
+  - 비헤이비어 트리 노드: 검사용 트리를 만들어 AIController가 폰에서 실행합니다(Sequence 아래 태스크, 그 자식에 데코레이터, Sequence에 서비스; 태스크가 없으면 0.1초 Wait). `--blackboard Count:Int,Target:Vector`로 블랙보드 키를 만들고, `--bt-node <블루프린트>`로 함께 넣을 다른 노드를 줍니다. 기록: 노드 인스턴스의 변수, 블랙보드 값, 실행 중인 노드.
   - 애니메이션: 대상 스켈레톤을 쓰는 스켈레탈 메시를 찾아 캐릭터 메시에 붙이고, 20프레임에 캐릭터를 옆·위로 발사해 속도·방향·낙하가 바뀌게 합니다. 기록: 애님 인스턴스 변수, 캐릭터 이동, 포즈(뼈 8개마다 하나, 컴포넌트 공간).
 - 기록: 10프레임마다 액터와 각 컴포넌트의 편집 가능·블루프린트에서 보이는 모든 값과 월드 변환, 프로브의 위치·속도·이동 모드·발사 요청.
 - 비교: 숫자는 부동소수 오차(1e-3)까지 같으면 같음으로 봅니다. 스폰마다 바뀌는 GUID와 임시 월드 이름은 제외하고, C++에만 있는 멤버는 따로 나열합니다. 결과는 `__dwookit/native/<이름>.behaviour.md`.
@@ -488,6 +489,7 @@ __dwookit.bat native restore  /Game/Props/BP_JumpPad        :: 마지막 백업�
 - **열거형·구조체·클래스**: Enum ==/!=, Get Enumerator Name(As String)(엔진과 같은 `UKismetNodeHelperLibrary` 함수), Set Members in Struct(보이는 핀만), 클래스 캐스트(Cast To ...Class), Get Class Defaults(리플렉션으로 읽어 접근 지정자·비트필드와 무관).
 - **객체 생성**: SpawnActor from Class(`BeginDeferredActorSpawnFromClass` → `FinishSpawningActor`, 컴파일러의 확장과 같음), Construct Object from Class(`SpawnObject`), Create Widget(`UWidgetBlueprintLibrary::Create`). 블루프린트 클래스의 인스턴스는 가장 가까운 네이티브 부모 타입으로 둡니다.
 - **Expose on Spawn 핀**: 컴파일러(`GenerateAssignmentNodes`)와 같은 규칙으로, 연결됐거나 클래스 기본값과 다른 값을 준 핀만 생성 직후(SpawnActor는 `FinishSpawningActor` 전, 즉 BeginPlay 전에) 설정합니다. 이 판단은 export가 클래스 기본 객체와 비교해 적어 둡니다. BlueprintSetter가 있으면 setter로, 없으면 이름으로 설정합니다(`Set*PropertyByName`처럼 RepNotify 없음).
+- **비헤이비어 트리 노드 블루프린트**(태스크·데코레이터·서비스): 부모(`BTTask_BlueprintBase` 등)의 `ReceiveExecuteAI`, `PerformConditionCheckAI` 같은 이벤트는 BlueprintImplementableEvent라, 본문은 `<이벤트>Native`로 옮기고 블루프린트에는 이벤트와 호출 노드만 남깁니다. 엔진은 블루프린트가 그 이벤트를 구현했는지 보고 호출 여부를 정하므로, 이벤트를 남겨야 동작이 같습니다. 블랙보드 함수의 숨은 `NodeOwner`처럼 DefaultToSelf인 핀은 self로 넘깁니다.
 - **복제 커스텀 이벤트**(Run on Server / Run on owning Client / Multicast, Reliable): `UFUNCTION(Server|Client|NetMulticast, Reliable|Unreliable)`로 선언하고 본문은 `_Implementation`에 둡니다. 호출은 UHT가 만든 함수를 거치므로 보내기·로컬 실행 규칙이 블루프린트와 같습니다. 문자열·구조체·배열 매개변수는 UHT 규칙대로 const 참조. 블루프린트 함수는 복제 설정이 없으므로 대상이 아닙니다.
 - **다른 블루프린트 클래스의 변수 읽기·쓰기**: C++ 타입이 없으므로 이름으로 읽고 씁니다(`DwoNative::GetProperty` / `SetProperty`). 복제 변수 쓰기는 블루프린트에 남습니다.
 - **델리게이트**: Create Event, 커스텀 이벤트를 Set Timer by Event 등 델리게이트 인자로 넘기기, Bind / Unbind / Unbind All(디스패처를 이름으로 찾아 VM처럼 묶음; 블루프린트 클래스의 디스패처에도 동작).
@@ -506,7 +508,7 @@ __dwookit.bat native restore  /Game/Props/BP_JumpPad        :: 마지막 백업�
 - **다른 이벤트의 인자 읽기**: 블루프린트는 이벤트 인자를 프레임에 남겨 두어 다른 이벤트가 마지막 값을 읽을 수 있습니다. 그 인자를 이벤트가 실행될 때 멤버에 복사해 같은 값을 읽습니다.
 - **위젯 블루프린트인 자식 위젯**(UI_Thumbstick 같은): BindWidget 멤버를 가장 가까운 네이티브 부모 타입(`UUserWidget`)으로 선언하고, 그 위젯의 디스패처에 바운드된 이벤트는 이름으로 묶습니다(`DwoNative::AddDynamicByName`). 블루프린트에 남는 코드가 그 위젯을 쓰면 위젯은 블루프린트에 남습니다(타입이 바뀌면 안 되므로).
 
-블루프린트에 남는 것: 블루프린트 매크로·구조체·열거형을 쓰는 코드, AddComponent 노드, 터치·벡터 축 입력, AnimGraph(상태 머신), 비헤이비어 트리 노드 블루프린트(계획 중). 비헤이비어 트리 에셋 자체는 데이터라 옮길 대상이 아닙니다.
+블루프린트에 남는 것: 블루프린트 매크로·구조체·열거형을 쓰는 코드, AddComponent 노드, 터치·벡터 축 입력, AnimGraph(상태 머신), 비헤이비어 트리·블랙보드 에셋 자체(데이터라 옮길 대상이 아님).
 
 rebase 안전장치: 블루프린트에 남는 실행 흐름이 C++로 옮긴 노드로 이어지면(그 뒤 코드가 조용히 끊기므로) 저장하지 않습니다.
 
