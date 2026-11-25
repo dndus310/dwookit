@@ -74,6 +74,12 @@ PRIVATE_GETTERS = {
     ("Controller", "Pawn"): "GetPawn()", ("PlayerController", "PlayerCameraManager"): "PlayerCameraManager",
 }
 
+# Deprecated engine functions Blueprints still call, and the replacement the engine names, where both have the
+# same body (checked against the UE 5.7 source): (owner, function) -> (call, include, module)
+REPLACED = {
+    ("AnimInstance", "CalculateDirection"): ("UKismetAnimationLibrary::CalculateDirection", "KismetAnimationLibrary.h", "AnimGraphRuntime"),
+}
+
 # Core types the export may describe without an include (CoreMinimal has them).
 CORE_STRUCTS = {"Vector", "Vector2D", "Vector4", "Rotator", "Quat", "Transform", "LinearColor", "Color", "IntPoint",
                 "IntVector", "Box", "Box2D", "Plane", "Matrix", "Guid", "DateTime", "Timespan", "Vector3f", "Rotator3f"}
@@ -662,9 +668,11 @@ class Fn:
             return f"[&]() -> {t} {{ {ot} O = {obj}; if (O) {{ return O->{getter}; }} return {default_of(t)}; }}()"
         if node.get("memberAccess") == "private" or (node.get("memberAccess") == "protected" and (obj != "this" or not self.plan.inherits(owner))):
             raise Unsupported(f"{node['member']} is {node.get('memberAccess')} in C++", node)
-        if node.get("memberAccessor"):
-            raise Unsupported(f"{node['member']} has a Blueprint getter/setter", node)
         member = node.get("memberName") or node["member"]
+        if node.get("memberGetter"):
+            member = node["memberGetter"] + "()"          # Blueprint reads it through its BlueprintGetter
+        elif node.get("memberAccessor") and not node.get("memberSetter"):
+            raise Unsupported(f"{node['member']} has a Blueprint getter", node)
         if obj == "this":
             return member
         pin = next((p for p in node["pins"] if p["dir"] == "out"), None)
@@ -789,7 +797,13 @@ class Fn:
                     raise Unsupported(f"{f['name']} is called on self but self is not a {short(f['owner'])}", node)
                 if f.get("access") == "private":
                     raise Unsupported(f"{f['name']} is private in C++", node)
-                call = f"{f['name']}({', '.join(args)})"
+                repl = REPLACED.get((short(f["owner"]), f["name"]))
+                if repl:
+                    self.types.includes.add(repl[1])
+                    self.types.modules.add(repl[2])
+                    call = f"{repl[0]}({', '.join(args)})"
+                else:
+                    call = f"{f['name']}({', '.join(args)})"
         if guard and not pure:
             self.guarded = guard                     # the statement wraps the call in if (Target)
         if outs:
@@ -881,8 +895,9 @@ class Fn:
         idx = self.input(node, "Index")
         options = [p for p in node["pins"] if p["dir"] == "in" and p["name"] not in ("Index",) and p["type"].get("category") != "exec"]
         if len(options) == 2 and node["_pins"]["Index"]["type"].get("category") == "bool":
-            a, b = options
-            return f"(({idx}) ? {self.input(node, a['name'])} : {self.input(node, b['name'])})"
+            # a bool index picks Option 0 for false and Option 1 for true
+            when_false, when_true = options
+            return f"(({idx}) ? {self.input(node, when_true['name'])} : {self.input(node, when_false['name'])})"
         parts = [f"(({idx}) == {i}) ? {self.input(node, o['name'])} :" for i, o in enumerate(options[:-1])]
         return "(" + " ".join(parts) + f" {self.input(node, options[-1]['name'])})"
 
@@ -928,6 +943,27 @@ class Fn:
         self.flow(node)
         self.depth -= 1
         self.say("}")
+
+    def set_other(self, node: dict, value_pin: dict):
+        """Set on another object: a native property, through its BlueprintSetter when it has one (as Blueprint
+        does); a None target is skipped."""
+        owner = node.get("memberOwner", "")
+        if not self.ex.type_info(owner).get("native"):
+            raise Unsupported("sets another object's Blueprint variable", node)
+        out = next((p for p in node["pins"] if p["dir"] == "out" and p["type"].get("category") != "exec" and p.get("links")), None)
+        if out:
+            raise Unsupported("reads the output of a set on another object", node)
+        value = self.input(node, value_pin["name"])
+        obj = self.guard_target(node, self.input(node, "self"))
+        member = node.get("memberName") or node["member"]
+        if node.get("memberSetter"):
+            stmt = f"{obj}->{node['memberSetter']}({value});"
+        elif node.get("memberAccess") in ("private", "protected") or node.get("memberAccessor") or node.get("memberReadOnly"):
+            raise Unsupported(f"{member} cannot be set from C++ here", node)
+        else:
+            stmt = f"{obj}->{member} = {value};"
+        self.say(f"if ({obj}) {{ {stmt} }}")
+        return self.exec_target(node, "then")
 
     def array_value(self, node: dict, pin_name: str) -> str:
         """Blueprint array functions are generic (CustomThunk): the TArray member that does the same."""
@@ -1018,10 +1054,13 @@ class Fn:
             if node.get("memberAccess") == "private" and not self.plan.is_own_member(node["member"]):
                 raise Unsupported(f"sets {node['member']}, which is private in C++", node)
             target = node["_pins"].get("self")
-            if target and target.get("links") and not self.ex.is_self_class(node.get("memberOwner", "")):
-                raise Unsupported("sets another object's Blueprint variable", node)
-            var = self.plan.local_names.get(node["member"]) or self.plan.var_cpp(node["member"], node)
             value_pin = next(p for p in node["pins"] if p["dir"] == "in" and p["type"].get("category") != "exec" and p["name"] != "self")
+            if target and target.get("links") and not self.ex.is_self_class(node.get("memberOwner", "")):
+                return self.set_other(node, value_pin)
+            if node.get("memberSetter") and not self.plan.is_own_member(node["member"]):
+                self.say(f"{node['memberSetter']}({self.input(node, value_pin['name'])});")   # the parent's BlueprintSetter
+                return self.exec_target(node, "then")
+            var = self.plan.local_names.get(node["member"]) or self.plan.var_cpp(node["member"], node)
             self.say(f"{var} = {self.input(node, value_pin['name'])};")
             notify = self.plan.rep_notify(node["member"])
             if notify:
@@ -1257,6 +1296,10 @@ class Plan:
             raise SystemExit(f"{ex.name}: its native parent class is not in the export")
         self.parent_path = parent_path
         self.parent_cpp = self.parent["cpp"]
+        if "DwoNative/" in self.parent.get("include", "").replace("\\", "/"):
+            # regenerating from a rebased Blueprint would build C++ from what is left in it and overwrite the class
+            raise SystemExit(f"{ex.name} is already rebased onto {self.parent_cpp} (generated C++). "
+                             "Restore it first (__dwookit.bat native restore) to migrate it again.")
         prefix = self.parent_cpp[0]
         base = re.sub(r"^(BP|B|WBP|WB|ABP|AB|BTT|BTS|BTD|BPI|UI|W)_", "", ex.name)
         self.cpp = class_name or f"{prefix}{ident(base)}Base"

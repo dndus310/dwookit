@@ -1154,6 +1154,23 @@ class NativeMigrationTests(TempDir):
         self.assertIn("virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;", files["JumpPadBase.h"])
         self.assertIn("Super::SetupPlayerInputComponent(PlayerInputComponent);", files["JumpPadBase.cpp"])
 
+    def test_bool_select_picks_option_1_when_true(self):
+        # the behaviour check caught this: Option 0 is the false branch (ABP_Unarmed's Direction was 45, not 90)
+        plan, s, files = self.generate("ABP_Unarmed")
+        cpp = files["UnarmedBase.cpp"]
+        self.assertIn("? UKismetMathLibrary::FClamp(UKismetAnimationLibrary::CalculateDirection(", cpp)
+        # the deprecated UAnimInstance::CalculateDirection has the same body as its named replacement
+        self.assertNotIn(" CalculateDirection(Velocity", cpp)
+        self.assertIn("AnimGraphRuntime", s["modules"])
+
+    def test_widget_sets_through_blueprint_setters(self):
+        plan, s, files = self.generate("UI_SideScrolling")
+        self.assertEqual(s["coverage"]["migrated"], s["coverage"]["nodes"])
+        cpp = files["SideScrollingBase.cpp"]
+        self.assertIn("if (Target_41BA0B78) { Target_41BA0B78->SetText(", cpp)        # TextBlock.Text: BlueprintSetter
+        plan, s, files = self.generate("UI_LifeBar")
+        self.assertIn("void SetLifePercentageNative(float Percent);", files["LifeBarBase.h"])
+
     def test_signature_helpers(self):
         import lens_native
         self.assertEqual(lens_native.enum_exec_value("TEnumAsByte<EMoveComponentAction::Type>", "Stop"), "EMoveComponentAction::Stop")

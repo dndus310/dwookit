@@ -1,0 +1,793 @@
+{
+	"schema": "lens.bp/1",
+	"name": "UI_LifeBar",
+	"asset": "/Game/Variant_Combat/UI/UI_LifeBar.UI_LifeBar",
+	"package": "/Game/Variant_Combat/UI/UI_LifeBar",
+	"assetClass": "WidgetBlueprint",
+	"blueprintType": "BPTYPE_Normal",
+	"status": "BS_UpToDate",
+	"engineVersion": "5.7.4-51494982+++UE5+Release-5.7",
+	"exportedAtUtc": "2026-11-25T05:00:04.397Z",
+	"source":
+	{
+		"file": "Content/Variant_Combat/UI/UI_LifeBar.uasset",
+		"bytes": 39105,
+		"modifiedUtc": "2026-11-07T10:01:32.000Z"
+	},
+	"parent": "/Script/DWO_Proj_01.CombatLifeBar",
+	"parentChain": [
+		"/Script/DWO_Proj_01.CombatLifeBar"
+	],
+	"generatedClass": "/Game/Variant_Combat/UI/UI_LifeBar.UI_LifeBar_C",
+	"interfaces": [],
+	"variables": [],
+	"components": [],
+	"widgets": [
+		{
+			"name": "Overlay_0",
+			"class": "Overlay"
+		},
+		{
+			"name": "Border_0",
+			"class": "Border",
+			"parent": "Overlay_0"
+		},
+		{
+			"name": "Bar",
+			"class": "ProgressBar",
+			"parent": "Border_0",
+			"variable": true
+		}
+	],
+	"graphs": [
+		{
+			"name": "EventGraph",
+			"kind": "event",
+			"nodes": [
+				{
+					"id": "1485309A4E56AE6577DDD4A8A16D42D7",
+					"class": "K2Node_Event",
+					"title": "SetLifePercentage 이벤트",
+					"member": "SetLifePercentage",
+					"memberOwner": "/Script/DWO_Proj_01.CombatLifeBar",
+					"override": true,
+					"role": "event",
+					"kind": "event",
+					"pos": [
+						0,
+						0
+					],
+					"pins": [
+						{
+							"name": "OutputDelegate",
+							"dir": "out",
+							"type":
+							{
+								"text": "delegate",
+								"category": "delegate"
+							}
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "DF1C1D944FA12DAC06BCF3BEDE1D390B",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "Percent",
+							"dir": "out",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "float"
+							},
+							"default": "0.0",
+							"autoDefault": "0.0",
+							"links": [
+								{
+									"node": "DF1C1D944FA12DAC06BCF3BEDE1D390B",
+									"pin": "InPercent"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "8D677D0F4EA463EF6EF69F91A79116B7",
+					"class": "K2Node_VariableGet",
+					"title": "Get Bar",
+					"member": "Bar",
+					"memberOwner": "/Game/Variant_Combat/UI/UI_LifeBar.SKEL_UI_LifeBar_C",
+					"memberCpp": "UProgressBar*",
+					"memberName": "Bar",
+					"memberReadOnly": true,
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						160,
+						144
+					],
+					"pins": [
+						{
+							"name": "Bar",
+							"dir": "out",
+							"type":
+							{
+								"text": "ProgressBar",
+								"category": "object",
+								"object": "/Script/UMG.ProgressBar"
+							},
+							"links": [
+								{
+									"node": "DF1C1D944FA12DAC06BCF3BEDE1D390B",
+									"pin": "self"
+								},
+								{
+									"node": "F93AC4AB404A0194C8FE4CB5415DD975",
+									"pin": "self"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "UI_LifeBar",
+								"category": "object",
+								"object": "/Game/Variant_Combat/UI/UI_LifeBar.UI_LifeBar_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "DF1C1D944FA12DAC06BCF3BEDE1D390B",
+					"class": "K2Node_CallFunction",
+					"title": "Set Percent\n타깃은 Progress Bar",
+					"member": "SetPercent",
+					"memberOwner": "/Script/UMG.ProgressBar",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable"
+					],
+					"role": "call",
+					"kind": "call",
+					"pos": [
+						416,
+						-16
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "1485309A4E56AE6577DDD4A8A16D42D7",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "ProgressBar",
+								"category": "object",
+								"object": "/Script/UMG.ProgressBar"
+							},
+							"links": [
+								{
+									"node": "8D677D0F4EA463EF6EF69F91A79116B7",
+									"pin": "Bar"
+								}
+							]
+						},
+						{
+							"name": "InPercent",
+							"dir": "in",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "float"
+							},
+							"default": "0.0",
+							"autoDefault": "0.0",
+							"links": [
+								{
+									"node": "1485309A4E56AE6577DDD4A8A16D42D7",
+									"pin": "Percent"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "F93AC4AB404A0194C8FE4CB5415DD975",
+					"class": "K2Node_CallFunction",
+					"title": "Set Fill Color and Opacity\n타깃은 Progress Bar",
+					"member": "SetFillColorAndOpacity",
+					"memberOwner": "/Script/UMG.ProgressBar",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable"
+					],
+					"role": "call",
+					"kind": "call",
+					"pos": [
+						416,
+						240
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "BEADF823471E8FC609A112A85819E749",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "ProgressBar",
+								"category": "object",
+								"object": "/Script/UMG.ProgressBar"
+							},
+							"links": [
+								{
+									"node": "8D677D0F4EA463EF6EF69F91A79116B7",
+									"pin": "Bar"
+								}
+							]
+						},
+						{
+							"name": "InColor",
+							"dir": "in",
+							"type":
+							{
+								"text": "LinearColor",
+								"category": "struct",
+								"object": "/Script/CoreUObject.LinearColor"
+							},
+							"links": [
+								{
+									"node": "BEADF823471E8FC609A112A85819E749",
+									"pin": "Color"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "BEADF823471E8FC609A112A85819E749",
+					"class": "K2Node_Event",
+					"title": "SetBarColor 이벤트",
+					"member": "SetBarColor",
+					"memberOwner": "/Script/DWO_Proj_01.CombatLifeBar",
+					"override": true,
+					"role": "event",
+					"kind": "event",
+					"pos": [
+						0,
+						256
+					],
+					"pins": [
+						{
+							"name": "OutputDelegate",
+							"dir": "out",
+							"type":
+							{
+								"text": "delegate",
+								"category": "delegate"
+							}
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "F93AC4AB404A0194C8FE4CB5415DD975",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "Color",
+							"dir": "out",
+							"type":
+							{
+								"text": "LinearColor",
+								"category": "struct",
+								"object": "/Script/CoreUObject.LinearColor"
+							},
+							"links": [
+								{
+									"node": "F93AC4AB404A0194C8FE4CB5415DD975",
+									"pin": "InColor"
+								}
+							]
+						}
+					]
+				}
+			]
+		}
+	],
+	"native":
+	{
+		"types":
+		{
+			"/Script/DWO_Proj_01.CombatLifeBar":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UCombatLifeBar",
+				"include": "Variant_Combat/UI/CombatLifeBar.h",
+				"module": "DWO_Proj_01",
+				"nativeParent": "/Script/DWO_Proj_01.CombatLifeBar",
+				"super": "/Script/UMG.UserWidget",
+				"abstract": true
+			},
+			"/Script/UMG.UserWidget":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UUserWidget",
+				"include": "Blueprint/UserWidget.h",
+				"module": "UMG",
+				"nativeParent": "/Script/UMG.UserWidget",
+				"super": "/Script/UMG.Widget",
+				"abstract": true
+			},
+			"/Script/UMG.Widget":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UWidget",
+				"include": "Components/Widget.h",
+				"module": "UMG",
+				"nativeParent": "/Script/UMG.Widget",
+				"super": "/Script/UMG.Visual",
+				"abstract": true
+			},
+			"/Script/UMG.Visual":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UVisual",
+				"include": "Components/Visual.h",
+				"module": "UMG",
+				"nativeParent": "/Script/UMG.Visual",
+				"super": "/Script/CoreUObject.Object"
+			},
+			"/Script/CoreUObject.Object":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UObject",
+				"include": "UObject/Object.h",
+				"module": "CoreUObject",
+				"nativeParent": "/Script/CoreUObject.Object",
+				"abstract": true
+			},
+			"/Script/UMG.Overlay":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UOverlay",
+				"include": "Components/Overlay.h",
+				"module": "UMG",
+				"nativeParent": "/Script/UMG.Overlay",
+				"super": "/Script/UMG.PanelWidget"
+			},
+			"/Script/UMG.Border":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UBorder",
+				"include": "Components/Border.h",
+				"module": "UMG",
+				"nativeParent": "/Script/UMG.Border",
+				"super": "/Script/UMG.ContentWidget"
+			},
+			"/Script/UMG.ProgressBar":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UProgressBar",
+				"include": "Components/ProgressBar.h",
+				"module": "UMG",
+				"nativeParent": "/Script/UMG.ProgressBar",
+				"super": "/Script/UMG.Widget"
+			},
+			"/Game/Variant_Combat/UI/UI_LifeBar.UI_LifeBar_C":
+			{
+				"kind": "class",
+				"native": false,
+				"cpp": "UUI_LifeBar_C",
+				"nativeParent": "/Script/DWO_Proj_01.CombatLifeBar",
+				"super": "/Script/DWO_Proj_01.CombatLifeBar"
+			},
+			"/Script/CoreUObject.LinearColor":
+			{
+				"kind": "struct",
+				"native": true,
+				"cpp": "FLinearColor",
+				"include": "UObject/NoExportTypes.h",
+				"module": "CoreUObject"
+			}
+		},
+		"enums":
+		{
+		},
+		"functions":
+		{
+			"/Script/DWO_Proj_01.CombatLifeBar:SetLifePercentage":
+			{
+				"name": "SetLifePercentage",
+				"owner": "/Script/DWO_Proj_01.CombatLifeBar",
+				"flags": [
+					"Event",
+					"BlueprintEvent"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "Percent",
+						"cpp": "float"
+					}
+				]
+			},
+			"/Script/UMG.ProgressBar:SetPercent":
+			{
+				"name": "SetPercent",
+				"owner": "/Script/UMG.ProgressBar",
+				"flags": [
+					"Native",
+					"BlueprintCallable"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "InPercent",
+						"cpp": "float"
+					}
+				]
+			},
+			"/Script/UMG.ProgressBar:SetFillColorAndOpacity":
+			{
+				"name": "SetFillColorAndOpacity",
+				"owner": "/Script/UMG.ProgressBar",
+				"flags": [
+					"Native",
+					"BlueprintCallable"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "InColor",
+						"cpp": "FLinearColor"
+					}
+				]
+			},
+			"/Script/DWO_Proj_01.CombatLifeBar:SetBarColor":
+			{
+				"name": "SetBarColor",
+				"owner": "/Script/DWO_Proj_01.CombatLifeBar",
+				"flags": [
+					"Event",
+					"BlueprintEvent"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "Color",
+						"cpp": "FLinearColor"
+					}
+				]
+			}
+		},
+		"parentMembers": [
+			"ColorAndOpacity",
+			"ColorAndOpacityDelegate",
+			"ForegroundColor",
+			"ForegroundColorDelegate",
+			"OnVisibilityChanged",
+			"Padding",
+			"Priority",
+			"bIsFocusable",
+			"bStopAction",
+			"bAutomaticallyRegisterInputOnConstruction",
+			"QueuedWidgetAnimationTransitions",
+			"ActiveSequencePlayers",
+			"AnimationTickManager",
+			"StoppedSequencePlayers",
+			"NamedSlotBindings",
+			"Extensions",
+			"WidgetTree",
+			"DesignTimeSize",
+			"DesignSizeMode",
+			"PaletteCategory",
+			"PreviewBackground",
+			"bHasScriptImplementedTick",
+			"bHasScriptImplementedPaint",
+			"TickFrequency",
+			"DesiredFocusWidget",
+			"InputComponent",
+			"AnimationCallbacks",
+			"Slot",
+			"bIsEnabledDelegate",
+			"ToolTipTextDelegate",
+			"ToolTipText",
+			"ToolTipWidget",
+			"ToolTipWidgetDelegate",
+			"VisibilityDelegate",
+			"RenderTransform",
+			"RenderTransformPivot",
+			"FlowDirectionPreference",
+			"bIsVariable",
+			"bCreatedByConstructionScript",
+			"bIsEnabled",
+			"bOverride_Cursor",
+			"bOverrideAccessibleDefaults",
+			"bCanChildrenBeAccessible",
+			"AccessibleBehavior",
+			"AccessibleSummaryBehavior",
+			"AccessibleText",
+			"AccessibleTextDelegate",
+			"AccessibleSummaryText",
+			"AccessibleSummaryTextDelegate",
+			"bIsVolatile",
+			"bWrappedByComponent",
+			"bHiddenInDesigner",
+			"bExpandedInDesigner",
+			"bLockedInDesigner",
+			"Cursor",
+			"Clipping",
+			"Visibility",
+			"PixelSnapping",
+			"RenderOpacity",
+			"AccessibleWidgetData",
+			"Navigation",
+			"NativeBindings",
+			"DesignerFlags",
+			"DisplayLabel",
+			"CategoryName",
+			"SetLifePercentage",
+			"SetBarColor",
+			"UnregisterInputComponent",
+			"UnbindFromAnimationStarted",
+			"UnbindFromAnimationFinished",
+			"UnbindAllFromAnimationStarted",
+			"UnbindAllFromAnimationFinished",
+			"Tick",
+			"StopListeningForInputAction",
+			"StopListeningForAllInputActions",
+			"StopAnimationsAndLatentActions",
+			"StopAnimation",
+			"StopAllAnimations",
+			"SetPositionInViewport",
+			"SetPlaybackSpeed",
+			"SetPadding",
+			"SetOwningPlayer",
+			"SetNumLoopsToPlay",
+			"SetInputActionPriority",
+			"SetInputActionBlocking",
+			"SetForegroundColor",
+			"SetDesiredSizeInViewport",
+			"SetDesiredFocusWidget",
+			"SetColorAndOpacity",
+			"SetAnimationCurrentTime",
+			"SetAnchorsInViewport",
+			"SetAlignmentInViewport",
+			"ReverseAnimation",
+			"RemoveFromViewport",
+			"RemoveExtensions",
+			"RemoveExtension",
+			"RegisterInputComponent",
+			"QueueStopAnimation",
+			"QueueStopAllAnimations",
+			"QueuePlayAnimationTimeRange",
+			"QueuePlayAnimationReverse",
+			"QueuePlayAnimationForward",
+			"QueuePlayAnimation",
+			"QueuePauseAnimation",
+			"PreConstruct",
+			"PlaySound",
+			"PlayAnimationTimeRange",
+			"PlayAnimationReverse",
+			"PlayAnimationForward",
+			"PlayAnimation",
+			"PauseAnimation",
+			"OnTouchStarted",
+			"OnTouchMoved",
+			"OnTouchGesture",
+			"OnTouchForceChanged",
+			"OnTouchFirstMove",
+			"OnTouchEnded",
+			"OnRemovedFromFocusPath",
+			"OnPreviewMouseButtonDown",
+			"OnPreviewKeyDown",
+			"OnPaint",
+			"OnMouseWheel",
+			"OnMouseMove",
+			"OnMouseLeave",
+			"OnMouseEnter",
+			"OnMouseCaptureLost",
+			"OnMouseButtonUp",
+			"OnMouseButtonDown",
+			"OnMouseButtonDoubleClick",
+			"OnMotionDetected",
+			"OnKeyUp",
+			"OnKeyDown",
+			"OnKeyChar",
+			"OnInitialized",
+			"OnFocusReceived",
+			"OnFocusLost",
+			"OnDrop",
+			"OnDragOver",
+			"OnDragLeave",
+			"OnDragEnter",
+			"OnDragDetected",
+			"OnDragCancelled",
+			"OnAnimationStarted",
+			"OnAnimationFinished",
+			"OnAnalogValueChanged",
+			"OnAddedToFocusPath",
+			"ListenForInputAction",
+			"IsPlayingAnimation",
+			"IsListeningForInputAction",
+			"IsInteractable",
+			"IsAnyAnimationPlaying",
+			"IsAnimationPlayingForward",
+			"IsAnimationPlaying",
+			"GetOwningPlayerPawn",
+			"GetOwningPlayerCameraManager",
+			"GetIsVisible",
+			"GetExtensions",
+			"GetExtension",
+			"GetAnimationCurrentTime",
+			"GetAnchorsInViewport",
+			"GetAlignmentInViewport",
+			"FlushAnimations",
+			"Destruct",
+			"Construct",
+			"CancelLatentActions",
+			"BindToAnimationStarted",
+			"BindToAnimationFinished",
+			"BindToAnimationEvent",
+			"AddToViewport",
+			"AddToPlayerScreen",
+			"AddExtension",
+			"SetVisibility",
+			"SetUserFocus",
+			"SetToolTipText",
+			"SetToolTip",
+			"SetRenderTranslation",
+			"SetRenderTransformPivot",
+			"SetRenderTransformAngle",
+			"SetRenderTransform",
+			"SetRenderShear",
+			"SetRenderScale",
+			"SetRenderOpacity",
+			"SetNavigationRuleExplicit",
+			"SetNavigationRuleCustomBoundary",
+			"SetNavigationRuleCustom",
+			"SetNavigationRuleBase",
+			"SetNavigationRule",
+			"SetKeyboardFocus",
+			"SetIsEnabled",
+			"SetFocus",
+			"SetCursor",
+			"SetClipping",
+			"SetAllNavigationRules",
+			"ResetCursor",
+			"RemoveFromParent",
+			"OnReply__DelegateSignature",
+			"OnPointerEvent__DelegateSignature",
+			"K2_RemoveFieldValueChangedDelegate",
+			"K2_BroadcastFieldValueChanged",
+			"K2_AddFieldValueChangedDelegate",
+			"IsVisible",
+			"IsRendered",
+			"IsInViewport",
+			"IsHovered",
+			"InvalidateLayoutAndVolatility",
+			"HasUserFocusedDescendants",
+			"HasUserFocus",
+			"HasMouseCaptureByUser",
+			"HasMouseCapture",
+			"HasKeyboardFocus",
+			"HasFocusedDescendants",
+			"HasAnyUserFocus",
+			"GetWidget__DelegateSignature",
+			"GetVisibility",
+			"GetTickSpaceGeometry",
+			"GetText__DelegateSignature",
+			"GetSlateVisibility__DelegateSignature",
+			"GetSlateColor__DelegateSignature",
+			"GetSlateBrush__DelegateSignature",
+			"GetRenderTransformAngle",
+			"GetRenderOpacity",
+			"GetParent",
+			"GetPaintSpaceGeometry",
+			"GetOwningPlayer",
+			"GetOwningLocalPlayer",
+			"GetMouseCursor__DelegateSignature",
+			"GetLinearColor__DelegateSignature",
+			"GetIsEnabled",
+			"GetInt32__DelegateSignature",
+			"GetGameInstance",
+			"GetFloat__DelegateSignature",
+			"GetDesiredSize",
+			"GetClipping",
+			"GetCheckBoxState__DelegateSignature",
+			"GetCachedGeometry",
+			"GetBool__DelegateSignature",
+			"GetAccessibleText",
+			"GetAccessibleSummaryText",
+			"GenerateWidgetForString__DelegateSignature",
+			"GenerateWidgetForObject__DelegateSignature",
+			"ForceVolatile",
+			"ForceLayoutPrepass",
+			"ExecuteUbergraph"
+		]
+	}
+}

@@ -1,0 +1,808 @@
+{
+	"schema": "lens.bp/1",
+	"name": "UI_SideScrolling",
+	"asset": "/Game/Variant_SideScrolling/UI/UI_SideScrolling.UI_SideScrolling",
+	"package": "/Game/Variant_SideScrolling/UI/UI_SideScrolling",
+	"assetClass": "WidgetBlueprint",
+	"blueprintType": "BPTYPE_Normal",
+	"status": "BS_UpToDate",
+	"engineVersion": "5.7.4-51494982+++UE5+Release-5.7",
+	"exportedAtUtc": "2026-11-25T05:00:04.410Z",
+	"source":
+	{
+		"file": "Content/Variant_SideScrolling/UI/UI_SideScrolling.uasset",
+		"bytes": 39988,
+		"modifiedUtc": "2026-11-07T10:01:32.000Z"
+	},
+	"parent": "/Script/DWO_Proj_01.SideScrollingUI",
+	"parentChain": [
+		"/Script/DWO_Proj_01.SideScrollingUI"
+	],
+	"generatedClass": "/Game/Variant_SideScrolling/UI/UI_SideScrolling.UI_SideScrolling_C",
+	"interfaces": [],
+	"variables": [],
+	"components": [],
+	"widgets": [
+		{
+			"name": "SafeZone_0",
+			"class": "SafeZone"
+		},
+		{
+			"name": "Overlay_0",
+			"class": "Overlay",
+			"parent": "SafeZone_0"
+		},
+		{
+			"name": "Border_0",
+			"class": "Border",
+			"parent": "Overlay_0"
+		},
+		{
+			"name": "HorizontalBox_41",
+			"class": "HorizontalBox",
+			"parent": "Border_0"
+		},
+		{
+			"name": "TextBlock_40",
+			"class": "TextBlock",
+			"parent": "HorizontalBox_41"
+		},
+		{
+			"name": "ScoreText",
+			"class": "TextBlock",
+			"parent": "HorizontalBox_41",
+			"variable": true
+		}
+	],
+	"graphs": [
+		{
+			"name": "EventGraph",
+			"kind": "event",
+			"nodes": [
+				{
+					"id": "D0F085C24406C122F098919474AEDD07",
+					"class": "K2Node_Event",
+					"title": "UpdatePickups 이벤트",
+					"member": "UpdatePickups",
+					"memberOwner": "/Script/DWO_Proj_01.SideScrollingUI",
+					"override": true,
+					"role": "event",
+					"kind": "event",
+					"pos": [
+						0,
+						0
+					],
+					"pins": [
+						{
+							"name": "OutputDelegate",
+							"dir": "out",
+							"type":
+							{
+								"text": "delegate",
+								"category": "delegate"
+							}
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "41BA0B784311455F6D1FBEB16A186479",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "Amount",
+							"dir": "out",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "2574DF0D4C7621F0ABCCDC9BB9AB1879",
+									"pin": "Value"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "5D88D38B4FEA72EA1D98F087EED13B99",
+					"class": "K2Node_VariableGet",
+					"title": "Get ScoreText",
+					"member": "ScoreText",
+					"memberOwner": "/Game/Variant_SideScrolling/UI/UI_SideScrolling.SKEL_UI_SideScrolling_C",
+					"memberCpp": "UTextBlock*",
+					"memberName": "ScoreText",
+					"memberReadOnly": true,
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						480,
+						144
+					],
+					"pins": [
+						{
+							"name": "ScoreText",
+							"dir": "out",
+							"type":
+							{
+								"text": "TextBlock",
+								"category": "object",
+								"object": "/Script/UMG.TextBlock"
+							},
+							"links": [
+								{
+									"node": "41BA0B784311455F6D1FBEB16A186479",
+									"pin": "self"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "UI_SideScrolling",
+								"category": "object",
+								"object": "/Game/Variant_SideScrolling/UI/UI_SideScrolling.UI_SideScrolling_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "41BA0B784311455F6D1FBEB16A186479",
+					"class": "K2Node_VariableSet",
+					"title": "Set Text",
+					"member": "Text",
+					"memberOwner": "/Script/UMG.TextBlock",
+					"memberCpp": "FText",
+					"memberName": "Text",
+					"memberAccessor": true,
+					"memberGetter": "GetText",
+					"memberSetter": "SetText",
+					"role": "variable",
+					"kind": "set",
+					"pos": [
+						480,
+						16
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "D0F085C24406C122F098919474AEDD07",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "Text",
+							"dir": "in",
+							"type":
+							{
+								"text": "text",
+								"category": "text"
+							},
+							"links": [
+								{
+									"node": "2574DF0D4C7621F0ABCCDC9BB9AB1879",
+									"pin": "ReturnValue"
+								}
+							]
+						},
+						{
+							"name": "Output_Get",
+							"label": "Text",
+							"dir": "out",
+							"type":
+							{
+								"text": "text",
+								"category": "text"
+							}
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "TextBlock",
+								"category": "object",
+								"object": "/Script/UMG.TextBlock"
+							},
+							"links": [
+								{
+									"node": "5D88D38B4FEA72EA1D98F087EED13B99",
+									"pin": "ScoreText"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "2574DF0D4C7621F0ABCCDC9BB9AB1879",
+					"class": "K2Node_CallFunction",
+					"title": "To Text (Integer)",
+					"member": "Conv_IntToText",
+					"memberOwner": "/Script/Engine.KismetTextLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						240,
+						80
+					],
+					"pins": [
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "KismetTextLibrary",
+								"category": "object",
+								"object": "/Script/Engine.KismetTextLibrary"
+							},
+							"defaultObject": "/Script/Engine.Default__KismetTextLibrary",
+							"hidden": true
+						},
+						{
+							"name": "Value",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "D0F085C24406C122F098919474AEDD07",
+									"pin": "Amount"
+								}
+							]
+						},
+						{
+							"name": "bAlwaysSign",
+							"dir": "in",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false",
+							"advanced": true
+						},
+						{
+							"name": "bUseGrouping",
+							"dir": "in",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "true",
+							"autoDefault": "true",
+							"advanced": true
+						},
+						{
+							"name": "MinimumIntegralDigits",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "1",
+							"autoDefault": "1",
+							"advanced": true
+						},
+						{
+							"name": "MaximumIntegralDigits",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "324",
+							"autoDefault": "324",
+							"advanced": true
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "text",
+								"category": "text"
+							},
+							"links": [
+								{
+									"node": "41BA0B784311455F6D1FBEB16A186479",
+									"pin": "Text"
+								}
+							]
+						}
+					]
+				}
+			]
+		}
+	],
+	"native":
+	{
+		"types":
+		{
+			"/Script/DWO_Proj_01.SideScrollingUI":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "USideScrollingUI",
+				"include": "Variant_SideScrolling/UI/SideScrollingUI.h",
+				"module": "DWO_Proj_01",
+				"nativeParent": "/Script/DWO_Proj_01.SideScrollingUI",
+				"super": "/Script/UMG.UserWidget",
+				"abstract": true
+			},
+			"/Script/UMG.UserWidget":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UUserWidget",
+				"include": "Blueprint/UserWidget.h",
+				"module": "UMG",
+				"nativeParent": "/Script/UMG.UserWidget",
+				"super": "/Script/UMG.Widget",
+				"abstract": true
+			},
+			"/Script/UMG.Widget":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UWidget",
+				"include": "Components/Widget.h",
+				"module": "UMG",
+				"nativeParent": "/Script/UMG.Widget",
+				"super": "/Script/UMG.Visual",
+				"abstract": true
+			},
+			"/Script/UMG.Visual":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UVisual",
+				"include": "Components/Visual.h",
+				"module": "UMG",
+				"nativeParent": "/Script/UMG.Visual",
+				"super": "/Script/CoreUObject.Object"
+			},
+			"/Script/CoreUObject.Object":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UObject",
+				"include": "UObject/Object.h",
+				"module": "CoreUObject",
+				"nativeParent": "/Script/CoreUObject.Object",
+				"abstract": true
+			},
+			"/Script/UMG.SafeZone":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "USafeZone",
+				"include": "Components/SafeZone.h",
+				"module": "UMG",
+				"nativeParent": "/Script/UMG.SafeZone",
+				"super": "/Script/UMG.ContentWidget"
+			},
+			"/Script/UMG.Overlay":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UOverlay",
+				"include": "Components/Overlay.h",
+				"module": "UMG",
+				"nativeParent": "/Script/UMG.Overlay",
+				"super": "/Script/UMG.PanelWidget"
+			},
+			"/Script/UMG.Border":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UBorder",
+				"include": "Components/Border.h",
+				"module": "UMG",
+				"nativeParent": "/Script/UMG.Border",
+				"super": "/Script/UMG.ContentWidget"
+			},
+			"/Script/UMG.HorizontalBox":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UHorizontalBox",
+				"include": "Components/HorizontalBox.h",
+				"module": "UMG",
+				"nativeParent": "/Script/UMG.HorizontalBox",
+				"super": "/Script/UMG.PanelWidget"
+			},
+			"/Script/UMG.TextBlock":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UTextBlock",
+				"include": "Components/TextBlock.h",
+				"module": "UMG",
+				"nativeParent": "/Script/UMG.TextBlock",
+				"super": "/Script/UMG.TextLayoutWidget"
+			},
+			"/Game/Variant_SideScrolling/UI/UI_SideScrolling.UI_SideScrolling_C":
+			{
+				"kind": "class",
+				"native": false,
+				"cpp": "UUI_SideScrolling_C",
+				"nativeParent": "/Script/DWO_Proj_01.SideScrollingUI",
+				"super": "/Script/DWO_Proj_01.SideScrollingUI"
+			},
+			"/Script/Engine.KismetTextLibrary":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UKismetTextLibrary",
+				"include": "Kismet/KismetTextLibrary.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.KismetTextLibrary",
+				"super": "/Script/Engine.BlueprintFunctionLibrary"
+			}
+		},
+		"enums":
+		{
+		},
+		"functions":
+		{
+			"/Script/DWO_Proj_01.SideScrollingUI:UpdatePickups":
+			{
+				"name": "UpdatePickups",
+				"owner": "/Script/DWO_Proj_01.SideScrollingUI",
+				"flags": [
+					"Event",
+					"BlueprintEvent"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "Amount",
+						"cpp": "int32"
+					}
+				]
+			},
+			"/Script/Engine.KismetTextLibrary:Conv_IntToText":
+			{
+				"name": "Conv_IntToText",
+				"owner": "/Script/Engine.KismetTextLibrary",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Pure",
+					"Static"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "Value",
+						"cpp": "int32"
+					},
+					{
+						"name": "bAlwaysSign",
+						"cpp": "bool",
+						"cppDefault": "false"
+					},
+					{
+						"name": "bUseGrouping",
+						"cpp": "bool",
+						"cppDefault": "true"
+					},
+					{
+						"name": "MinimumIntegralDigits",
+						"cpp": "int32",
+						"cppDefault": "1"
+					},
+					{
+						"name": "MaximumIntegralDigits",
+						"cpp": "int32",
+						"cppDefault": "324"
+					},
+					{
+						"name": "ReturnValue",
+						"cpp": "FText",
+						"return": true
+					}
+				]
+			}
+		},
+		"parentMembers": [
+			"ColorAndOpacity",
+			"ColorAndOpacityDelegate",
+			"ForegroundColor",
+			"ForegroundColorDelegate",
+			"OnVisibilityChanged",
+			"Padding",
+			"Priority",
+			"bIsFocusable",
+			"bStopAction",
+			"bAutomaticallyRegisterInputOnConstruction",
+			"QueuedWidgetAnimationTransitions",
+			"ActiveSequencePlayers",
+			"AnimationTickManager",
+			"StoppedSequencePlayers",
+			"NamedSlotBindings",
+			"Extensions",
+			"WidgetTree",
+			"DesignTimeSize",
+			"DesignSizeMode",
+			"PaletteCategory",
+			"PreviewBackground",
+			"bHasScriptImplementedTick",
+			"bHasScriptImplementedPaint",
+			"TickFrequency",
+			"DesiredFocusWidget",
+			"InputComponent",
+			"AnimationCallbacks",
+			"Slot",
+			"bIsEnabledDelegate",
+			"ToolTipTextDelegate",
+			"ToolTipText",
+			"ToolTipWidget",
+			"ToolTipWidgetDelegate",
+			"VisibilityDelegate",
+			"RenderTransform",
+			"RenderTransformPivot",
+			"FlowDirectionPreference",
+			"bIsVariable",
+			"bCreatedByConstructionScript",
+			"bIsEnabled",
+			"bOverride_Cursor",
+			"bOverrideAccessibleDefaults",
+			"bCanChildrenBeAccessible",
+			"AccessibleBehavior",
+			"AccessibleSummaryBehavior",
+			"AccessibleText",
+			"AccessibleTextDelegate",
+			"AccessibleSummaryText",
+			"AccessibleSummaryTextDelegate",
+			"bIsVolatile",
+			"bWrappedByComponent",
+			"bHiddenInDesigner",
+			"bExpandedInDesigner",
+			"bLockedInDesigner",
+			"Cursor",
+			"Clipping",
+			"Visibility",
+			"PixelSnapping",
+			"RenderOpacity",
+			"AccessibleWidgetData",
+			"Navigation",
+			"NativeBindings",
+			"DesignerFlags",
+			"DisplayLabel",
+			"CategoryName",
+			"UpdatePickups",
+			"UnregisterInputComponent",
+			"UnbindFromAnimationStarted",
+			"UnbindFromAnimationFinished",
+			"UnbindAllFromAnimationStarted",
+			"UnbindAllFromAnimationFinished",
+			"Tick",
+			"StopListeningForInputAction",
+			"StopListeningForAllInputActions",
+			"StopAnimationsAndLatentActions",
+			"StopAnimation",
+			"StopAllAnimations",
+			"SetPositionInViewport",
+			"SetPlaybackSpeed",
+			"SetPadding",
+			"SetOwningPlayer",
+			"SetNumLoopsToPlay",
+			"SetInputActionPriority",
+			"SetInputActionBlocking",
+			"SetForegroundColor",
+			"SetDesiredSizeInViewport",
+			"SetDesiredFocusWidget",
+			"SetColorAndOpacity",
+			"SetAnimationCurrentTime",
+			"SetAnchorsInViewport",
+			"SetAlignmentInViewport",
+			"ReverseAnimation",
+			"RemoveFromViewport",
+			"RemoveExtensions",
+			"RemoveExtension",
+			"RegisterInputComponent",
+			"QueueStopAnimation",
+			"QueueStopAllAnimations",
+			"QueuePlayAnimationTimeRange",
+			"QueuePlayAnimationReverse",
+			"QueuePlayAnimationForward",
+			"QueuePlayAnimation",
+			"QueuePauseAnimation",
+			"PreConstruct",
+			"PlaySound",
+			"PlayAnimationTimeRange",
+			"PlayAnimationReverse",
+			"PlayAnimationForward",
+			"PlayAnimation",
+			"PauseAnimation",
+			"OnTouchStarted",
+			"OnTouchMoved",
+			"OnTouchGesture",
+			"OnTouchForceChanged",
+			"OnTouchFirstMove",
+			"OnTouchEnded",
+			"OnRemovedFromFocusPath",
+			"OnPreviewMouseButtonDown",
+			"OnPreviewKeyDown",
+			"OnPaint",
+			"OnMouseWheel",
+			"OnMouseMove",
+			"OnMouseLeave",
+			"OnMouseEnter",
+			"OnMouseCaptureLost",
+			"OnMouseButtonUp",
+			"OnMouseButtonDown",
+			"OnMouseButtonDoubleClick",
+			"OnMotionDetected",
+			"OnKeyUp",
+			"OnKeyDown",
+			"OnKeyChar",
+			"OnInitialized",
+			"OnFocusReceived",
+			"OnFocusLost",
+			"OnDrop",
+			"OnDragOver",
+			"OnDragLeave",
+			"OnDragEnter",
+			"OnDragDetected",
+			"OnDragCancelled",
+			"OnAnimationStarted",
+			"OnAnimationFinished",
+			"OnAnalogValueChanged",
+			"OnAddedToFocusPath",
+			"ListenForInputAction",
+			"IsPlayingAnimation",
+			"IsListeningForInputAction",
+			"IsInteractable",
+			"IsAnyAnimationPlaying",
+			"IsAnimationPlayingForward",
+			"IsAnimationPlaying",
+			"GetOwningPlayerPawn",
+			"GetOwningPlayerCameraManager",
+			"GetIsVisible",
+			"GetExtensions",
+			"GetExtension",
+			"GetAnimationCurrentTime",
+			"GetAnchorsInViewport",
+			"GetAlignmentInViewport",
+			"FlushAnimations",
+			"Destruct",
+			"Construct",
+			"CancelLatentActions",
+			"BindToAnimationStarted",
+			"BindToAnimationFinished",
+			"BindToAnimationEvent",
+			"AddToViewport",
+			"AddToPlayerScreen",
+			"AddExtension",
+			"SetVisibility",
+			"SetUserFocus",
+			"SetToolTipText",
+			"SetToolTip",
+			"SetRenderTranslation",
+			"SetRenderTransformPivot",
+			"SetRenderTransformAngle",
+			"SetRenderTransform",
+			"SetRenderShear",
+			"SetRenderScale",
+			"SetRenderOpacity",
+			"SetNavigationRuleExplicit",
+			"SetNavigationRuleCustomBoundary",
+			"SetNavigationRuleCustom",
+			"SetNavigationRuleBase",
+			"SetNavigationRule",
+			"SetKeyboardFocus",
+			"SetIsEnabled",
+			"SetFocus",
+			"SetCursor",
+			"SetClipping",
+			"SetAllNavigationRules",
+			"ResetCursor",
+			"RemoveFromParent",
+			"OnReply__DelegateSignature",
+			"OnPointerEvent__DelegateSignature",
+			"K2_RemoveFieldValueChangedDelegate",
+			"K2_BroadcastFieldValueChanged",
+			"K2_AddFieldValueChangedDelegate",
+			"IsVisible",
+			"IsRendered",
+			"IsInViewport",
+			"IsHovered",
+			"InvalidateLayoutAndVolatility",
+			"HasUserFocusedDescendants",
+			"HasUserFocus",
+			"HasMouseCaptureByUser",
+			"HasMouseCapture",
+			"HasKeyboardFocus",
+			"HasFocusedDescendants",
+			"HasAnyUserFocus",
+			"GetWidget__DelegateSignature",
+			"GetVisibility",
+			"GetTickSpaceGeometry",
+			"GetText__DelegateSignature",
+			"GetSlateVisibility__DelegateSignature",
+			"GetSlateColor__DelegateSignature",
+			"GetSlateBrush__DelegateSignature",
+			"GetRenderTransformAngle",
+			"GetRenderOpacity",
+			"GetParent",
+			"GetPaintSpaceGeometry",
+			"GetOwningPlayer",
+			"GetOwningLocalPlayer",
+			"GetMouseCursor__DelegateSignature",
+			"GetLinearColor__DelegateSignature",
+			"GetIsEnabled",
+			"GetInt32__DelegateSignature",
+			"GetGameInstance",
+			"GetFloat__DelegateSignature",
+			"GetDesiredSize",
+			"GetClipping",
+			"GetCheckBoxState__DelegateSignature",
+			"GetCachedGeometry",
+			"GetBool__DelegateSignature",
+			"GetAccessibleText",
+			"GetAccessibleSummaryText",
+			"GenerateWidgetForString__DelegateSignature",
+			"GenerateWidgetForObject__DelegateSignature",
+			"ForceVolatile",
+			"ForceLayoutPrepass",
+			"ExecuteUbergraph"
+		]
+	}
+}

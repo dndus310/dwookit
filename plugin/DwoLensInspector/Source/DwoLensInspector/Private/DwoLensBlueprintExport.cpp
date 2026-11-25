@@ -298,6 +298,9 @@ namespace DwoLensInspector::BpExport
 				if (Property->HasAnyPropertyFlags(CPF_NativeAccessSpecifierProtected)) { Out->SetStringField(TEXT("memberAccess"), TEXT("protected")); }
 				else if (Property->HasAnyPropertyFlags(CPF_NativeAccessSpecifierPrivate)) { Out->SetStringField(TEXT("memberAccess"), TEXT("private")); }
 				if (Property->HasMetaData(TEXT("BlueprintGetter")) || Property->HasMetaData(TEXT("BlueprintSetter"))) { Out->SetBoolField(TEXT("memberAccessor"), true); }
+				SetIf(Out, TEXT("memberGetter"), Property->GetMetaData(TEXT("BlueprintGetter")));
+				SetIf(Out, TEXT("memberSetter"), Property->GetMetaData(TEXT("BlueprintSetter")));
+				if (Property->HasAnyPropertyFlags(CPF_BlueprintReadOnly)) { Out->SetBoolField(TEXT("memberReadOnly"), true); }
 			}
 		}
 		else if (const UK2Node_MacroInstance* Macro = Cast<UK2Node_MacroInstance>(Node))

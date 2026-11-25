@@ -2048,12 +2048,14 @@ function Invoke-Bp {
 #   native rebase <bp> [--dry-run] [--force]
 #                                    back up the .uasset, rebase, verify; the backup goes back when it fails
 #   native restore <bp>              put the last backup of the .uasset back (and of Build.cs)
-#   native verify <bp> [--frames N] [--no-probe] [--probe-offset X:Y:Z] [--call Function@Frame ...]
+#   native verify <bp> [--frames N] [--no-probe] [--probe-offset X:Y:Z] [--call Function@Frame[@Arg...] ...]
 #                                    behaviour check: runs the rebased Blueprint and its pre-migration backup through
 #                                    the same scenario in a headless world (DwoLensBehaviour.cpp) and compares them;
 #                                    --probe-offset: where the probe lands, from the actor (cm);
 #                                    --call runs an event or function on the actor at that frame (an implementable
-#                                    event its C++ parent fires in the game), with default arguments
+#                                    event its C++ parent fires in the game); arguments as text in parameter order
+#                                    (quote values with commas), the rest value-initialized. Actors, widgets
+#                                    (created and ticked through Slate) and anim Blueprints (on a launched Character)
 #   native status                    what was generated and rebased
 $NativeDir = Join-Path $ForgeDir 'native'
 
@@ -2156,14 +2158,15 @@ function Invoke-NativeVerify($Target, $UProject) {
     }
     for ($i = 0; $i -lt @($Rest).Count - 1; $i++) {
         if ($Rest[$i] -ne '--call') { continue }
-        $c = "$($Rest[$i + 1])" -split '@'
-        if ($c.Count -ne 2 -or $c[1] -notmatch '^\d+$') { Fail "--call takes Function@Frame, for example --call OnBoxDamaged@30" }
-        $doc.calls += [ordered]@{ function = $c[0]; frame = [int]$c[1] }
+        $c = @("$($Rest[$i + 1])" -split '@')
+        if ($c.Count -lt 2 -or $c[1] -notmatch '^\d+$') { Fail "--call takes Function@Frame[@Arg...], for example --call SetLifePercentage@5@0.35" }
+        $doc.calls += [ordered]@{ function = $c[0]; frame = [int]$c[1]; args = @($c | Select-Object -Skip 2) }
     }
     Write-Json $scenario $doc
     $logDir = Join-Path $DataDir 'logs'
     New-Item -ItemType Directory -Force $logDir | Out-Null
-    Say "native verify: $($Target.Name), $frames frames, probe $($doc.probe)"
+    $what = switch ("$($j.kind)") { 'widget' { 'widget created and ticked' } 'anim' { 'on a Character launched at frame 20' } default { "probe $($doc.probe)" } }
+    Say "native verify: $($Target.Name), $frames frames, $what$(if ($doc.calls.Count) { ", $($doc.calls.Count) call(s)" })"
     $after = Join-Path $dir 'after.json'
     $before = Join-Path $dir 'before.json'
     if (-not (Invoke-BehaviourRun $UProject $engine $scenario $after (Join-Path $logDir "native-verify-after-$($Target.Name).log"))) { Fail "The migrated run wrote no trace (see $logDir)." }
