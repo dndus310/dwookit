@@ -690,7 +690,13 @@ class Fn:
         # another object's variable
         obj = self.input(node, "self") if target else "this"
         if not self.ex.type_info(owner).get("native") and not self.ex.is_self_class(owner):
-            raise Unsupported(f"reads a variable of the Blueprint class {short(owner)}", node)
+            # a Blueprint class has no C++ type: read its property by name (a Blueprint variable is public)
+            pin = next((p for p in node["pins"] if p["dir"] == "out" and p["type"].get("category") != "exec"), None)
+            if pin is None:
+                raise Unsupported(f"reads a variable of the Blueprint class {short(owner)}", node)
+            t = self.native_object(pin) if self.types.is_object(pin["type"]) and pin["type"].get("category") == "object" else self.types.of(pin["type"])
+            self.plan.literals.uses_helpers = True
+            return f"DwoNative::GetProperty<{t}>({obj}, {cpp_string(node.get('memberName') or node['member'])})"
         getter = PRIVATE_GETTERS.get((short(owner), node["member"]))
         if node.get("memberAccess") in ("protected", "private") and getter:
             if obj == "this":
@@ -985,11 +991,17 @@ class Fn:
         """Set on another object: a native property, through its BlueprintSetter when it has one (as Blueprint
         does); a None target is skipped."""
         owner = node.get("memberOwner", "")
-        if not self.ex.type_info(owner).get("native"):
-            raise Unsupported("sets another object's Blueprint variable", node)
         out = next((p for p in node["pins"] if p["dir"] == "out" and p["type"].get("category") != "exec" and p.get("links")), None)
         if out:
             raise Unsupported("reads the output of a set on another object", node)
+        if not self.ex.type_info(owner).get("native"):
+            if node.get("memberFlags") and {"RepNotify", "Net"} & set(node.get("memberFlags", [])):
+                raise Unsupported("sets another object's replicated Blueprint variable", node)
+            # a Blueprint class has no C++ type: set its property by name (no RepNotify; checked above)
+            self.plan.literals.uses_helpers = True
+            value = self.input(node, value_pin["name"])
+            self.say(f"DwoNative::SetProperty({self.input(node, 'self')}, {cpp_string(node.get('memberName') or node['member'])}, {value});")
+            return self.exec_target(node, "then")
         value = self.input(node, value_pin["name"])
         obj = self.guard_target(node, self.input(node, "self"))
         member = node.get("memberName") or node["member"]
@@ -1604,14 +1616,7 @@ class Fn:
         self.say(f"const FTransform {xf} = {self.input(node, 'SpawnTransform')};")
         self.say(f"AActor* {began} = UGameplayStatics::BeginDeferredActorSpawnFromClass(this, {self.input(node, 'Class')}, {xf}, "
                  f"{self.input(node, 'CollisionHandlingOverride')}, {self.input(node, 'Owner')}, {scale});")
-        if pins.get("Instigator", {}).get("links"):
-            self.say(f"if ({began}) {{ {began}->SetInstigator(Cast<APawn>({self.input(node, 'Instigator')})); }}")
-        for p in node["pins"]:
-            if p["dir"] != "in" or p["name"] in standard or p["type"].get("category") == "exec":
-                continue
-            if not p.get("links") and str(p.get("default", "")) == str(p.get("autoDefault", "")):
-                continue                    # the compiler skips exposed pins left at the class default
-            raise Unsupported(f"sets the exposed-on-spawn property {p['name']}", node)
+        self.assign_exposed(node, began, standard)
         self.say(f"{temp} = Cast<{t[:-1]}>(UGameplayStatics::FinishSpawningActor({began}, {xf}, {scale}));")
         self.depth -= 1
         self.say("}")
@@ -1631,7 +1636,36 @@ class Fn:
             self.types.includes.add("Kismet/GameplayStatics.h")
             outer = self.input(node, "Outer") if "Outer" in pins else self.input(node, "self") if "self" in pins else "this"
             self.say(f"{temp} = Cast<{t[:-1]}>(UGameplayStatics::SpawnObject({self.input(node, 'Class')}, {outer}));")
+        self.assign_exposed(node, temp, {"execute", "then", "Class", "ReturnValue", "OwningPlayer", "Outer", "self", "WorldContextObject"})
         return self.exec_target(node, "then")
+
+    def assign_exposed(self, node: dict, obj: str, standard: set):
+        """Exposed-on-spawn pins, as FKismetCompilerUtilities::GenerateAssignmentNodes writes them (after the object
+        exists, before FinishSpawning): only the pins the export marks (linked, or a default other than the class
+        default), through the property's BlueprintSetter, else set by name like Set*PropertyByName (no RepNotify)."""
+        exposed = node.get("exposed")
+        if exposed is None:
+            extra = [p for p in node["pins"] if p["dir"] == "in" and p["name"] not in standard and p["type"].get("category") != "exec"
+                     and (p.get("links") or str(p.get("default", "")) != str(p.get("autoDefault", "")))]
+            if extra:
+                raise Unsupported("exposed-on-spawn pins: export again with the current DwoLens", node)
+            return
+        for e in exposed:
+            if not e.get("assign"):
+                continue
+            if e.get("fieldNotify"):
+                raise Unsupported(f"exposed property {e['pin']} broadcasts a field notification", node)
+            value = self.input(node, e["pin"])
+            setter = e.get("setter")
+            if setter:
+                owner = self.ex.type_info(e.get("owner", ""))
+                if not owner.get("native"):
+                    raise Unsupported(f"exposed property {e['pin']} has a Blueprint setter", node)
+                cls = self.types._class(e["owner"], False)
+                self.say(f"if ({cls}* O = Cast<{cls}>({obj})) {{ O->{setter}({value}); }}")
+            else:
+                self.plan.literals.uses_helpers = True
+                self.say(f"DwoNative::SetProperty({obj}, {cpp_string(e['pin'])}, {value});")
 
     def object_temp(self, node: dict, pin: dict, t: str) -> str:
         name = self.temp_name(node, pin["name"])
@@ -2816,6 +2850,32 @@ namespace DwoNative
 		T Value{};
 		if (ensureMsgf(P->GetElementSize() == sizeof(T), TEXT("DwoNative: property %s has another type"), Name)) { P->CopySingleValue(&Value, Ptr); }
 		return Value;
+	}
+
+	/** A property set by name, as Set*PropertyByName sets it (the exposed-on-spawn pins of SpawnActor, a Blueprint
+	 *  class's variable): no setter, no RepNotify. Numbers convert as the Blueprint pins would. */
+	template <typename T>
+	void SetProperty(UObject* Object, const TCHAR* Name, const T& Value)
+	{
+		FProperty* P = Object ? FindFProperty<FProperty>(Object->GetClass(), FName(Name)) : nullptr;
+		if (!P) { return; }
+		void* Ptr = P->ContainerPtrToValuePtr<void>(Object);
+		if constexpr (std::is_arithmetic_v<T>)
+		{
+			if (FBoolProperty* B = CastField<FBoolProperty>(P)) { B->SetPropertyValue(Ptr, Value != 0); return; }
+			if (FEnumProperty* E = CastField<FEnumProperty>(P)) { E->GetUnderlyingProperty()->SetIntPropertyValue(Ptr, static_cast<int64>(Value)); return; }
+			if (FNumericProperty* N = CastField<FNumericProperty>(P))
+			{
+				if (N->IsFloatingPoint()) { N->SetFloatingPointPropertyValue(Ptr, static_cast<double>(Value)); }
+				else { N->SetIntPropertyValue(Ptr, static_cast<int64>(Value)); }
+				return;
+			}
+		}
+		else if constexpr (std::is_convertible_v<T, const UObject*>)
+		{
+			if (FObjectPropertyBase* O = CastField<FObjectPropertyBase>(P)) { O->SetObjectPropertyValue(Ptr, const_cast<UObject*>(static_cast<const UObject*>(Value))); return; }
+		}
+		if (ensureMsgf(P->GetElementSize() == sizeof(T), TEXT("DwoNative: property %s has another type"), Name)) { P->CopySingleValue(Ptr, &Value); }
 	}
 
 	/** Removes a function from a multicast delegate found by name (Unbind Event). */

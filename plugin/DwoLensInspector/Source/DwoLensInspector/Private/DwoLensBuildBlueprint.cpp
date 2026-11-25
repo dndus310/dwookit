@@ -4,7 +4,7 @@
 //   type       "interface": a Blueprint interface; functions: [{name, inputs: [{name, type}], outputs: [...]}]
 //   parent     native parent class path (/Script/Engine.Actor)
 //   interfaces Blueprint interface classes it implements (/Game/X/BPI_Y.BPI_Y_C)
-//   variables  [{name, type: {category, subCategory?, object?, container?}, default?}]
+//   variables  [{name, type: {category, subCategory?, object?, container?}, default?, expose?}]
 //   nodes      [{id, and one of:
 //                  event: "<class path>:<function>"   an override (ReceiveBeginPlay)
 //                  custom: "<name>", params?: [{name, type}]
@@ -175,9 +175,16 @@ int32 DwoLensInspector::BuildBlueprint(const FString& SpecFile)
 			const FJson Var = V->AsObject();
 			FString Default;
 			Var->TryGetStringField(TEXT("default"), Default);
-			if (!FBlueprintEditorUtils::AddMemberVariable(Blueprint, FName(*Var->GetStringField(TEXT("name"))), PinType(Var->GetObjectField(TEXT("type"))), Default))
+			const FName VarName(*Var->GetStringField(TEXT("name")));
+			if (!FBlueprintEditorUtils::AddMemberVariable(Blueprint, VarName, PinType(Var->GetObjectField(TEXT("type"))), Default))
 			{
-				Problem(TEXT("could not add variable ") + Var->GetStringField(TEXT("name")));
+				Problem(TEXT("could not add variable ") + VarName.ToString());
+			}
+			bool bExpose = false;
+			if (Var->TryGetBoolField(TEXT("expose"), bExpose) && bExpose)      // Instance Editable + Expose on Spawn
+			{
+				FBlueprintEditorUtils::SetBlueprintOnlyEditableFlag(Blueprint, VarName, false);
+				FBlueprintEditorUtils::SetBlueprintVariableMetaData(Blueprint, VarName, nullptr, FBlueprintMetadata::MD_ExposeOnSpawn, TEXT("true"));
 			}
 		}
 	}

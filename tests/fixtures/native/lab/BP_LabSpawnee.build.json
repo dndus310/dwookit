@@ -1,0 +1,22 @@
+{
+  "path": "/Game/DwoQA/BP_LabSpawnee",
+  "parent": "/Script/Engine.Actor",
+  "variables": [
+    {"name": "Speed", "type": {"category": "real"}, "default": "1.0", "expose": true},
+    {"name": "Label", "type": {"category": "string"}, "default": "none", "expose": true},
+    {"name": "Count", "type": {"category": "int"}, "default": "7", "expose": true},
+    {"name": "Doubled", "type": {"category": "real"}}
+  ],
+  "nodes": [
+    {"id": "begin", "event": "/Script/Engine.Actor:ReceiveBeginPlay"},
+    {"id": "gs", "get": "Speed"},
+    {"id": "mul", "function": "/Script/Engine.KismetMathLibrary:Multiply_DoubleDouble"},
+    {"id": "setD", "set": "Doubled"}
+  ],
+  "defaults": {"mul.B": "2.0"},
+  "links": [
+    ["begin.then", "setD.execute"],
+    ["gs.Speed", "mul.A"],
+    ["mul.ReturnValue", "setD.Doubled"]
+  ]
+}

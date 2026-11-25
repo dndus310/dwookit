@@ -13,6 +13,7 @@
 #include "EdGraph/EdGraphPin.h"
 #include "EdGraphNode_Comment.h"
 #include "EdGraphSchema_K2.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 #include "Engine/Blueprint.h"
 #include "Engine/BlueprintGeneratedClass.h"
 #include "Engine/SCS_Node.h"
@@ -27,6 +28,7 @@
 #include "K2Node_BreakStruct.h"
 #include "K2Node_CallFunction.h"
 #include "K2Node_ComponentBoundEvent.h"
+#include "K2Node_ConstructObjectFromClass.h"
 #include "K2Node_CreateDelegate.h"
 #include "K2Node_CustomEvent.h"
 #include "K2Node_DynamicCast.h"
@@ -338,6 +340,52 @@ namespace DwoLensInspector::BpExport
 			Out->SetStringField(TEXT("member"), PathOf(Break->StructType));
 		}
 		else if (Cast<UK2Node_Tunnel>(Node)) { Kind = TEXT("tunnel"); }
+
+		// SpawnActor / Construct Object / Create Widget: which exposed-on-spawn pins the compiler turns into an
+		// assignment (FKismetCompilerUtilities::GenerateAssignmentNodes: linked, or a default that differs from the
+		// class default object), and through what (a BlueprintSetter, or set by name)
+		if (const UK2Node_ConstructObjectFromClass* Construct = Cast<UK2Node_ConstructObjectFromClass>(Node))
+		{
+			const UClass* ForClass = Construct->GetClassToSpawn();
+			const UEdGraphPin* ClassPin = Construct->GetClassPin();
+			const bool bClassLinked = ClassPin && ClassPin->LinkedTo.Num() > 0;
+			const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+			TArray<TSharedPtr<FJsonValue>> Exposed;
+			for (const UEdGraphPin* Pin : Node->Pins)
+			{
+				if (!ForClass || Pin->Direction != EGPD_Input || !Construct->IsSpawnVarPin(const_cast<UEdGraphPin*>(Pin))) { continue; }
+				const FProperty* Property = FindFProperty<FProperty>(ForClass, Pin->PinName);
+				if (!Property) { continue; }
+				bool bAssign = true;
+				if (Pin->LinkedTo.Num() == 0)
+				{
+					if (!K2Schema->IsCurrentPinDefaultValid(Pin).IsEmpty()) { bAssign = false; }
+					else if (!bClassLinked || Property->HasAnyPropertyFlags(CPF_DisableEditOnTemplate) || !Property->HasAnyPropertyFlags(CPF_Edit))
+					{
+						FString Default;
+						if (const UObject* Cdo = ForClass->GetDefaultObject(false)) { FBlueprintEditorUtils::PropertyValueToString(Property, (const uint8*)Cdo, Default); }
+						if (K2Schema->DoesDefaultValueMatch(*Pin, Default)) { bAssign = false; }
+						else
+						{
+							FString UseValue;
+							TObjectPtr<UObject> UseObject = nullptr;
+							FText UseText;
+							K2Schema->GetPinDefaultValuesFromString(Pin->PinType, Pin->GetOwningNodeUnchecked(), Default, UseValue, UseObject, UseText, true);
+							if (Pin->DefaultValue.Equals(UseValue, ESearchCase::CaseSensitive) && Pin->DefaultObject == UseObject && Pin->DefaultTextValue.IdenticalTo(UseText)) { bAssign = false; }
+						}
+					}
+				}
+				FJsonRef E = MakeShared<FJsonObject>();
+				E->SetStringField(TEXT("pin"), Pin->PinName.ToString());
+				E->SetBoolField(TEXT("assign"), bAssign);
+				SetIf(E, TEXT("setter"), Property->GetMetaData(FBlueprintMetadata::MD_PropertySetFunction));
+				if (Property->HasMetaData(TEXT("FieldNotify"))) { E->SetBoolField(TEXT("fieldNotify"), true); }
+				SetIf(E, TEXT("owner"), PathOf(Property->GetOwnerClass()));
+				Exposed.Add(MakeShared<FJsonValueObject>(E));
+			}
+			Out->SetStringField(TEXT("spawnClass"), PathOf(ForClass));
+			Out->SetArrayField(TEXT("exposed"), Exposed);
+		}
 
 		Out->SetStringField(TEXT("role"), Role);
 		Out->SetStringField(TEXT("kind"), Kind);

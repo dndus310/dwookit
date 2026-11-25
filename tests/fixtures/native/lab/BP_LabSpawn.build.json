@@ -1,0 +1,56 @@
+{
+  "path": "/Game/DwoQA/BP_LabSpawn",
+  "parent": "/Script/Engine.Actor",
+  "variables": [
+    {"name": "MySpeed", "type": {"category": "real"}, "default": "2.5"},
+    {"name": "Spawned", "type": {"category": "object", "object": "/Script/Engine.Actor"}},
+    {"name": "SeenDoubled", "type": {"category": "real"}},
+    {"name": "SeenLabel", "type": {"category": "string"}},
+    {"name": "SeenCount", "type": {"category": "int"}},
+    {"name": "SeenCountAfter", "type": {"category": "int"}}
+  ],
+  "nodes": [
+    {"id": "begin", "event": "/Script/Engine.Actor:ReceiveBeginPlay"},
+    {"id": "spawn", "class": "K2Node_SpawnActorFromClass"},
+    {"id": "xf", "function": "/Script/Engine.KismetMathLibrary:MakeTransform"},
+    {"id": "gSpeed", "get": "MySpeed"},
+    {"id": "setSpawned", "set": "Spawned"},
+    {"id": "getDoubled", "class": "K2Node_VariableGet", "props": {"VariableReference": "(MemberParent=\"/Script/Engine.BlueprintGeneratedClass'/Game/DwoQA/BP_LabSpawnee.BP_LabSpawnee_C'\",MemberName=\"Doubled\")"}},
+    {"id": "setSeenD", "set": "SeenDoubled"},
+    {"id": "getLabel", "class": "K2Node_VariableGet", "props": {"VariableReference": "(MemberParent=\"/Script/Engine.BlueprintGeneratedClass'/Game/DwoQA/BP_LabSpawnee.BP_LabSpawnee_C'\",MemberName=\"Label\")"}},
+    {"id": "setSeenL", "set": "SeenLabel"},
+    {"id": "getCount", "class": "K2Node_VariableGet", "props": {"VariableReference": "(MemberParent=\"/Script/Engine.BlueprintGeneratedClass'/Game/DwoQA/BP_LabSpawnee.BP_LabSpawnee_C'\",MemberName=\"Count\")"}},
+    {"id": "setSeenC", "set": "SeenCount"},
+    {"id": "setCount", "class": "K2Node_VariableSet", "props": {"VariableReference": "(MemberParent=\"/Script/Engine.BlueprintGeneratedClass'/Game/DwoQA/BP_LabSpawnee.BP_LabSpawnee_C'\",MemberName=\"Count\")"}},
+    {"id": "getCount2", "class": "K2Node_VariableGet", "props": {"VariableReference": "(MemberParent=\"/Script/Engine.BlueprintGeneratedClass'/Game/DwoQA/BP_LabSpawnee.BP_LabSpawnee_C'\",MemberName=\"Count\")"}},
+    {"id": "setSeenC2", "set": "SeenCountAfter"}
+  ],
+  "defaults": {
+    "spawn.Class": "/Game/DwoQA/BP_LabSpawnee.BP_LabSpawnee_C",
+    "xf.Location": "0, 300, 0",
+    "spawn.Label": "hello",
+    "spawn.Count": "7",
+    "setCount.Count": "42"
+  },
+  "links": [
+    ["begin.then", "spawn.execute"],
+    ["xf.ReturnValue", "spawn.SpawnTransform"],
+    ["gSpeed.MySpeed", "spawn.Speed"],
+    ["spawn.then", "setSpawned.execute"],
+    ["spawn.ReturnValue", "setSpawned.Spawned"],
+    ["setSpawned.then", "setSeenD.execute"],
+    ["spawn.ReturnValue", "getDoubled.self"],
+    ["getDoubled.Doubled", "setSeenD.SeenDoubled"],
+    ["setSeenD.then", "setSeenL.execute"],
+    ["spawn.ReturnValue", "getLabel.self"],
+    ["getLabel.Label", "setSeenL.SeenLabel"],
+    ["setSeenL.then", "setSeenC.execute"],
+    ["spawn.ReturnValue", "getCount.self"],
+    ["getCount.Count", "setSeenC.SeenCount"],
+    ["setSeenC.then", "setCount.execute"],
+    ["spawn.ReturnValue", "setCount.self"],
+    ["setCount.then", "setSeenC2.execute"],
+    ["spawn.ReturnValue", "getCount2.self"],
+    ["getCount2.Count", "setSeenC2.SeenCountAfter"]
+  ]
+}

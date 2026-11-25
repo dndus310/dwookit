@@ -1284,6 +1284,31 @@ class NativeMigrationTests(TempDir):
         self.assertIn('Label = FString(TEXT("small"));', cpp)          # the second return node's defaults
         self.assertIn('Tmp_4571B038_Label = Call.Get<FString>(TEXT("Label"));', cpp)   # the caller reads the outputs
 
+    def test_expose_on_spawn_pins_follow_the_compiler(self):
+        # BP_LabSpawn spawns BP_LabSpawnee: Speed linked, Label "hello" (class default "none"), Count 7 (= default)
+        plan, s, files = self.generate("BP_LabSpawn")
+        self.assertEqual(s["coverage"]["migrated"], s["coverage"]["nodes"])
+        cpp = files["LabSpawnBase.cpp"]
+        begin, finish = cpp.index("BeginDeferredActorSpawnFromClass"), cpp.index("FinishSpawningActor")
+        speed = cpp.index('DwoNative::SetProperty(Begun_15300B8E, TEXT("Speed"), MySpeed);')
+        self.assertTrue(begin < speed < finish)                       # before BeginPlay runs, as the Blueprint does
+        self.assertIn('TEXT("Label"), FString(TEXT("hello")));', cpp)
+        self.assertNotIn('TEXT("Count"), 7', cpp)                     # same as the class default: the compiler skips it
+        self.assertNotIn("Instigator", cpp)
+        # another Blueprint class's variables: by name
+        self.assertIn('SeenDoubled = DwoNative::GetProperty<double>(Tmp_15300B8E_ReturnValue, TEXT("Doubled"));', cpp)
+        self.assertIn('DwoNative::SetProperty(Tmp_15300B8E_ReturnValue, TEXT("Count"), 42);', cpp)
+
+    def test_exposed_pins_need_a_current_export(self):
+        def old_export(doc):
+            for g in doc["graphs"]:
+                for n in g["nodes"]:
+                    n.pop("exposed", None)
+        plan = self.plan("BP_LabSpawn", old_export)
+        ev = next(e for e in plan.events if e.bp == "ReceiveBeginPlay" and not e.extra.get("empty"))
+        self.assertFalse(ev.migrated)
+        self.assertIn("export again", ev.reason)
+
     def test_signature_helpers(self):
         import lens_native
         self.assertEqual(lens_native.enum_exec_value("TEnumAsByte<EMoveComponentAction::Type>", "Stop"), "EMoveComponentAction::Stop")

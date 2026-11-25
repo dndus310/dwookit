@@ -487,6 +487,8 @@ __dwookit.bat native restore  /Game/Props/BP_JumpPad        :: 마지막 백업�
 - **배열·맵**: MakeArray, MakeMap, 배열 함수(Length, Get, Add, Contains, Insert, Set(Size to Fit), Swap, Append, Reverse, Resize, Identical …, 범위 밖이면 블루프린트처럼 아무것도 안 함), 맵 함수(Add, Find, Contains, Length, Remove, Clear, Keys, Values).
 - **열거형·구조체·클래스**: Enum ==/!=, Get Enumerator Name(As String)(엔진과 같은 `UKismetNodeHelperLibrary` 함수), Set Members in Struct(보이는 핀만), 클래스 캐스트(Cast To ...Class), Get Class Defaults(리플렉션으로 읽어 접근 지정자·비트필드와 무관).
 - **객체 생성**: SpawnActor from Class(`BeginDeferredActorSpawnFromClass` → `FinishSpawningActor`, 컴파일러의 확장과 같음), Construct Object from Class(`SpawnObject`), Create Widget(`UWidgetBlueprintLibrary::Create`). 블루프린트 클래스의 인스턴스는 가장 가까운 네이티브 부모 타입으로 둡니다.
+- **Expose on Spawn 핀**: 컴파일러(`GenerateAssignmentNodes`)와 같은 규칙으로, 연결됐거나 클래스 기본값과 다른 값을 준 핀만 생성 직후(SpawnActor는 `FinishSpawningActor` 전, 즉 BeginPlay 전에) 설정합니다. 이 판단은 export가 클래스 기본 객체와 비교해 적어 둡니다. BlueprintSetter가 있으면 setter로, 없으면 이름으로 설정합니다(`Set*PropertyByName`처럼 RepNotify 없음).
+- **다른 블루프린트 클래스의 변수 읽기·쓰기**: C++ 타입이 없으므로 이름으로 읽고 씁니다(`DwoNative::GetProperty` / `SetProperty`). 복제 변수 쓰기는 블루프린트에 남습니다.
 - **델리게이트**: Create Event, 커스텀 이벤트를 Set Timer by Event 등 델리게이트 인자로 넘기기, Bind / Unbind / Unbind All(디스패처를 이름으로 찾아 VM처럼 묶음; 블루프린트 클래스의 디스패처에도 동작).
 
 이 노드들은 QA 프로젝트에서 실제 블루프린트로 검증했습니다: `tests/fixtures/native/lab/*.build.json`으로 테스트 블루프린트를 만들고(DwoLens `-LensBuildBlueprint`, dwookit 자체 QA용), rebase(값 차이 0)와 동작 비교(같음)를 거쳤습니다.
