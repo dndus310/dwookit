@@ -2048,7 +2048,7 @@ function Invoke-Bp {
 #   native rebase <bp> [--dry-run] [--force]
 #                                    back up the .uasset, rebase, verify; the backup goes back when it fails
 #   native restore <bp>              put the last backup of the .uasset back (and of Build.cs)
-#   native verify <bp> [--frames N] [--no-probe] [--probe-offset X:Y:Z] [--pawn <bp>] [--call [Child.]Function@Frame[@Arg...] ...]
+#   native verify <bp> [--frames N] [--record-every N] [--no-probe] [--probe-offset X:Y:Z] [--pawn <bp>] [--call [Child.]Function@Frame[@Arg...] ...]
 #                                    behaviour check: runs the rebased Blueprint and its pre-migration backup through
 #                                    the same scenario in a headless world (DwoLensBehaviour.cpp) and compares them;
 #                                    --probe-offset: where the probe lands, from the actor (cm);
@@ -2155,6 +2155,11 @@ function Invoke-NativeVerify($Target, $UProject) {
                        calls = @() }
     $pawn = Get-NativeArg '--pawn'
     if ($pawn) { $doc.pawn = $pawn }
+    $every = Get-NativeArg '--record-every'
+    if ($every) {
+        if ($every -notmatch '^\d+$' -or [int]$every -lt 1) { Fail "--record-every takes a frame count, for example --record-every 1" }
+        $doc.recordEvery = [int]$every
+    }
     $offset = Get-NativeArg '--probe-offset'
     if ($offset) {
         $o = @($offset -split '[,:]' | ForEach-Object { [double]$_ })

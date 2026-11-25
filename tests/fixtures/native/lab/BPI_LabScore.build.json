@@ -1,0 +1,10 @@
+{
+  "path": "/Game/DwoQA/BPI_LabScore",
+  "type": "interface",
+  "functions": [
+    {"name": "Score",
+     "inputs": [{"name": "Base", "type": {"category": "int"}}],
+     "outputs": [{"name": "Total", "type": {"category": "int"}}, {"name": "Label", "type": {"category": "string"}}]},
+    {"name": "Ping"}
+  ]
+}

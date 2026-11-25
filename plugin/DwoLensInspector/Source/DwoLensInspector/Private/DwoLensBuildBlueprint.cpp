@@ -1,7 +1,9 @@
 // Test fixtures for the native migration: a Blueprint built from a JSON description, so dwookit's QA can migrate and
 // behaviour-check node kinds the sample project does not use. Spec:
 //   path       /Game/Folder/BP_Name (must not exist)
+//   type       "interface": a Blueprint interface; functions: [{name, inputs: [{name, type}], outputs: [...]}]
 //   parent     native parent class path (/Script/Engine.Actor)
+//   interfaces Blueprint interface classes it implements (/Game/X/BPI_Y.BPI_Y_C)
 //   variables  [{name, type: {category, subCategory?, object?, container?}, default?}]
 //   nodes      [{id, and one of:
 //                  event: "<class path>:<function>"   an override (ReceiveBeginPlay)
@@ -9,7 +11,9 @@
 //                  function: "<class path>:<function>"
 //                  macro: "<standard macro name>"     (Gate, DoN, ForLoopWithBreak ...)
 //                  get / set: "<variable>"
-//                  class: "<K2Node class name>", props?: {property: text}}  (set before the pins exist)
+//                  class: "<K2Node class name>", props?: {property: text}  (set before the pins exist)
+//                  entry / result: "<graph>"              that graph's existing entry or result node
+//                and graph?: "<function or interface graph>" (default: the event graph)}
 //              ]
 //   defaults   {"node.pin": "value"}   (object and class pins: an object path)
 //   links      [["node.output", "node.input"], ...]
@@ -23,6 +27,9 @@
 #include "K2Node_CallFunction.h"
 #include "K2Node_CustomEvent.h"
 #include "K2Node_Event.h"
+#include "K2Node_FunctionEntry.h"
+#include "K2Node_FunctionResult.h"
+#include "UObject/Interface.h"
 #include "K2Node_MacroInstance.h"
 #include "K2Node_VariableGet.h"
 #include "K2Node_VariableSet.h"
@@ -95,16 +102,70 @@ int32 DwoLensInspector::BuildBlueprint(const FString& SpecFile)
 	}
 	const FString Path = Spec->GetStringField(TEXT("path"));
 	if (FPackageName::DoesPackageExist(Path)) { UE_LOG(LogDwoBuild, Error, TEXT("%s exists; delete it first"), *Path); return 1; }
-	UClass* Parent = LoadObject<UClass>(nullptr, *Spec->GetStringField(TEXT("parent")));
+	FString Type;
+	Spec->TryGetStringField(TEXT("type"), Type);
+	const bool bInterface = Type == TEXT("interface");
+	UClass* Parent = bInterface ? UInterface::StaticClass() : LoadObject<UClass>(nullptr, *Spec->GetStringField(TEXT("parent")));
 	if (!Parent) { UE_LOG(LogDwoBuild, Error, TEXT("parent class not found")); return 1; }
 	UPackage* Package = CreatePackage(*Path);
 	const FName AssetName(*FPackageName::GetLongPackageAssetName(Path));
-	UBlueprint* Blueprint = FKismetEditorUtilities::CreateBlueprint(Parent, Package, AssetName, BPTYPE_Normal, UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass());
+	UBlueprint* Blueprint = FKismetEditorUtilities::CreateBlueprint(Parent, Package, AssetName, bInterface ? BPTYPE_Interface : BPTYPE_Normal,
+		UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass());
 	if (!Blueprint) { UE_LOG(LogDwoBuild, Error, TEXT("could not create %s"), *Path); return 1; }
 	FAssetRegistryModule::AssetCreated(Blueprint);
 
 	int32 Problems = 0;
 	auto Problem = [&Problems](const FString& Message) { UE_LOG(LogDwoBuild, Error, TEXT("%s"), *Message); ++Problems; };
+
+	const TArray<TSharedPtr<FJsonValue>>* Functions = nullptr;
+	if (bInterface && Spec->TryGetArrayField(TEXT("functions"), Functions))
+	{
+		for (const TSharedPtr<FJsonValue>& V : *Functions)
+		{
+			const FJson F = V->AsObject();
+			UEdGraph* Graph = FBlueprintEditorUtils::CreateNewGraph(Blueprint, FName(*F->GetStringField(TEXT("name"))), UEdGraph::StaticClass(), UEdGraphSchema_K2::StaticClass());
+			FBlueprintEditorUtils::AddFunctionGraph<UClass>(Blueprint, Graph, true, nullptr);
+			UK2Node_FunctionEntry* Entry = nullptr;
+			for (UEdGraphNode* Node : Graph->Nodes) { if (!Entry) { Entry = Cast<UK2Node_FunctionEntry>(Node); } }
+			const TArray<TSharedPtr<FJsonValue>>* Params = nullptr;
+			if (Entry && F->TryGetArrayField(TEXT("inputs"), Params))
+			{
+				for (const TSharedPtr<FJsonValue>& P : *Params)
+				{
+					Entry->CreateUserDefinedPin(FName(*P->AsObject()->GetStringField(TEXT("name"))), PinType(P->AsObject()->GetObjectField(TEXT("type"))), EGPD_Output);
+				}
+			}
+			if (F->TryGetArrayField(TEXT("outputs"), Params) && Params->Num() > 0)
+			{
+				FGraphNodeCreator<UK2Node_FunctionResult> Creator(*Graph);
+				UK2Node_FunctionResult* Result = Creator.CreateNode();
+				Result->NodePosX = 400;
+				Creator.Finalize();
+				for (const TSharedPtr<FJsonValue>& P : *Params)
+				{
+					Result->CreateUserDefinedPin(FName(*P->AsObject()->GetStringField(TEXT("name"))), PinType(P->AsObject()->GetObjectField(TEXT("type"))), EGPD_Input);
+				}
+			}
+		}
+	}
+	const TArray<TSharedPtr<FJsonValue>>* Interfaces = nullptr;
+	if (Spec->TryGetArrayField(TEXT("interfaces"), Interfaces))
+	{
+		for (const TSharedPtr<FJsonValue>& V : *Interfaces)
+		{
+			UClass* Interface = LoadObject<UClass>(nullptr, *V->AsString());
+			if (!Interface || !FBlueprintEditorUtils::ImplementNewInterface(Blueprint, Interface->GetClassPathName()))
+			{
+				Problem(TEXT("cannot implement ") + V->AsString());
+			}
+		}
+	}
+	auto GraphNamed = [Blueprint](const FString& Name) -> UEdGraph*
+	{
+		for (UEdGraph* G : Blueprint->FunctionGraphs) { if (G && G->GetName() == Name) { return G; } }
+		for (const FBPInterfaceDescription& I : Blueprint->ImplementedInterfaces) { for (UEdGraph* G : I.Graphs) { if (G && G->GetName() == Name) { return G; } } }
+		return nullptr;
+	};
 
 	const TArray<TSharedPtr<FJsonValue>>* List = nullptr;
 	if (Spec->TryGetArrayField(TEXT("variables"), List))
@@ -121,7 +182,7 @@ int32 DwoLensInspector::BuildBlueprint(const FString& SpecFile)
 		}
 	}
 
-	UEdGraph* Graph = FBlueprintEditorUtils::FindEventGraph(Blueprint);
+	UEdGraph* const EventGraph = bInterface ? nullptr : FBlueprintEditorUtils::FindEventGraph(Blueprint);
 	UBlueprint* Macros = LoadObject<UBlueprint>(nullptr, TEXT("/Engine/EditorBlueprintResources/StandardMacros.StandardMacros"));
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 	TMap<FString, UEdGraphNode*> Nodes;
@@ -134,6 +195,19 @@ int32 DwoLensInspector::BuildBlueprint(const FString& SpecFile)
 			const FString Id = N->GetStringField(TEXT("id"));
 			FString Ref;
 			UEdGraphNode* Node = nullptr;
+			UEdGraph* Graph = EventGraph;
+			if (N->TryGetStringField(TEXT("graph"), Ref) && !(Graph = GraphNamed(Ref))) { Problem(TEXT("graph not found: ") + Ref); continue; }
+			if (N->TryGetStringField(TEXT("entry"), Ref) || N->TryGetStringField(TEXT("result"), Ref))
+			{
+				UEdGraph* Owner = GraphNamed(Ref);
+				const bool bEntry = N->HasField(TEXT("entry"));
+				for (UEdGraphNode* Existing : Owner ? Owner->Nodes : TArray<TObjectPtr<UEdGraphNode>>())
+				{
+					if (bEntry ? (bool)Cast<UK2Node_FunctionEntry>(Existing) : (bool)Cast<UK2Node_FunctionResult>(Existing)) { Nodes.Add(Id, Existing); }
+				}
+				if (!Nodes.Contains(Id)) { Problem(FString::Printf(TEXT("%s: no %s node in %s"), *Id, bEntry ? TEXT("entry") : TEXT("result"), *Ref)); }
+				continue;
+			}
 			if (N->TryGetStringField(TEXT("event"), Ref))
 			{
 				UK2Node_Event* Event = NewObject<UK2Node_Event>(Graph);

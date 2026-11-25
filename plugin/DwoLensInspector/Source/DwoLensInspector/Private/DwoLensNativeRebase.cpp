@@ -301,7 +301,8 @@ namespace DwoLensInspector::NativeRebase
 			for (UEdGraphNode* Node : Graph->Nodes)
 			{
 				if (!Node || !Ids.Contains(Id(Node)) || KeptRoots.Contains(Id(Node))) { continue; }
-				if (bKeepResults && Cast<UK2Node_FunctionResult>(Node)) { continue; }
+				// a thunk graph keeps its entry and return nodes: the return is rewired to the C++ call's outputs
+				if (bKeepResults && (Cast<UK2Node_FunctionResult>(Node) || Cast<UK2Node_FunctionEntry>(Node))) { continue; }
 				Candidates.Add(Node);
 			}
 		}
@@ -318,7 +319,7 @@ namespace DwoLensInspector::NativeRebase
 					if (Pin->Direction != EGPD_Output) { continue; }
 					for (const UEdGraphPin* Linked : Pin->LinkedTo)
 					{
-						if (Linked && !Candidates.Contains(Linked->GetOwningNode()) && !bChanged)
+						if (Linked && !Candidates.Contains(Linked->GetOwningNode()) && !(bKeepResults && Cast<UK2Node_FunctionResult>(Linked->GetOwningNode())) && !bChanged)
 						{
 							Candidates.RemoveAt(Index);
 							bChanged = true;
@@ -337,7 +338,7 @@ namespace DwoLensInspector::NativeRebase
 				if (Pin->Direction != EGPD_Output || Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Exec) { continue; }
 				for (const UEdGraphPin* Linked : Pin->LinkedTo)
 				{
-					if (Linked && !Candidates.Contains(Linked->GetOwningNode()))
+					if (Linked && !Candidates.Contains(Linked->GetOwningNode()) && !(bKeepResults && Cast<UK2Node_FunctionResult>(Linked->GetOwningNode())))
 					{
 						Problems.Add(FString::Printf(TEXT("kept Blueprint code reads '%s' from '%s', which moved to C++"),
 							*Pin->PinName.ToString(), *Node->GetNodeTitle(ENodeTitleType::ListView).ToString()));
@@ -529,7 +530,11 @@ int32 DwoLensInspector::RebaseBlueprint(const FString& MappingFile, const FStrin
 	TSet<FString> ThunkRoots;
 	for (const TPair<FString, FString>& Pair : Map.EventThunks) { ThunkRoots.Add(Pair.Key); }
 	const int32 EventNodes = RemoveNodes(Blueprint, Map.EventNodes, Blueprint->UbergraphPages, RemoveProblems, ThunkRoots);
-	for (UEdGraph* Graph : Blueprint->FunctionGraphs)
+	// graphs whose body moves to a C++ function they then call: implementable events with outputs, and Blueprint
+	// interface functions (those live in ImplementedInterfaces, not FunctionGraphs)
+	TArray<UEdGraph*> ThunkGraphs(Blueprint->FunctionGraphs);
+	for (const FBPInterfaceDescription& Interface : Blueprint->ImplementedInterfaces) { ThunkGraphs.Append(Interface.Graphs); }
+	for (UEdGraph* Graph : ThunkGraphs)
 	{
 		if (const TSet<FString>* Nodes = Graph ? Map.ThunkNodes.Find(Graph->GetName()) : nullptr)
 		{
@@ -580,7 +585,7 @@ int32 DwoLensInspector::RebaseBlueprint(const FString& MappingFile, const FStrin
 			AddThunkCall(Graph, Node, Node->FindPin(UEdGraphSchema_K2::PN_Then, EGPD_Output), Function, ThunkProblems);
 		}
 	}
-	for (UEdGraph* Graph : Blueprint->FunctionGraphs)
+	for (UEdGraph* Graph : ThunkGraphs)
 	{
 		const FString* Cpp = Graph ? Map.FunctionThunks.Find(Graph->GetName()) : nullptr;
 		if (!Cpp) { continue; }
@@ -598,11 +603,25 @@ int32 DwoLensInspector::RebaseBlueprint(const FString& MappingFile, const FStrin
 		{
 			const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 			Schema->TryCreateConnection(Call->GetThenPin(), Result->GetExecPin());
+			TArray<UEdGraphPin*> Outputs;
+			for (UEdGraphPin* Pin : Result->Pins)
+			{
+				if (Pin->Direction == EGPD_Input && Pin->PinType.PinCategory != UEdGraphSchema_K2::PC_Exec && !Pin->ParentPin) { Outputs.Add(Pin); }
+			}
+			int32 Index = 0;
 			for (UEdGraphPin* Pin : Call->Pins)
 			{
 				if (Pin->Direction != EGPD_Output || Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Exec) { continue; }
+				// by name; a name C++ could not use became an identifier, so then by position
 				UEdGraphPin* In = Result->FindPin(Pin->PinName, EGPD_Input);
+				if (!In && Outputs.IsValidIndex(Index)) { In = Outputs[Index]; }
+				++Index;
 				if (!In || !Schema->TryCreateConnection(Pin, In)) { ThunkProblems.Add(FString::Printf(TEXT("could not return %s from %s"), *Pin->PinName.ToString(), *Graph->GetName())); }
+			}
+			// the other return nodes were the body's: C++ returns from those paths now
+			for (UEdGraphNode* Node : TArray<UEdGraphNode*>(Graph->Nodes))
+			{
+				if (Node != Result && Cast<UK2Node_FunctionResult>(Node)) { FBlueprintEditorUtils::RemoveNode(Blueprint, Node, true); }
 			}
 		}
 	}

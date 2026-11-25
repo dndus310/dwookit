@@ -1196,6 +1196,7 @@ class NativeMigrationTests(TempDir):
         lit = (self.tmp / "DwoNativeLiterals.h").read_text(encoding="utf-8")
         self.assertIn("ImplementsInterface(Interface)", lit)
         self.assertIn("FMath::Max<int32>(1, Function->ParmsSize)", lit)          # no parameters: still a buffer
+        self.assertNotIn("InitializeStruct", lit)                               # a Blueprint function struct also holds its locals
 
     def test_blueprint_widget_stays_when_blueprint_code_uses_it(self):
         def keep_a_reader(doc):
@@ -1269,6 +1270,19 @@ class NativeMigrationTests(TempDir):
         self.assertIn("TObjectPtr<ULifeBarBase> Tmp_67C64FAF_ReturnValue", h)
         self.assertIn("class ULifeBarBase;", h)
         self.assertIn("PhysicsCore", s["modules"])
+
+    def test_interface_function_with_outputs_moves_to_a_native_thunk(self):
+        # BPI_LabScore.Score(Base) -> (Total, Label), implemented as an interface graph with two return nodes
+        plan, s, files = self.generate("BP_LabInterface")
+        self.assertEqual(s["coverage"]["migrated"], s["coverage"]["nodes"])
+        h, cpp = files["LabInterfaceBase.h"], files["LabInterfaceBase.cpp"]
+        self.assertIn("void ScoreNative(int32 Base, int32& Total, FString& Label);", h)
+        self.assertIn("C++ cannot implement a Blueprint interface", h)
+        f = next(f for f in s["functions"] if f["bp"] == "Score")
+        self.assertTrue(f["thunk"])                                     # rebase keeps entry -> ScoreNative -> return
+        self.assertEqual([p["cpp"] for p in f["params"] if p["out"]], ["Total", "Label"])
+        self.assertIn('Label = FString(TEXT("small"));', cpp)          # the second return node's defaults
+        self.assertIn('Tmp_4571B038_Label = Call.Get<FString>(TEXT("Label"));', cpp)   # the caller reads the outputs
 
     def test_signature_helpers(self):
         import lens_native

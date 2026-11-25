@@ -1,0 +1,67 @@
+{
+  "path": "/Game/DwoQA/BP_LabInterface",
+  "parent": "/Script/Engine.Actor",
+  "interfaces": ["/Game/DwoQA/BPI_LabScore.BPI_LabScore_C"],
+  "variables": [
+    {"name": "Bonus", "type": {"category": "int"}, "default": "3"},
+    {"name": "LastTotal", "type": {"category": "int"}},
+    {"name": "LastLabel", "type": {"category": "string"}},
+    {"name": "Calls", "type": {"category": "int"}}
+  ],
+  "nodes": [
+    {"id": "e", "entry": "Score"},
+    {"id": "r", "result": "Score"},
+    {"id": "gCalls", "graph": "Score", "get": "Calls"},
+    {"id": "addCalls", "graph": "Score", "function": "/Script/Engine.KismetMathLibrary:Add_IntInt"},
+    {"id": "setCalls", "graph": "Score", "set": "Calls"},
+    {"id": "mul", "graph": "Score", "function": "/Script/Engine.KismetMathLibrary:Multiply_IntInt"},
+    {"id": "gBonus", "graph": "Score", "get": "Bonus"},
+    {"id": "add", "graph": "Score", "function": "/Script/Engine.KismetMathLibrary:Add_IntInt"},
+    {"id": "big", "graph": "Score", "function": "/Script/Engine.KismetMathLibrary:Greater_IntInt"},
+    {"id": "br", "graph": "Score", "class": "K2Node_IfThenElse"},
+    {"id": "r2", "graph": "Score", "class": "K2Node_FunctionResult"},
+    {"id": "toStr", "graph": "Score", "function": "/Script/Engine.KismetStringLibrary:Conv_IntToString"},
+    {"id": "cat", "graph": "Score", "function": "/Script/Engine.KismetStringLibrary:Concat_StrStr"},
+
+    {"id": "begin", "event": "/Script/Engine.Actor:ReceiveBeginPlay"},
+    {"id": "tick", "event": "/Script/Engine.Actor:ReceiveTick"},
+    {"id": "msg", "class": "K2Node_Message", "props": {"FunctionReference": "(MemberParent=\"/Script/Engine.BlueprintGeneratedClass'/Game/DwoQA/BPI_LabScore.BPI_LabScore_C'\",MemberName=\"Score\")"}},
+    {"id": "self", "class": "K2Node_Self"},
+    {"id": "gCalls2", "get": "Calls"},
+    {"id": "setTotal", "set": "LastTotal"},
+    {"id": "setLabel", "set": "LastLabel"}
+  ],
+  "defaults": {
+    "addCalls.B": "1",
+    "mul.B": "2",
+    "big.B": "10",
+    "cat.A": "score ",
+    "r2.Total": "-1",
+    "r2.Label": "small"
+  },
+  "links": [
+    ["e.then", "setCalls.execute"],
+    ["gCalls.Calls", "addCalls.A"],
+    ["addCalls.ReturnValue", "setCalls.Calls"],
+    ["setCalls.then", "br.execute"],
+    ["e.Base", "mul.A"],
+    ["mul.ReturnValue", "add.A"],
+    ["gBonus.Bonus", "add.B"],
+    ["add.ReturnValue", "big.A"],
+    ["big.ReturnValue", "br.Condition"],
+    ["br.then", "r.execute"],
+    ["add.ReturnValue", "r.Total"],
+    ["add.ReturnValue", "toStr.InInt"],
+    ["toStr.ReturnValue", "cat.B"],
+    ["cat.ReturnValue", "r.Label"],
+    ["br.else", "r2.execute"],
+
+    ["tick.then", "msg.execute"],
+    ["self.self", "msg.self"],
+    ["gCalls2.Calls", "msg.Base"],
+    ["msg.then", "setTotal.execute"],
+    ["msg.Total", "setTotal.LastTotal"],
+    ["setTotal.then", "setLabel.execute"],
+    ["msg.Label", "setLabel.LastLabel"]
+  ]
+}

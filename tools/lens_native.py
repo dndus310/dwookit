@@ -2062,8 +2062,44 @@ class Plan:
                 item.extra["finished"] = f"{item.cpp}__Finished"
             self.timelines[t["name"]] = item
 
+    def plan_interface_function(self, g: dict):
+        """A Blueprint interface function with outputs, implemented as a graph. C++ cannot implement a Blueprint
+        interface, so the body moves to <Name>Native (outputs as out parameters) and the interface graph keeps only
+        entry -> call -> result (rebase writes that call), as for an implementable event."""
+        entry = next((n for n in g["nodes"] if n["class"] == "K2Node_FunctionEntry"), None)
+        if not entry:
+            return
+        item = Item(g["name"], f"{ident(g['name'])}Native", extra={"graph": g, "entry": entry, "interface": g.get("interface", "")})
+        try:
+            flags = set(entry.get("functionFlags", []))
+            if flags & {"Net", "Server", "Client", "Multicast"}:
+                raise Unsupported("replicated functions are not translated yet")
+            if item.cpp in self.ex.parent_members:
+                raise Unsupported(f"the name {item.cpp} is already taken")
+            params, decls = [], []
+            for p in entry["pins"]:
+                if p["dir"] == "out" and p["type"].get("category") != "exec" and not p.get("splitFrom"):
+                    t = self.types.of(p["type"])
+                    params.append((p["name"], ident(p["name"]), False, t))
+                    decls.append(f"{t} {ident(p['name'])}" if t in ("bool", "int32", "int64", "double", "float", "uint8") or t.endswith("*")
+                                 else f"const {t}& {ident(p['name'])}")
+            result = next((n for n in g["nodes"] if n["class"] == "K2Node_FunctionResult"), None)
+            for p in (result or {}).get("pins", []):
+                if p["dir"] == "in" and p["type"].get("category") != "exec" and not p.get("splitFrom"):
+                    t = self.types.of(p["type"])
+                    params.append((p["name"], ident(p["name"]), True, t))
+                    decls.append(f"{t}& {ident(p['name'])}")
+            item.extra.update(params=params, decls=decls, thunk=True, flags=sorted(flags), **{"return": None})
+            item.migrated = True
+        except Unsupported as e:
+            item.reason = e.reason
+        self.funcs[g["name"]] = item
+
     def plan_functions(self):
         for g in self.ex.graphs:
+            if g["kind"] == "interface":
+                self.plan_interface_function(g)
+                continue
             if g["kind"] != "function":
                 continue
             entry = next((n for n in g["nodes"] if n["class"] == "K2Node_FunctionEntry"), None)
@@ -2553,7 +2589,7 @@ class Plan:
             tls.append({"bp": t.bp, "cpp": t.cpp, "migrated": t.migrated, "reason": t.reason,
                         "node": (t.extra.get("node") or {}).get("id", ""), "nodes": t.extra.get("nodes", []),
                         "properties": {k: v for k, v in props.items() if k}})
-        graph_nodes = {n["id"] for g in self.ex.graphs if g["kind"] in ("event", "function") for n in g["nodes"]
+        graph_nodes = {n["id"] for g in self.ex.graphs if g["kind"] in ("event", "function", "interface") for n in g["nodes"]
                        if n["class"] not in ("EdGraphNode_Comment",)}
         graph_nodes -= {e.extra["node"] for e in self.events if e.extra.get("empty")}   # unwired template events
         moved = set()
@@ -2665,14 +2701,17 @@ namespace DwoNative
 			}
 			if (Function)
 			{
+				// the parameters only, as UObject::CallFunctionByNameWithArguments does: a Blueprint function's struct
+				// also holds its locals, which live past ParmsSize and belong to the VM's own frame
 				Target = InTarget;
-				Params.SetNumZeroed(FMath::Max<int32>(1, Function->ParmsSize));   // never empty: InitializeStruct needs memory
-				Function->InitializeStruct(Params.GetData());
+				Params.SetNumZeroed(FMath::Max<int32>(1, Function->ParmsSize));
+				for (TFieldIterator<FProperty> It(Function); It && It->HasAnyPropertyFlags(CPF_Parm); ++It) { It->InitializeValue_InContainer(Params.GetData()); }
 			}
 		}
 		~FCall()
 		{
-			if (Function) { Function->DestroyStruct(Params.GetData()); }
+			if (!Function) { return; }
+			for (TFieldIterator<FProperty> It(Function); It && It->HasAnyPropertyFlags(CPF_Parm); ++It) { It->DestroyValue_InContainer(Params.GetData()); }
 		}
 		FCall(const FCall&) = delete;
 		FCall& operator=(const FCall&) = delete;
@@ -2973,7 +3012,8 @@ def write(plan: Plan, out: Path) -> dict:
             if f.extra.get("bne"):
                 H.append(f"\tvirtual {ret} {f.extra['impl']}({', '.join(f.extra['decls'])}) override;")
             else:
-                H.append(f"\t/** The Blueprint's {f.bp} function calls this (an implementable event cannot be overridden in C++). */")
+                why = "C++ cannot implement a Blueprint interface" if f.extra.get("interface") else "an implementable event cannot be overridden in C++"
+                H.append(f"\t/** The Blueprint's {f.bp} function calls this ({why}). */")
                 H.append('\tUFUNCTION(BlueprintCallable, Category = "Native")')
                 H.append(f"\t{ret} {f.cpp}({', '.join(f.extra['decls'])});")
         for h in hosts:

@@ -1,0 +1,2187 @@
+{
+	"schema": "lens.bp/1",
+	"name": "BP_LabInterface",
+	"asset": "/Game/DwoQA/BP_LabInterface.BP_LabInterface",
+	"package": "/Game/DwoQA/BP_LabInterface",
+	"assetClass": "Blueprint",
+	"blueprintType": "BPTYPE_Normal",
+	"status": "BS_UpToDate",
+	"engineVersion": "5.7.4-51494982+++UE5+Release-5.7",
+	"exportedAtUtc": "2026-11-25T16:48:43.890Z",
+	"source":
+	{
+		"file": "Content/DwoQA/BP_LabInterface.uasset",
+		"bytes": 80136,
+		"modifiedUtc": "2026-11-25T16:45:50.000Z"
+	},
+	"parent": "/Script/Engine.Actor",
+	"parentChain": [
+		"/Script/Engine.Actor"
+	],
+	"generatedClass": "/Game/DwoQA/BP_LabInterface.BP_LabInterface_C",
+	"interfaces": [
+		"/Game/DwoQA/BPI_LabScore.BPI_LabScore_C"
+	],
+	"variables": [
+		{
+			"name": "Bonus",
+			"type":
+			{
+				"text": "int",
+				"category": "int"
+			},
+			"category": "디폴트",
+			"default": "3"
+		},
+		{
+			"name": "LastTotal",
+			"type":
+			{
+				"text": "int",
+				"category": "int"
+			},
+			"category": "디폴트",
+			"default": "0"
+		},
+		{
+			"name": "LastLabel",
+			"type":
+			{
+				"text": "string",
+				"category": "string"
+			},
+			"category": "디폴트"
+		},
+		{
+			"name": "Calls",
+			"type":
+			{
+				"text": "int",
+				"category": "int"
+			},
+			"category": "디폴트",
+			"default": "0"
+		}
+	],
+	"components": [
+		{
+			"name": "DefaultSceneRoot",
+			"class": "SceneComponent",
+			"classPath": "/Script/Engine.SceneComponent",
+			"root": true
+		}
+	],
+	"classDefaults": [
+		{
+			"name": "PrimaryActorTick",
+			"value": "(bCanEverTick=True)",
+			"owner": "Actor"
+		}
+	],
+	"graphs": [
+		{
+			"name": "UserConstructionScript",
+			"kind": "function",
+			"nodes": [
+				{
+					"id": "BFD0ADB74B91F3ECE624A0A76CEEAD30",
+					"class": "K2Node_FunctionEntry",
+					"title": "Construction Script",
+					"member": "UserConstructionScript",
+					"role": "other",
+					"kind": "entry",
+					"pos": [
+						0,
+						0
+					],
+					"functionFlags": [
+						"Event",
+						"BlueprintEvent"
+					],
+					"pins": [
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "EventGraph",
+			"kind": "event",
+			"nodes": [
+				{
+					"id": "4609FAC3469B6671B66AC78FEC266822",
+					"class": "K2Node_Event",
+					"title": "BeginPlay 이벤트",
+					"member": "ReceiveBeginPlay",
+					"memberOwner": "/Script/Engine.Actor",
+					"override": true,
+					"role": "event",
+					"kind": "event",
+					"pos": [
+						0,
+						0
+					],
+					"comment": "지금 이 노드는 비활성 상태입니다. \n핀을 끌어서 다른 노드를 연결하면 활성화됩니다.",
+					"disabled": true,
+					"pins": [
+						{
+							"name": "OutputDelegate",
+							"dir": "out",
+							"type":
+							{
+								"text": "delegate",
+								"category": "delegate"
+							}
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						}
+					]
+				},
+				{
+					"id": "F75162CD49E9B228EA8A1B80E53C909C",
+					"class": "K2Node_Event",
+					"title": "ActorBeginOverlap 이벤트",
+					"member": "ReceiveActorBeginOverlap",
+					"memberOwner": "/Script/Engine.Actor",
+					"override": true,
+					"role": "event",
+					"kind": "event",
+					"pos": [
+						0,
+						208
+					],
+					"comment": "지금 이 노드는 비활성 상태입니다. \n핀을 끌어서 다른 노드를 연결하면 활성화됩니다.",
+					"disabled": true,
+					"pins": [
+						{
+							"name": "OutputDelegate",
+							"dir": "out",
+							"type":
+							{
+								"text": "delegate",
+								"category": "delegate"
+							}
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "OtherActor",
+							"dir": "out",
+							"type":
+							{
+								"text": "Actor",
+								"category": "object",
+								"object": "/Script/Engine.Actor"
+							}
+						}
+					]
+				},
+				{
+					"id": "A83EDFD74E21A20703A2CC9F9A65AD29",
+					"class": "K2Node_Event",
+					"title": "Tick 이벤트",
+					"member": "ReceiveTick",
+					"memberOwner": "/Script/Engine.Actor",
+					"override": true,
+					"role": "event",
+					"kind": "event",
+					"pos": [
+						0,
+						416
+					],
+					"comment": "지금 이 노드는 비활성 상태입니다. \n핀을 끌어서 다른 노드를 연결하면 활성화됩니다.",
+					"disabled": true,
+					"pins": [
+						{
+							"name": "OutputDelegate",
+							"dir": "out",
+							"type":
+							{
+								"text": "delegate",
+								"category": "delegate"
+							}
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "DeltaSeconds",
+							"dir": "out",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "float"
+							},
+							"default": "0.0",
+							"autoDefault": "0.0"
+						}
+					]
+				},
+				{
+					"id": "4AAC0D2244912BE4E45EC094102772A5",
+					"class": "K2Node_Event",
+					"title": "BeginPlay 이벤트",
+					"member": "ReceiveBeginPlay",
+					"memberOwner": "/Script/Engine.Actor",
+					"override": true,
+					"role": "event",
+					"kind": "event",
+					"pos": [
+						1800,
+						260
+					],
+					"pins": [
+						{
+							"name": "OutputDelegate",
+							"dir": "out",
+							"type":
+							{
+								"text": "delegate",
+								"category": "delegate"
+							}
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						}
+					]
+				},
+				{
+					"id": "5C737B894F299269F3064C8844171ECF",
+					"class": "K2Node_Event",
+					"title": "Tick 이벤트",
+					"member": "ReceiveTick",
+					"memberOwner": "/Script/Engine.Actor",
+					"override": true,
+					"role": "event",
+					"kind": "event",
+					"pos": [
+						0,
+						520
+					],
+					"pins": [
+						{
+							"name": "OutputDelegate",
+							"dir": "out",
+							"type":
+							{
+								"text": "delegate",
+								"category": "delegate"
+							}
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "4571B0384ACAB1B36A30569CD6212D2F",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "DeltaSeconds",
+							"dir": "out",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "float"
+							},
+							"default": "0.0",
+							"autoDefault": "0.0"
+						}
+					]
+				},
+				{
+					"id": "4571B0384ACAB1B36A30569CD6212D2F",
+					"class": "K2Node_Message",
+					"title": "Score\nTarget is BPI Lab Score",
+					"member": "Score",
+					"memberOwner": "/Game/DwoQA/BPI_LabScore.SKEL_BPI_LabScore_C",
+					"memberFlags": [
+						"BlueprintCallable",
+						"BlueprintEvent"
+					],
+					"role": "call",
+					"kind": "call",
+					"pos": [
+						360,
+						520
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "5C737B894F299269F3064C8844171ECF",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "5469D593463F16AD15B05C8FB25AD9E3",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "Object",
+								"category": "object",
+								"object": "/Script/CoreUObject.Object"
+							},
+							"links": [
+								{
+									"node": "8BC4E215440A0562A2AE71850A9BF287",
+									"pin": "self"
+								}
+							]
+						},
+						{
+							"name": "Base",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "3754D68547AFFDAE999F07AD72C32A19",
+									"pin": "Calls"
+								}
+							]
+						},
+						{
+							"name": "Total",
+							"dir": "out",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "5469D593463F16AD15B05C8FB25AD9E3",
+									"pin": "LastTotal"
+								}
+							]
+						},
+						{
+							"name": "Label",
+							"dir": "out",
+							"type":
+							{
+								"text": "string",
+								"category": "string"
+							},
+							"links": [
+								{
+									"node": "3A09FDA64E038147B84C87BABF664CBF",
+									"pin": "LastLabel"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "8BC4E215440A0562A2AE71850A9BF287",
+					"class": "K2Node_Self",
+					"title": "셀프-레퍼런스",
+					"role": "other",
+					"kind": "self",
+					"pure": true,
+					"pos": [
+						720,
+						520
+					],
+					"pins": [
+						{
+							"name": "self",
+							"dir": "out",
+							"type":
+							{
+								"text": "Self",
+								"category": "object",
+								"subCategory": "self"
+							},
+							"links": [
+								{
+									"node": "4571B0384ACAB1B36A30569CD6212D2F",
+									"pin": "self"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "3754D68547AFFDAE999F07AD72C32A19",
+					"class": "K2Node_VariableGet",
+					"title": "Get Calls",
+					"member": "Calls",
+					"memberOwner": "/Game/DwoQA/BP_LabInterface.SKEL_BP_LabInterface_C",
+					"memberCpp": "int32",
+					"memberName": "Calls",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						1080,
+						520
+					],
+					"pins": [
+						{
+							"name": "Calls",
+							"dir": "out",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "4571B0384ACAB1B36A30569CD6212D2F",
+									"pin": "Base"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BP_LabInterface",
+								"category": "object",
+								"object": "/Game/DwoQA/BP_LabInterface.BP_LabInterface_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "5469D593463F16AD15B05C8FB25AD9E3",
+					"class": "K2Node_VariableSet",
+					"title": "Set LastTotal",
+					"member": "LastTotal",
+					"memberOwner": "/Game/DwoQA/BP_LabInterface.SKEL_BP_LabInterface_C",
+					"memberCpp": "int32",
+					"memberName": "LastTotal",
+					"role": "variable",
+					"kind": "set",
+					"pos": [
+						1440,
+						520
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "4571B0384ACAB1B36A30569CD6212D2F",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "3A09FDA64E038147B84C87BABF664CBF",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "LastTotal",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "4571B0384ACAB1B36A30569CD6212D2F",
+									"pin": "Total"
+								}
+							]
+						},
+						{
+							"name": "Output_Get",
+							"dir": "out",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0"
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BP_LabInterface",
+								"category": "object",
+								"object": "/Game/DwoQA/BP_LabInterface.BP_LabInterface_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "3A09FDA64E038147B84C87BABF664CBF",
+					"class": "K2Node_VariableSet",
+					"title": "Set LastLabel",
+					"member": "LastLabel",
+					"memberOwner": "/Game/DwoQA/BP_LabInterface.SKEL_BP_LabInterface_C",
+					"memberCpp": "FString",
+					"memberName": "LastLabel",
+					"role": "variable",
+					"kind": "set",
+					"pos": [
+						1800,
+						520
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "5469D593463F16AD15B05C8FB25AD9E3",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "LastLabel",
+							"dir": "in",
+							"type":
+							{
+								"text": "string",
+								"category": "string"
+							},
+							"links": [
+								{
+									"node": "4571B0384ACAB1B36A30569CD6212D2F",
+									"pin": "Label"
+								}
+							]
+						},
+						{
+							"name": "Output_Get",
+							"dir": "out",
+							"type":
+							{
+								"text": "string",
+								"category": "string"
+							}
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BP_LabInterface",
+								"category": "object",
+								"object": "/Game/DwoQA/BP_LabInterface.BP_LabInterface_C"
+							},
+							"hidden": true
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Score",
+			"interface": "/Game/DwoQA/BPI_LabScore.BPI_LabScore_C",
+			"kind": "interface",
+			"nodes": [
+				{
+					"id": "AEEDFE124D7D148667B1BDA7EC94C0BC",
+					"class": "K2Node_FunctionEntry",
+					"title": "Score",
+					"member": "Score",
+					"role": "other",
+					"kind": "entry",
+					"pos": [
+						0,
+						0
+					],
+					"functionFlags": [
+						"BlueprintCallable",
+						"BlueprintEvent"
+					],
+					"pins": [
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "F77AFCBA4AED71BC575ABBA67D0E2DE8",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "Base",
+							"dir": "out",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "C3B9E2594C091934CC18509B312C7973",
+									"pin": "A"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "1FD8388143AECDC2C7FF6E8276A4506F",
+					"class": "K2Node_FunctionResult",
+					"title": "반환 노드",
+					"role": "other",
+					"kind": "result",
+					"pos": [
+						256,
+						0
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "54B10C9641F4FA90775C4CB8844D4EDC",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "Total",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "36A521704E4B44A7D651449AB9927D4C",
+									"pin": "ReturnValue"
+								}
+							]
+						},
+						{
+							"name": "Label",
+							"dir": "in",
+							"type":
+							{
+								"text": "string",
+								"category": "string"
+							},
+							"links": [
+								{
+									"node": "B4FAD7C346D0194EA8FDF698C063B708",
+									"pin": "ReturnValue"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "D34B778D457D9FD957408A9C0162F04E",
+					"class": "K2Node_VariableGet",
+					"title": "Get Calls",
+					"member": "Calls",
+					"memberOwner": "/Game/DwoQA/BP_LabInterface.SKEL_BP_LabInterface_C",
+					"memberCpp": "int32",
+					"memberName": "Calls",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						0,
+						0
+					],
+					"pins": [
+						{
+							"name": "Calls",
+							"dir": "out",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "728F076E44035C5B403ECE94305F3A77",
+									"pin": "A"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BP_LabInterface",
+								"category": "object",
+								"object": "/Game/DwoQA/BP_LabInterface.BP_LabInterface_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "728F076E44035C5B403ECE94305F3A77",
+					"class": "K2Node_CallFunction",
+					"title": "int + int",
+					"member": "Add_IntInt",
+					"memberOwner": "/Script/Engine.KismetMathLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						360,
+						0
+					],
+					"pins": [
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "KismetMathLibrary",
+								"category": "object",
+								"object": "/Script/Engine.KismetMathLibrary"
+							},
+							"defaultObject": "/Script/Engine.Default__KismetMathLibrary",
+							"hidden": true
+						},
+						{
+							"name": "A",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "D34B778D457D9FD957408A9C0162F04E",
+									"pin": "Calls"
+								}
+							]
+						},
+						{
+							"name": "B",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "1",
+							"autoDefault": "1"
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "F77AFCBA4AED71BC575ABBA67D0E2DE8",
+									"pin": "Calls"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "F77AFCBA4AED71BC575ABBA67D0E2DE8",
+					"class": "K2Node_VariableSet",
+					"title": "Set Calls",
+					"member": "Calls",
+					"memberOwner": "/Game/DwoQA/BP_LabInterface.SKEL_BP_LabInterface_C",
+					"memberCpp": "int32",
+					"memberName": "Calls",
+					"role": "variable",
+					"kind": "set",
+					"pos": [
+						720,
+						0
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "AEEDFE124D7D148667B1BDA7EC94C0BC",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "54B10C9641F4FA90775C4CB8844D4EDC",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "Calls",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "728F076E44035C5B403ECE94305F3A77",
+									"pin": "ReturnValue"
+								}
+							]
+						},
+						{
+							"name": "Output_Get",
+							"dir": "out",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0"
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BP_LabInterface",
+								"category": "object",
+								"object": "/Game/DwoQA/BP_LabInterface.BP_LabInterface_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "C3B9E2594C091934CC18509B312C7973",
+					"class": "K2Node_CallFunction",
+					"title": "int * int",
+					"member": "Multiply_IntInt",
+					"memberOwner": "/Script/Engine.KismetMathLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						1080,
+						0
+					],
+					"pins": [
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "KismetMathLibrary",
+								"category": "object",
+								"object": "/Script/Engine.KismetMathLibrary"
+							},
+							"defaultObject": "/Script/Engine.Default__KismetMathLibrary",
+							"hidden": true
+						},
+						{
+							"name": "A",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "AEEDFE124D7D148667B1BDA7EC94C0BC",
+									"pin": "Base"
+								}
+							]
+						},
+						{
+							"name": "B",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "2",
+							"autoDefault": "0"
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "36A521704E4B44A7D651449AB9927D4C",
+									"pin": "A"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "00D32C44462F9BEDE6D0B693B22AAE21",
+					"class": "K2Node_VariableGet",
+					"title": "Get Bonus",
+					"member": "Bonus",
+					"memberOwner": "/Game/DwoQA/BP_LabInterface.SKEL_BP_LabInterface_C",
+					"memberCpp": "int32",
+					"memberName": "Bonus",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						1440,
+						0
+					],
+					"pins": [
+						{
+							"name": "Bonus",
+							"dir": "out",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "36A521704E4B44A7D651449AB9927D4C",
+									"pin": "B"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BP_LabInterface",
+								"category": "object",
+								"object": "/Game/DwoQA/BP_LabInterface.BP_LabInterface_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "36A521704E4B44A7D651449AB9927D4C",
+					"class": "K2Node_CallFunction",
+					"title": "int + int",
+					"member": "Add_IntInt",
+					"memberOwner": "/Script/Engine.KismetMathLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						1800,
+						0
+					],
+					"pins": [
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "KismetMathLibrary",
+								"category": "object",
+								"object": "/Script/Engine.KismetMathLibrary"
+							},
+							"defaultObject": "/Script/Engine.Default__KismetMathLibrary",
+							"hidden": true
+						},
+						{
+							"name": "A",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "C3B9E2594C091934CC18509B312C7973",
+									"pin": "ReturnValue"
+								}
+							]
+						},
+						{
+							"name": "B",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "1",
+							"autoDefault": "1",
+							"links": [
+								{
+									"node": "00D32C44462F9BEDE6D0B693B22AAE21",
+									"pin": "Bonus"
+								}
+							]
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "AD72D9084D723AEF5455018ACD3FC72F",
+									"pin": "A"
+								},
+								{
+									"node": "1FD8388143AECDC2C7FF6E8276A4506F",
+									"pin": "Total"
+								},
+								{
+									"node": "638FA50E49EEF6A373FB33B163904397",
+									"pin": "InInt"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "AD72D9084D723AEF5455018ACD3FC72F",
+					"class": "K2Node_CallFunction",
+					"title": "integer > integer",
+					"member": "Greater_IntInt",
+					"memberOwner": "/Script/Engine.KismetMathLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						0,
+						260
+					],
+					"pins": [
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "KismetMathLibrary",
+								"category": "object",
+								"object": "/Script/Engine.KismetMathLibrary"
+							},
+							"defaultObject": "/Script/Engine.Default__KismetMathLibrary",
+							"hidden": true
+						},
+						{
+							"name": "A",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "36A521704E4B44A7D651449AB9927D4C",
+									"pin": "ReturnValue"
+								}
+							]
+						},
+						{
+							"name": "B",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "10",
+							"autoDefault": "0"
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false",
+							"links": [
+								{
+									"node": "54B10C9641F4FA90775C4CB8844D4EDC",
+									"pin": "Condition"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "54B10C9641F4FA90775C4CB8844D4EDC",
+					"class": "K2Node_IfThenElse",
+					"title": "Branch",
+					"role": "other",
+					"kind": "branch",
+					"pos": [
+						360,
+						260
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "F77AFCBA4AED71BC575ABBA67D0E2DE8",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "Condition",
+							"dir": "in",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "true",
+							"autoDefault": "true",
+							"links": [
+								{
+									"node": "AD72D9084D723AEF5455018ACD3FC72F",
+									"pin": "ReturnValue"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"label": "True",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "1FD8388143AECDC2C7FF6E8276A4506F",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "else",
+							"label": "False",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "6BD711FB44159B00C913CC9C4CE02EE3",
+									"pin": "execute"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "6BD711FB44159B00C913CC9C4CE02EE3",
+					"class": "K2Node_FunctionResult",
+					"title": "반환 노드",
+					"role": "other",
+					"kind": "result",
+					"pos": [
+						720,
+						260
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "54B10C9641F4FA90775C4CB8844D4EDC",
+									"pin": "else"
+								}
+							]
+						},
+						{
+							"name": "Total",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "-1",
+							"autoDefault": "0"
+						},
+						{
+							"name": "Label",
+							"dir": "in",
+							"type":
+							{
+								"text": "string",
+								"category": "string"
+							},
+							"default": "small"
+						}
+					]
+				},
+				{
+					"id": "638FA50E49EEF6A373FB33B163904397",
+					"class": "K2Node_CallFunction",
+					"title": "To String (Integer)",
+					"member": "Conv_IntToString",
+					"memberOwner": "/Script/Engine.KismetStringLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						1080,
+						260
+					],
+					"pins": [
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "KismetStringLibrary",
+								"category": "object",
+								"object": "/Script/Engine.KismetStringLibrary"
+							},
+							"defaultObject": "/Script/Engine.Default__KismetStringLibrary",
+							"hidden": true
+						},
+						{
+							"name": "InInt",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "36A521704E4B44A7D651449AB9927D4C",
+									"pin": "ReturnValue"
+								}
+							]
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "string",
+								"category": "string"
+							},
+							"links": [
+								{
+									"node": "B4FAD7C346D0194EA8FDF698C063B708",
+									"pin": "B"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "B4FAD7C346D0194EA8FDF698C063B708",
+					"class": "K2Node_CallFunction",
+					"title": "Append",
+					"member": "Concat_StrStr",
+					"memberOwner": "/Script/Engine.KismetStringLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						1440,
+						260
+					],
+					"pins": [
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "KismetStringLibrary",
+								"category": "object",
+								"object": "/Script/Engine.KismetStringLibrary"
+							},
+							"defaultObject": "/Script/Engine.Default__KismetStringLibrary",
+							"hidden": true
+						},
+						{
+							"name": "A",
+							"dir": "in",
+							"type":
+							{
+								"text": "string",
+								"category": "string"
+							},
+							"default": "score "
+						},
+						{
+							"name": "B",
+							"dir": "in",
+							"type":
+							{
+								"text": "string",
+								"category": "string"
+							},
+							"links": [
+								{
+									"node": "638FA50E49EEF6A373FB33B163904397",
+									"pin": "ReturnValue"
+								}
+							]
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "string",
+								"category": "string"
+							},
+							"links": [
+								{
+									"node": "1FD8388143AECDC2C7FF6E8276A4506F",
+									"pin": "Label"
+								}
+							]
+						}
+					]
+				}
+			]
+		}
+	],
+	"native":
+	{
+		"types":
+		{
+			"/Script/Engine.Actor":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "AActor",
+				"include": "GameFramework/Actor.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.Actor",
+				"super": "/Script/CoreUObject.Object",
+				"actor": true
+			},
+			"/Script/CoreUObject.Object":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UObject",
+				"include": "UObject/Object.h",
+				"module": "CoreUObject",
+				"nativeParent": "/Script/CoreUObject.Object",
+				"abstract": true
+			},
+			"/Script/Engine.SceneComponent":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "USceneComponent",
+				"include": "Components/SceneComponent.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.SceneComponent",
+				"super": "/Script/Engine.ActorComponent",
+				"component": true
+			},
+			"/Game/DwoQA/BPI_LabScore.SKEL_BPI_LabScore_C":
+			{
+				"kind": "interface",
+				"native": false,
+				"cpp": "USKEL_BPI_LabScore_C",
+				"nativeParent": "/Script/CoreUObject.Interface",
+				"super": "/Script/CoreUObject.Interface"
+			},
+			"/Game/DwoQA/BP_LabInterface.BP_LabInterface_C":
+			{
+				"kind": "class",
+				"native": false,
+				"cpp": "ABP_LabInterface_C",
+				"nativeParent": "/Script/Engine.Actor",
+				"super": "/Script/Engine.Actor",
+				"actor": true
+			},
+			"/Script/Engine.KismetMathLibrary":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UKismetMathLibrary",
+				"include": "Kismet/KismetMathLibrary.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.KismetMathLibrary",
+				"super": "/Script/Engine.BlueprintFunctionLibrary"
+			},
+			"/Script/Engine.KismetStringLibrary":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UKismetStringLibrary",
+				"include": "Kismet/KismetStringLibrary.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.KismetStringLibrary",
+				"super": "/Script/Engine.BlueprintFunctionLibrary"
+			},
+			"/Script/CoreUObject.Interface":
+			{
+				"kind": "interface",
+				"native": true,
+				"cpp": "UInterface",
+				"include": "UObject/Interface.h",
+				"module": "CoreUObject",
+				"nativeParent": "/Script/CoreUObject.Interface",
+				"super": "/Script/CoreUObject.Object",
+				"abstract": true
+			}
+		},
+		"enums":
+		{
+		},
+		"functions":
+		{
+			"/Script/Engine.Actor:UserConstructionScript":
+			{
+				"name": "UserConstructionScript",
+				"owner": "/Script/Engine.Actor",
+				"flags": [
+					"Event",
+					"BlueprintEvent"
+				],
+				"native": true,
+				"access": "public",
+				"internalOnly": true,
+				"params": []
+			},
+			"/Script/Engine.Actor:ReceiveBeginPlay":
+			{
+				"name": "ReceiveBeginPlay",
+				"owner": "/Script/Engine.Actor",
+				"flags": [
+					"Event",
+					"BlueprintEvent",
+					"Protected"
+				],
+				"native": true,
+				"access": "protected",
+				"params": []
+			},
+			"/Script/Engine.Actor:ReceiveActorBeginOverlap":
+			{
+				"name": "ReceiveActorBeginOverlap",
+				"owner": "/Script/Engine.Actor",
+				"flags": [
+					"Event",
+					"BlueprintEvent"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "OtherActor",
+						"cpp": "AActor*"
+					}
+				]
+			},
+			"/Script/Engine.Actor:ReceiveTick":
+			{
+				"name": "ReceiveTick",
+				"owner": "/Script/Engine.Actor",
+				"flags": [
+					"Event",
+					"BlueprintEvent"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "DeltaSeconds",
+						"cpp": "float"
+					}
+				]
+			},
+			"/Game/DwoQA/BPI_LabScore.SKEL_BPI_LabScore_C:Score":
+			{
+				"name": "Score",
+				"owner": "/Game/DwoQA/BPI_LabScore.SKEL_BPI_LabScore_C",
+				"flags": [
+					"BlueprintCallable",
+					"BlueprintEvent"
+				],
+				"native": false,
+				"access": "public",
+				"params": [
+					{
+						"name": "Base",
+						"cpp": "int32"
+					},
+					{
+						"name": "Total",
+						"cpp": "int32",
+						"out": true
+					},
+					{
+						"name": "Label",
+						"cpp": "FString",
+						"out": true
+					}
+				]
+			},
+			"/Script/Engine.KismetMathLibrary:Add_IntInt":
+			{
+				"name": "Add_IntInt",
+				"owner": "/Script/Engine.KismetMathLibrary",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Pure",
+					"Static"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "A",
+						"cpp": "int32"
+					},
+					{
+						"name": "B",
+						"cpp": "int32",
+						"cppDefault": "1"
+					},
+					{
+						"name": "ReturnValue",
+						"cpp": "int32",
+						"return": true
+					}
+				]
+			},
+			"/Script/Engine.KismetMathLibrary:Multiply_IntInt":
+			{
+				"name": "Multiply_IntInt",
+				"owner": "/Script/Engine.KismetMathLibrary",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Pure",
+					"Static"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "A",
+						"cpp": "int32"
+					},
+					{
+						"name": "B",
+						"cpp": "int32"
+					},
+					{
+						"name": "ReturnValue",
+						"cpp": "int32",
+						"return": true
+					}
+				]
+			},
+			"/Script/Engine.KismetMathLibrary:Greater_IntInt":
+			{
+				"name": "Greater_IntInt",
+				"owner": "/Script/Engine.KismetMathLibrary",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Pure",
+					"Static"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "A",
+						"cpp": "int32"
+					},
+					{
+						"name": "B",
+						"cpp": "int32"
+					},
+					{
+						"name": "ReturnValue",
+						"cpp": "bool",
+						"return": true
+					}
+				]
+			},
+			"/Script/Engine.KismetStringLibrary:Conv_IntToString":
+			{
+				"name": "Conv_IntToString",
+				"owner": "/Script/Engine.KismetStringLibrary",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Pure",
+					"Static"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "InInt",
+						"cpp": "int32"
+					},
+					{
+						"name": "ReturnValue",
+						"cpp": "FString",
+						"return": true
+					}
+				]
+			},
+			"/Script/Engine.KismetStringLibrary:Concat_StrStr":
+			{
+				"name": "Concat_StrStr",
+				"owner": "/Script/Engine.KismetStringLibrary",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Pure",
+					"Static"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "A",
+						"cpp": "FString"
+					},
+					{
+						"name": "B",
+						"cpp": "FString"
+					},
+					{
+						"name": "ReturnValue",
+						"cpp": "FString",
+						"return": true
+					}
+				]
+			}
+		},
+		"parentMembers": [
+			"PrimaryActorTick",
+			"bNetTemporary",
+			"bOnlyRelevantToOwner",
+			"bAlwaysRelevant",
+			"bReplicateMovement",
+			"bCallPreReplication",
+			"bCallPreReplicationForReplay",
+			"bHidden",
+			"bTearOff",
+			"bForceNetAddressable",
+			"LevelInstanceType",
+			"LevelInstanceFlags",
+			"bIsMainWorldOnly",
+			"bIgnoreInPIE",
+			"bExchangedRoles",
+			"bNetLoadOnClient",
+			"bNetUseOwnerRelevancy",
+			"bRelevantForNetworkReplays",
+			"bRelevantForLevelBounds",
+			"bReplayRewindable",
+			"bAllowTickBeforeBeginPlay",
+			"bAutoDestroyWhenFinished",
+			"bCanBeDamaged",
+			"bBlockInput",
+			"bCollideWhenPlacing",
+			"bFindCameraComponentWhenViewTarget",
+			"bGenerateOverlapEventsDuringLevelStreaming",
+			"bIgnoresOriginShifting",
+			"bEnableAutoLODGeneration",
+			"bIsEditorOnlyActor",
+			"bReplicates",
+			"bCanBeInCluster",
+			"bMigratingAsset",
+			"bAllowReceiveTickEventOnDedicatedServer",
+			"bReplicateUsingRegisteredSubObjectList",
+			"bActorEnableCollision",
+			"bActorIsBeingDestroyed",
+			"bAsyncPhysicsTickEnabled",
+			"UpdateOverlapsMethodDuringLevelStreaming",
+			"DefaultUpdateOverlapsMethodDuringLevelStreaming",
+			"RemoteRole",
+			"InitialLifeSpan",
+			"CustomTimeDilation",
+			"RayTracingGroupId",
+			"GridPlacement",
+			"RuntimeGrid",
+			"AttachmentReplication",
+			"ReplicatedMovement",
+			"Owner",
+			"NetDriverName",
+			"Role",
+			"NetDormancy",
+			"SpawnCollisionHandlingMethod",
+			"AutoReceiveInput",
+			"InputPriority",
+			"InputComponent",
+			"NetTag",
+			"NetCullDistanceSquared",
+			"NetUpdateFrequency",
+			"MinNetUpdateFrequency",
+			"NetPriority",
+			"PhysicsReplicationMode",
+			"Instigator",
+			"Children",
+			"RootComponent",
+			"PivotOffset",
+			"HLODLayer",
+			"ObjectsDetachedFromExternalPackage",
+			"Layers",
+			"ParentComponentActor",
+			"ParentComponent",
+			"ActorGuid",
+			"ActorInstanceGuid",
+			"ContentBundleGuid",
+			"DataLayers",
+			"DataLayerAssets",
+			"ExternalDataLayerAsset",
+			"GroupActor",
+			"SpriteScale",
+			"HiddenEditorViews",
+			"ActorLabel",
+			"FolderPath",
+			"FolderGuid",
+			"bHiddenEd",
+			"bIsEditorPreviewActor",
+			"bHiddenEdLayer",
+			"bHiddenEdLevel",
+			"bLockLocation",
+			"bActorLabelEditable",
+			"bEditable",
+			"bListedInSceneOutliner",
+			"bOptimizeBPComponentData",
+			"bCanPlayFromHere",
+			"bIsSpatiallyLoaded",
+			"bHiddenEdTemporary",
+			"bForceExternalActorLevelReferenceForPIE",
+			"Tags",
+			"OnTakeAnyDamage",
+			"OnTakePointDamage",
+			"OnTakeRadialDamage",
+			"OnActorBeginOverlap",
+			"OnActorEndOverlap",
+			"OnBeginCursorOver",
+			"OnEndCursorOver",
+			"OnClicked",
+			"OnReleased",
+			"OnInputTouchBegin",
+			"OnInputTouchEnd",
+			"OnInputTouchEnter",
+			"OnInputTouchLeave",
+			"OnActorHit",
+			"OnDestroyed",
+			"OnEndPlay",
+			"InstanceComponents",
+			"BlueprintCreatedComponents",
+			"WasRecentlyRendered",
+			"UserConstructionScript",
+			"UnregisterAsFocalPointInPhysicsReplicationLOD",
+			"TearOff",
+			"SetTickGroup",
+			"SetTickableWhenPaused",
+			"SetReplicates",
+			"SetReplicateMovement",
+			"SetRayTracingGroupId",
+			"SetPhysicsReplicationMode",
+			"SetOwner",
+			"SetNetUpdateFrequency",
+			"SetNetDormancy",
+			"SetNetCullDistanceSquared",
+			"SetMinNetUpdateFrequency",
+			"SetLifeSpan",
+			"SetIsTemporarilyHiddenInEditor",
+			"SetFolderPath",
+			"SetAutoDestroyWhenFinished",
+			"SetActorTickInterval",
+			"SetActorTickEnabled",
+			"SetActorScale3D",
+			"SetActorRelativeScale3D",
+			"SetActorLabel",
+			"SetActorHiddenInGame",
+			"SetActorEnableCollision",
+			"RemoveTickPrerequisiteComponent",
+			"RemoveTickPrerequisiteActor",
+			"RegisterAsFocalPointInPhysicsReplicationLOD",
+			"ReceiveTick",
+			"ReceiveRadialDamage",
+			"ReceivePointDamage",
+			"ReceiveHit",
+			"ReceiveEndPlay",
+			"ReceiveDestroyed",
+			"ReceiveBeginPlay",
+			"ReceiveAsyncPhysicsTick",
+			"ReceiveAnyDamage",
+			"ReceiveActorOnReleased",
+			"ReceiveActorOnInputTouchLeave",
+			"ReceiveActorOnInputTouchEnter",
+			"ReceiveActorOnInputTouchEnd",
+			"ReceiveActorOnInputTouchBegin",
+			"ReceiveActorOnClicked",
+			"ReceiveActorEndOverlap",
+			"ReceiveActorEndCursorOver",
+			"ReceiveActorBeginOverlap",
+			"ReceiveActorBeginCursorOver",
+			"PrestreamTextures",
+			"OnRep_ReplicateMovement",
+			"OnRep_ReplicatedMovement",
+			"OnRep_Owner",
+			"OnRep_Instigator",
+			"OnRep_AttachmentReplication",
+			"MakeNoise",
+			"K2_TeleportTo",
+			"K2_SetActorTransform",
+			"K2_SetActorRotation",
+			"K2_SetActorRelativeTransform",
+			"K2_SetActorRelativeRotation",
+			"K2_SetActorRelativeLocation",
+			"K2_SetActorLocationAndRotation",
+			"K2_SetActorLocation",
+			"K2_OnReset",
+			"K2_OnEndViewTarget",
+			"K2_OnBecomeViewTarget",
+			"K2_GetRootComponent",
+			"K2_GetComponentsByClass",
+			"K2_GetActorRotation",
+			"K2_GetActorLocation",
+			"K2_DetachFromActor",
+			"K2_DestroyActor",
+			"K2_AttachToComponent",
+			"K2_AttachToActor",
+			"K2_AttachRootComponentToActor",
+			"K2_AttachRootComponentTo",
+			"K2_AddActorWorldTransformKeepScale",
+			"K2_AddActorWorldTransform",
+			"K2_AddActorWorldRotation",
+			"K2_AddActorWorldOffset",
+			"K2_AddActorLocalTransform",
+			"K2_AddActorLocalRotation",
+			"K2_AddActorLocalOffset",
+			"IsTemporarilyHiddenInEditor",
+			"IsSelectable",
+			"IsOverlappingActor",
+			"IsHiddenEdAtStartup",
+			"IsHiddenEd",
+			"IsEditable",
+			"IsChildActor",
+			"IsActorTickEnabled",
+			"IsActorBeingDestroyed",
+			"HasAuthority",
+			"GetVerticalDistanceTo",
+			"GetVelocity",
+			"GetTransform",
+			"GetTickableWhenPaused",
+			"GetSquaredHorizontalDistanceTo",
+			"GetSquaredDistanceTo",
+			"GetResimulationThreshold",
+			"GetRemoteRole",
+			"GetRayTracingGroupId",
+			"GetPhysicsReplicationMode",
+			"GetParentComponent",
+			"GetParentActor",
+			"GetOwner",
+			"GetOverlappingComponents",
+			"GetOverlappingActors",
+			"GetNetUpdateFrequency",
+			"GetNetCullDistanceSquared",
+			"GetMinNetUpdateFrequency",
+			"GetLocalRole",
+			"GetLifeSpan",
+			"GetLevelTransform",
+			"GetLevel",
+			"GetInstigatorController",
+			"GetInstigator",
+			"GetInputVectorAxisValue",
+			"GetInputAxisValue",
+			"GetInputAxisKeyValue",
+			"GetHorizontalDotProductTo",
+			"GetHorizontalDistanceTo",
+			"GetGameTimeSinceCreation",
+			"GetFolderPath",
+			"GetDotProductTo",
+			"GetDistanceTo",
+			"GetDefaultActorLabel",
+			"GetComponentsByTag",
+			"GetComponentsByInterface",
+			"GetComponentByClass",
+			"GetAttachParentSocketName",
+			"GetAttachParentActor",
+			"GetAttachedActors",
+			"GetAllChildActors",
+			"GetActorUpVector",
+			"GetActorTimeDilation",
+			"GetActorTickInterval",
+			"GetActorScale3D",
+			"GetActorRightVector",
+			"GetActorRelativeScale3D",
+			"GetActorLabel",
+			"GetActorForwardVector",
+			"GetActorEyesViewPoint",
+			"GetActorEnableCollision",
+			"GetActorBounds",
+			"ForceNetUpdate",
+			"FlushNetDormancy",
+			"FinishAddComponent",
+			"FindComponentByTag",
+			"EnableInput",
+			"DisableInput",
+			"DetachRootComponentFromParent",
+			"CreateInputComponent",
+			"CanTriggerResimulation",
+			"AddTickPrerequisiteComponent",
+			"AddTickPrerequisiteActor",
+			"AddComponentByClass",
+			"AddComponent",
+			"ActorHasTag",
+			"ExecuteUbergraph"
+		]
+	}
+}
