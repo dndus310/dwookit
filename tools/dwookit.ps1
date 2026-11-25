@@ -2048,9 +2048,12 @@ function Invoke-Bp {
 #   native rebase <bp> [--dry-run] [--force]
 #                                    back up the .uasset, rebase, verify; the backup goes back when it fails
 #   native restore <bp>              put the last backup of the .uasset back (and of Build.cs)
-#   native verify <bp> [--frames N] [--no-probe]
+#   native verify <bp> [--frames N] [--no-probe] [--probe-offset X:Y:Z] [--call Function@Frame ...]
 #                                    behaviour check: runs the rebased Blueprint and its pre-migration backup through
-#                                    the same scenario in a headless world (DwoLensBehaviour.cpp) and compares them
+#                                    the same scenario in a headless world (DwoLensBehaviour.cpp) and compares them;
+#                                    --probe-offset: where the probe lands, from the actor (cm);
+#                                    --call runs an event or function on the actor at that frame (an implementable
+#                                    event its C++ parent fires in the game), with default arguments
 #   native status                    what was generated and rebased
 $NativeDir = Join-Path $ForgeDir 'native'
 
@@ -2143,7 +2146,20 @@ function Invoke-NativeVerify($Target, $UProject) {
     $scenario = Join-Path $dir 'scenario.json'
     $j = Get-Content -Raw -Encoding UTF8 $Target.Map | ConvertFrom-Json
     $doc = [ordered]@{ blueprint = $j.blueprint; frames = $frames; dt = 0.0333333; recordEvery = 10
-                       probe = $(if ($Rest -contains '--no-probe') { 'none' } else { 'character' }); probeFrame = 20; probeOffset = @(0, 0, 0) }
+                       probe = $(if ($Rest -contains '--no-probe') { 'none' } else { 'character' }); probeFrame = 20; probeOffset = @(0, 0, 0)
+                       calls = @() }
+    $offset = Get-NativeArg '--probe-offset'
+    if ($offset) {
+        $o = @($offset -split '[,:]' | ForEach-Object { [double]$_ })
+        if ($o.Count -ne 3) { Fail "--probe-offset takes X:Y:Z, for example --probe-offset 0:200:50" }
+        $doc.probeOffset = $o
+    }
+    for ($i = 0; $i -lt @($Rest).Count - 1; $i++) {
+        if ($Rest[$i] -ne '--call') { continue }
+        $c = "$($Rest[$i + 1])" -split '@'
+        if ($c.Count -ne 2 -or $c[1] -notmatch '^\d+$') { Fail "--call takes Function@Frame, for example --call OnBoxDamaged@30" }
+        $doc.calls += [ordered]@{ function = $c[0]; frame = [int]$c[1] }
+    }
     Write-Json $scenario $doc
     $logDir = Join-Path $DataDir 'logs'
     New-Item -ItemType Directory -Force $logDir | Out-Null

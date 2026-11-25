@@ -1,0 +1,1073 @@
+{
+	"schema": "lens.bp/1",
+	"name": "BP_SideScrollingPickup",
+	"asset": "/Game/Variant_SideScrolling/Blueprints/Items/BP_SideScrollingPickup.BP_SideScrollingPickup",
+	"package": "/Game/Variant_SideScrolling/Blueprints/Items/BP_SideScrollingPickup",
+	"assetClass": "Blueprint",
+	"blueprintType": "BPTYPE_Normal",
+	"status": "BS_UpToDate",
+	"engineVersion": "5.7.4-51494982+++UE5+Release-5.7",
+	"exportedAtUtc": "2026-11-25T04:24:26.557Z",
+	"source":
+	{
+		"file": "Content/Variant_SideScrolling/Blueprints/Items/BP_SideScrollingPickup.uasset",
+		"bytes": 46257,
+		"modifiedUtc": "2026-11-07T10:01:32.000Z"
+	},
+	"parent": "/Script/DWO_Proj_01.SideScrollingPickup",
+	"parentChain": [
+		"/Script/DWO_Proj_01.SideScrollingPickup"
+	],
+	"generatedClass": "/Game/Variant_SideScrolling/Blueprints/Items/BP_SideScrollingPickup.BP_SideScrollingPickup_C",
+	"interfaces": [],
+	"variables": [],
+	"components": [
+		{
+			"name": "Mesh",
+			"class": "StaticMeshComponent",
+			"classPath": "/Script/Engine.StaticMeshComponent",
+			"parent": "Collision",
+			"root": true,
+			"changed": [
+				{
+					"name": "StaticMesh",
+					"value": "/Script/Engine.StaticMesh'/Engine/BasicShapes/Sphere.Sphere'",
+					"owner": "StaticMeshComponent"
+				},
+				{
+					"name": "OverrideMaterials",
+					"value": "(\"/Script/Engine.MaterialInstanceConstant'/Game/ThirdPerson/MI_ThirdPersonColWay.MI_ThirdPersonColWay'\")",
+					"owner": "MeshComponent"
+				},
+				{
+					"name": "RelativeScale3D",
+					"value": "(X=0.500000,Y=0.500000,Z=0.500000)",
+					"owner": "SceneComponent"
+				}
+			]
+		}
+	],
+	"inheritedComponents": [
+		{
+			"name": "Collision",
+			"class": "SphereComponent",
+			"changed": [
+				{
+					"name": "SphereRadius",
+					"value": "50.000000",
+					"owner": "SphereComponent"
+				}
+			]
+		}
+	],
+	"timelines": [
+		{
+			"name": "Pickup",
+			"length": 0.33000001311302185,
+			"tracks": [
+				"float:Scale"
+			],
+			"lengthMode": "TimelineLength",
+			"tickGroup": "TG_PrePhysics",
+			"directionProperty": "Pickup__Direction_455563174C4B827E34133F8B4D9F8BED",
+			"updateFunction": "Pickup__UpdateFunc",
+			"finishedFunction": "Pickup__FinishedFunc",
+			"detail": [
+				{
+					"type": "float",
+					"name": "Scale",
+					"curves": [
+						{
+							"pre": 4,
+							"post": 4,
+							"default": 3.4028234663852886e+38,
+							"keys": [
+								[
+									0,
+									0.5,
+									2,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0
+								],
+								[
+									0.10999999940395355,
+									0.75,
+									2,
+									0,
+									0,
+									-1.5151515007019043,
+									0,
+									-1.5151515007019043,
+									0
+								],
+								[
+									0.33000001311302185,
+									0,
+									2,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0
+								]
+							]
+						}
+					],
+					"property": "Pickup_Scale_455563174C4B827E34133F8B4D9F8BED"
+				}
+			]
+		}
+	],
+	"graphs": [
+		{
+			"name": "UserConstructionScript",
+			"kind": "function",
+			"nodes": [
+				{
+					"id": "600D66284BF01E66D0308C845491CDC1",
+					"class": "K2Node_FunctionEntry",
+					"title": "Construction Script",
+					"member": "UserConstructionScript",
+					"role": "other",
+					"kind": "entry",
+					"pos": [
+						0,
+						0
+					],
+					"functionFlags": [
+						"Event",
+						"BlueprintEvent"
+					],
+					"pins": [
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "EventGraph",
+			"kind": "event",
+			"nodes": [
+				{
+					"id": "963DA6794EFAF1DD1B9278A5F059E3AB",
+					"class": "K2Node_Timeline",
+					"title": "Pickup",
+					"member": "Pickup",
+					"role": "other",
+					"kind": "timeline",
+					"props":
+					{
+						"TimelineName": "Pickup",
+						"bAutoPlay": "False",
+						"TimelineGuid": "00000000000000000000000000000000",
+						"bLoop": "False",
+						"bReplicated": "False",
+						"bIgnoreTimeDilation": "False"
+					},
+					"pos": [
+						0,
+						-16
+					],
+					"pins": [
+						{
+							"name": "Play",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "PlayFromStart",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "46904AE9487254C4D6F8579435367AB3",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "Stop",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "Reverse",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "ReverseFromEnd",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "Update",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "10983E554E0BF25CC43617843ECB4281",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "Finished",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "02AB680A48BC264CC054B7A068AE452E",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "SetNewTime",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "NewTime",
+							"dir": "in",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "float"
+							},
+							"default": "0.0",
+							"autoDefault": "0.0"
+						},
+						{
+							"name": "Direction",
+							"dir": "out",
+							"type":
+							{
+								"text": "ETimelineDirection",
+								"category": "byte",
+								"object": "/Script/Engine.ETimelineDirection"
+							}
+						},
+						{
+							"name": "Scale",
+							"dir": "out",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "float"
+							},
+							"links": [
+								{
+									"node": "AF57346A41153F26DD8DFB97EAE77C64",
+									"pin": "InDouble"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "945E35D04774DDF0D3F450A9BBC481E8",
+					"class": "K2Node_VariableGet",
+					"title": "Get Mesh",
+					"member": "Mesh",
+					"memberOwner": "/Game/Variant_SideScrolling/Blueprints/Items/BP_SideScrollingPickup.SKEL_BP_SideScrollingPickup_C",
+					"memberCpp": "UStaticMeshComponent*",
+					"memberName": "Mesh",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						512,
+						144
+					],
+					"pins": [
+						{
+							"name": "Mesh",
+							"dir": "out",
+							"type":
+							{
+								"text": "StaticMeshComponent",
+								"category": "object",
+								"object": "/Script/Engine.StaticMeshComponent"
+							},
+							"links": [
+								{
+									"node": "10983E554E0BF25CC43617843ECB4281",
+									"pin": "self"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BP_SideScrollingPickup",
+								"category": "object",
+								"object": "/Game/Variant_SideScrolling/Blueprints/Items/BP_SideScrollingPickup.BP_SideScrollingPickup_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "10983E554E0BF25CC43617843ECB4281",
+					"class": "K2Node_CallFunction",
+					"title": "Set World Scale 3D\n타깃은 Scene Component",
+					"member": "SetWorldScale3D",
+					"memberOwner": "/Script/Engine.SceneComponent",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable"
+					],
+					"role": "call",
+					"kind": "call",
+					"pos": [
+						512,
+						-32
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "963DA6794EFAF1DD1B9278A5F059E3AB",
+									"pin": "Update"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "SceneComponent",
+								"category": "object",
+								"object": "/Script/Engine.SceneComponent"
+							},
+							"links": [
+								{
+									"node": "945E35D04774DDF0D3F450A9BBC481E8",
+									"pin": "Mesh"
+								}
+							]
+						},
+						{
+							"name": "NewScale",
+							"dir": "in",
+							"type":
+							{
+								"text": "Vector",
+								"category": "struct",
+								"object": "/Script/CoreUObject.Vector"
+							},
+							"default": "0, 0, 0",
+							"autoDefault": "0, 0, 0",
+							"links": [
+								{
+									"node": "AF57346A41153F26DD8DFB97EAE77C64",
+									"pin": "ReturnValue"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "AF57346A41153F26DD8DFB97EAE77C64",
+					"class": "K2Node_CallFunction",
+					"title": "To Vector (Float)",
+					"member": "Conv_DoubleToVector",
+					"memberOwner": "/Script/Engine.KismetMathLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						320,
+						96
+					],
+					"pins": [
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "KismetMathLibrary",
+								"category": "object",
+								"object": "/Script/Engine.KismetMathLibrary"
+							},
+							"defaultObject": "/Script/Engine.Default__KismetMathLibrary",
+							"hidden": true
+						},
+						{
+							"name": "InDouble",
+							"dir": "in",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "double"
+							},
+							"default": "0.0",
+							"autoDefault": "0.0",
+							"links": [
+								{
+									"node": "963DA6794EFAF1DD1B9278A5F059E3AB",
+									"pin": "Scale"
+								}
+							]
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "Vector",
+								"category": "struct",
+								"object": "/Script/CoreUObject.Vector"
+							},
+							"default": "0, 0, 0",
+							"autoDefault": "0, 0, 0",
+							"links": [
+								{
+									"node": "10983E554E0BF25CC43617843ECB4281",
+									"pin": "NewScale"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "02AB680A48BC264CC054B7A068AE452E",
+					"class": "K2Node_CallFunction",
+					"title": "Destroy Actor\n타깃은 Actor",
+					"member": "K2_DestroyActor",
+					"memberOwner": "/Script/Engine.Actor",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable"
+					],
+					"role": "call",
+					"kind": "call",
+					"pos": [
+						512,
+						256
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "963DA6794EFAF1DD1B9278A5F059E3AB",
+									"pin": "Finished"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "Actor",
+								"category": "object",
+								"object": "/Script/Engine.Actor"
+							}
+						}
+					]
+				},
+				{
+					"id": "46904AE9487254C4D6F8579435367AB3",
+					"class": "K2Node_Event",
+					"title": "On Picked Up 이벤트",
+					"member": "BP_OnPickedUp",
+					"memberOwner": "/Script/DWO_Proj_01.SideScrollingPickup",
+					"override": true,
+					"role": "event",
+					"kind": "event",
+					"pos": [
+						-384,
+						16
+					],
+					"pins": [
+						{
+							"name": "OutputDelegate",
+							"dir": "out",
+							"type":
+							{
+								"text": "delegate",
+								"category": "delegate"
+							}
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "963DA6794EFAF1DD1B9278A5F059E3AB",
+									"pin": "PlayFromStart"
+								}
+							]
+						}
+					]
+				}
+			]
+		}
+	],
+	"native":
+	{
+		"types":
+		{
+			"/Script/DWO_Proj_01.SideScrollingPickup":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "ASideScrollingPickup",
+				"include": "Variant_SideScrolling/Gameplay/SideScrollingPickup.h",
+				"module": "DWO_Proj_01",
+				"nativeParent": "/Script/DWO_Proj_01.SideScrollingPickup",
+				"super": "/Script/Engine.Actor",
+				"abstract": true,
+				"actor": true
+			},
+			"/Script/Engine.Actor":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "AActor",
+				"include": "GameFramework/Actor.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.Actor",
+				"super": "/Script/CoreUObject.Object",
+				"actor": true
+			},
+			"/Script/CoreUObject.Object":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UObject",
+				"include": "UObject/Object.h",
+				"module": "CoreUObject",
+				"nativeParent": "/Script/CoreUObject.Object",
+				"abstract": true
+			},
+			"/Script/Engine.StaticMeshComponent":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UStaticMeshComponent",
+				"include": "Components/StaticMeshComponent.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.StaticMeshComponent",
+				"super": "/Script/Engine.MeshComponent",
+				"component": true
+			},
+			"/Game/Variant_SideScrolling/Blueprints/Items/BP_SideScrollingPickup.BP_SideScrollingPickup_C":
+			{
+				"kind": "class",
+				"native": false,
+				"cpp": "ABP_SideScrollingPickup_C",
+				"nativeParent": "/Script/DWO_Proj_01.SideScrollingPickup",
+				"super": "/Script/DWO_Proj_01.SideScrollingPickup",
+				"actor": true
+			},
+			"/Script/Engine.SceneComponent":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "USceneComponent",
+				"include": "Components/SceneComponent.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.SceneComponent",
+				"super": "/Script/Engine.ActorComponent",
+				"component": true
+			},
+			"/Script/CoreUObject.Vector":
+			{
+				"kind": "struct",
+				"native": true,
+				"cpp": "FVector",
+				"include": "UObject/NoExportTypes.h",
+				"module": "CoreUObject"
+			},
+			"/Script/Engine.KismetMathLibrary":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UKismetMathLibrary",
+				"include": "Kismet/KismetMathLibrary.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.KismetMathLibrary",
+				"super": "/Script/Engine.BlueprintFunctionLibrary"
+			}
+		},
+		"enums":
+		{
+			"/Script/Engine.ETimelineDirection":
+			{
+				"native": true,
+				"cpp": "ETimelineDirection::Type",
+				"form": "namespaced",
+				"include": "Components/TimelineComponent.h",
+				"values":
+				{
+					"Forward": "ETimelineDirection::Forward",
+					"Backward": "ETimelineDirection::Backward"
+				}
+			}
+		},
+		"functions":
+		{
+			"/Script/Engine.Actor:UserConstructionScript":
+			{
+				"name": "UserConstructionScript",
+				"owner": "/Script/Engine.Actor",
+				"flags": [
+					"Event",
+					"BlueprintEvent"
+				],
+				"native": true,
+				"access": "public",
+				"internalOnly": true,
+				"params": []
+			},
+			"/Script/Engine.SceneComponent:SetWorldScale3D":
+			{
+				"name": "SetWorldScale3D",
+				"owner": "/Script/Engine.SceneComponent",
+				"flags": [
+					"Native",
+					"BlueprintCallable"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "NewScale",
+						"cpp": "FVector"
+					}
+				]
+			},
+			"/Script/Engine.KismetMathLibrary:Conv_DoubleToVector":
+			{
+				"name": "Conv_DoubleToVector",
+				"owner": "/Script/Engine.KismetMathLibrary",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Pure",
+					"Static"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "InDouble",
+						"cpp": "double"
+					},
+					{
+						"name": "ReturnValue",
+						"cpp": "FVector",
+						"return": true
+					}
+				]
+			},
+			"/Script/Engine.Actor:K2_DestroyActor":
+			{
+				"name": "K2_DestroyActor",
+				"owner": "/Script/Engine.Actor",
+				"flags": [
+					"Native",
+					"BlueprintCallable"
+				],
+				"native": true,
+				"access": "public",
+				"scriptName": "DestroyActor",
+				"params": []
+			},
+			"/Script/DWO_Proj_01.SideScrollingPickup:BP_OnPickedUp":
+			{
+				"name": "BP_OnPickedUp",
+				"owner": "/Script/DWO_Proj_01.SideScrollingPickup",
+				"flags": [
+					"Event",
+					"BlueprintEvent",
+					"Protected"
+				],
+				"native": true,
+				"access": "protected",
+				"params": []
+			}
+		},
+		"parentMembers": [
+			"Sphere",
+			"PrimaryActorTick",
+			"bNetTemporary",
+			"bOnlyRelevantToOwner",
+			"bAlwaysRelevant",
+			"bReplicateMovement",
+			"bCallPreReplication",
+			"bCallPreReplicationForReplay",
+			"bHidden",
+			"bTearOff",
+			"bForceNetAddressable",
+			"LevelInstanceType",
+			"LevelInstanceFlags",
+			"bIsMainWorldOnly",
+			"bIgnoreInPIE",
+			"bExchangedRoles",
+			"bNetLoadOnClient",
+			"bNetUseOwnerRelevancy",
+			"bRelevantForNetworkReplays",
+			"bRelevantForLevelBounds",
+			"bReplayRewindable",
+			"bAllowTickBeforeBeginPlay",
+			"bAutoDestroyWhenFinished",
+			"bCanBeDamaged",
+			"bBlockInput",
+			"bCollideWhenPlacing",
+			"bFindCameraComponentWhenViewTarget",
+			"bGenerateOverlapEventsDuringLevelStreaming",
+			"bIgnoresOriginShifting",
+			"bEnableAutoLODGeneration",
+			"bIsEditorOnlyActor",
+			"bReplicates",
+			"bCanBeInCluster",
+			"bMigratingAsset",
+			"bAllowReceiveTickEventOnDedicatedServer",
+			"bReplicateUsingRegisteredSubObjectList",
+			"bActorEnableCollision",
+			"bActorIsBeingDestroyed",
+			"bAsyncPhysicsTickEnabled",
+			"UpdateOverlapsMethodDuringLevelStreaming",
+			"DefaultUpdateOverlapsMethodDuringLevelStreaming",
+			"RemoteRole",
+			"InitialLifeSpan",
+			"CustomTimeDilation",
+			"RayTracingGroupId",
+			"GridPlacement",
+			"RuntimeGrid",
+			"AttachmentReplication",
+			"ReplicatedMovement",
+			"Owner",
+			"NetDriverName",
+			"Role",
+			"NetDormancy",
+			"SpawnCollisionHandlingMethod",
+			"AutoReceiveInput",
+			"InputPriority",
+			"InputComponent",
+			"NetTag",
+			"NetCullDistanceSquared",
+			"NetUpdateFrequency",
+			"MinNetUpdateFrequency",
+			"NetPriority",
+			"PhysicsReplicationMode",
+			"Instigator",
+			"Children",
+			"RootComponent",
+			"PivotOffset",
+			"HLODLayer",
+			"ObjectsDetachedFromExternalPackage",
+			"Layers",
+			"ParentComponentActor",
+			"ParentComponent",
+			"ActorGuid",
+			"ActorInstanceGuid",
+			"ContentBundleGuid",
+			"DataLayers",
+			"DataLayerAssets",
+			"ExternalDataLayerAsset",
+			"GroupActor",
+			"SpriteScale",
+			"HiddenEditorViews",
+			"ActorLabel",
+			"FolderPath",
+			"FolderGuid",
+			"bHiddenEd",
+			"bIsEditorPreviewActor",
+			"bHiddenEdLayer",
+			"bHiddenEdLevel",
+			"bLockLocation",
+			"bActorLabelEditable",
+			"bEditable",
+			"bListedInSceneOutliner",
+			"bOptimizeBPComponentData",
+			"bCanPlayFromHere",
+			"bIsSpatiallyLoaded",
+			"bHiddenEdTemporary",
+			"bForceExternalActorLevelReferenceForPIE",
+			"Tags",
+			"OnTakeAnyDamage",
+			"OnTakePointDamage",
+			"OnTakeRadialDamage",
+			"OnActorBeginOverlap",
+			"OnActorEndOverlap",
+			"OnBeginCursorOver",
+			"OnEndCursorOver",
+			"OnClicked",
+			"OnReleased",
+			"OnInputTouchBegin",
+			"OnInputTouchEnd",
+			"OnInputTouchEnter",
+			"OnInputTouchLeave",
+			"OnActorHit",
+			"OnDestroyed",
+			"OnEndPlay",
+			"InstanceComponents",
+			"BlueprintCreatedComponents",
+			"BP_OnPickedUp",
+			"BeginOverlap",
+			"WasRecentlyRendered",
+			"UserConstructionScript",
+			"UnregisterAsFocalPointInPhysicsReplicationLOD",
+			"TearOff",
+			"SetTickGroup",
+			"SetTickableWhenPaused",
+			"SetReplicates",
+			"SetReplicateMovement",
+			"SetRayTracingGroupId",
+			"SetPhysicsReplicationMode",
+			"SetOwner",
+			"SetNetUpdateFrequency",
+			"SetNetDormancy",
+			"SetNetCullDistanceSquared",
+			"SetMinNetUpdateFrequency",
+			"SetLifeSpan",
+			"SetIsTemporarilyHiddenInEditor",
+			"SetFolderPath",
+			"SetAutoDestroyWhenFinished",
+			"SetActorTickInterval",
+			"SetActorTickEnabled",
+			"SetActorScale3D",
+			"SetActorRelativeScale3D",
+			"SetActorLabel",
+			"SetActorHiddenInGame",
+			"SetActorEnableCollision",
+			"RemoveTickPrerequisiteComponent",
+			"RemoveTickPrerequisiteActor",
+			"RegisterAsFocalPointInPhysicsReplicationLOD",
+			"ReceiveTick",
+			"ReceiveRadialDamage",
+			"ReceivePointDamage",
+			"ReceiveHit",
+			"ReceiveEndPlay",
+			"ReceiveDestroyed",
+			"ReceiveBeginPlay",
+			"ReceiveAsyncPhysicsTick",
+			"ReceiveAnyDamage",
+			"ReceiveActorOnReleased",
+			"ReceiveActorOnInputTouchLeave",
+			"ReceiveActorOnInputTouchEnter",
+			"ReceiveActorOnInputTouchEnd",
+			"ReceiveActorOnInputTouchBegin",
+			"ReceiveActorOnClicked",
+			"ReceiveActorEndOverlap",
+			"ReceiveActorEndCursorOver",
+			"ReceiveActorBeginOverlap",
+			"ReceiveActorBeginCursorOver",
+			"PrestreamTextures",
+			"OnRep_ReplicateMovement",
+			"OnRep_ReplicatedMovement",
+			"OnRep_Owner",
+			"OnRep_Instigator",
+			"OnRep_AttachmentReplication",
+			"MakeNoise",
+			"K2_TeleportTo",
+			"K2_SetActorTransform",
+			"K2_SetActorRotation",
+			"K2_SetActorRelativeTransform",
+			"K2_SetActorRelativeRotation",
+			"K2_SetActorRelativeLocation",
+			"K2_SetActorLocationAndRotation",
+			"K2_SetActorLocation",
+			"K2_OnReset",
+			"K2_OnEndViewTarget",
+			"K2_OnBecomeViewTarget",
+			"K2_GetRootComponent",
+			"K2_GetComponentsByClass",
+			"K2_GetActorRotation",
+			"K2_GetActorLocation",
+			"K2_DetachFromActor",
+			"K2_DestroyActor",
+			"K2_AttachToComponent",
+			"K2_AttachToActor",
+			"K2_AttachRootComponentToActor",
+			"K2_AttachRootComponentTo",
+			"K2_AddActorWorldTransformKeepScale",
+			"K2_AddActorWorldTransform",
+			"K2_AddActorWorldRotation",
+			"K2_AddActorWorldOffset",
+			"K2_AddActorLocalTransform",
+			"K2_AddActorLocalRotation",
+			"K2_AddActorLocalOffset",
+			"IsTemporarilyHiddenInEditor",
+			"IsSelectable",
+			"IsOverlappingActor",
+			"IsHiddenEdAtStartup",
+			"IsHiddenEd",
+			"IsEditable",
+			"IsChildActor",
+			"IsActorTickEnabled",
+			"IsActorBeingDestroyed",
+			"HasAuthority",
+			"GetVerticalDistanceTo",
+			"GetVelocity",
+			"GetTransform",
+			"GetTickableWhenPaused",
+			"GetSquaredHorizontalDistanceTo",
+			"GetSquaredDistanceTo",
+			"GetResimulationThreshold",
+			"GetRemoteRole",
+			"GetRayTracingGroupId",
+			"GetPhysicsReplicationMode",
+			"GetParentComponent",
+			"GetParentActor",
+			"GetOwner",
+			"GetOverlappingComponents",
+			"GetOverlappingActors",
+			"GetNetUpdateFrequency",
+			"GetNetCullDistanceSquared",
+			"GetMinNetUpdateFrequency",
+			"GetLocalRole",
+			"GetLifeSpan",
+			"GetLevelTransform",
+			"GetLevel",
+			"GetInstigatorController",
+			"GetInstigator",
+			"GetInputVectorAxisValue",
+			"GetInputAxisValue",
+			"GetInputAxisKeyValue",
+			"GetHorizontalDotProductTo",
+			"GetHorizontalDistanceTo",
+			"GetGameTimeSinceCreation",
+			"GetFolderPath",
+			"GetDotProductTo",
+			"GetDistanceTo",
+			"GetDefaultActorLabel",
+			"GetComponentsByTag",
+			"GetComponentsByInterface",
+			"GetComponentByClass",
+			"GetAttachParentSocketName",
+			"GetAttachParentActor",
+			"GetAttachedActors",
+			"GetAllChildActors",
+			"GetActorUpVector",
+			"GetActorTimeDilation",
+			"GetActorTickInterval",
+			"GetActorScale3D",
+			"GetActorRightVector",
+			"GetActorRelativeScale3D",
+			"GetActorLabel",
+			"GetActorForwardVector",
+			"GetActorEyesViewPoint",
+			"GetActorEnableCollision",
+			"GetActorBounds",
+			"ForceNetUpdate",
+			"FlushNetDormancy",
+			"FinishAddComponent",
+			"FindComponentByTag",
+			"EnableInput",
+			"DisableInput",
+			"DetachRootComponentFromParent",
+			"CreateInputComponent",
+			"CanTriggerResimulation",
+			"AddTickPrerequisiteComponent",
+			"AddTickPrerequisiteActor",
+			"AddComponentByClass",
+			"AddComponent",
+			"ActorHasTag",
+			"ExecuteUbergraph"
+		]
+	}
+}

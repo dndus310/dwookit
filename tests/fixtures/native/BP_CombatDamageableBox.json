@@ -1,0 +1,2007 @@
+{
+	"schema": "lens.bp/1",
+	"name": "BP_CombatDamageableBox",
+	"asset": "/Game/Variant_Combat/Blueprints/Interactables/BP_CombatDamageableBox.BP_CombatDamageableBox",
+	"package": "/Game/Variant_Combat/Blueprints/Interactables/BP_CombatDamageableBox",
+	"assetClass": "Blueprint",
+	"blueprintType": "BPTYPE_Normal",
+	"status": "BS_UpToDate",
+	"engineVersion": "5.7.4-51494982+++UE5+Release-5.7",
+	"exportedAtUtc": "2026-11-25T04:24:26.516Z",
+	"source":
+	{
+		"file": "Content/Variant_Combat/Blueprints/Interactables/BP_CombatDamageableBox.uasset",
+		"bytes": 78930,
+		"modifiedUtc": "2026-11-07T10:01:32.000Z"
+	},
+	"parent": "/Script/DWO_Proj_01.CombatDamageableBox",
+	"parentChain": [
+		"/Script/DWO_Proj_01.CombatDamageableBox"
+	],
+	"generatedClass": "/Game/Variant_Combat/Blueprints/Interactables/BP_CombatDamageableBox.BP_CombatDamageableBox_C",
+	"interfaces": [],
+	"variables": [],
+	"components": [],
+	"inheritedComponents": [
+		{
+			"name": "Mesh",
+			"class": "StaticMeshComponent",
+			"changed": [
+				{
+					"name": "StaticMesh",
+					"value": "/Script/Engine.StaticMesh'/Game/LevelPrototyping/Meshes/SM_ChamferCube.SM_ChamferCube'",
+					"owner": "StaticMeshComponent"
+				},
+				{
+					"name": "OverrideMaterials",
+					"value": "(\"/Script/Engine.MaterialInstanceConstant'/Game/ThirdPerson/MI_ThirdPersonColWay.MI_ThirdPersonColWay'\")",
+					"owner": "MeshComponent"
+				},
+				{
+					"name": "BodyInstance",
+					"value": "(bNotifyRigidBodyCollision=True,CollisionProfileName=\"Custom\",CollisionResponses=(ResponseArray=((Channel=\"Camera\",Response=ECR_Ignore))))",
+					"owner": "PrimitiveComponent"
+				},
+				{
+					"name": "bCanEverAffectNavigation",
+					"value": "False",
+					"owner": "ActorComponent"
+				}
+			]
+		}
+	],
+	"timelines": [
+		{
+			"name": "Timeline",
+			"length": 0.5,
+			"tracks": [
+				"float:Scale"
+			],
+			"lengthMode": "TimelineLength",
+			"tickGroup": "TG_PrePhysics",
+			"directionProperty": "Timeline__Direction_530866BC4D18E9BF88BC52AFC216B0A6",
+			"updateFunction": "Timeline__UpdateFunc",
+			"finishedFunction": "Timeline__FinishedFunc",
+			"detail": [
+				{
+					"type": "float",
+					"name": "Scale",
+					"curves": [
+						{
+							"pre": 4,
+							"post": 4,
+							"default": 3.4028234663852886e+38,
+							"keys": [
+								[
+									0,
+									1,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0
+								],
+								[
+									0.5,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0
+								]
+							]
+						}
+					],
+					"property": "Timeline_Scale_530866BC4D18E9BF88BC52AFC216B0A6"
+				}
+			]
+		}
+	],
+	"graphs": [
+		{
+			"name": "UserConstructionScript",
+			"kind": "function",
+			"nodes": [
+				{
+					"id": "EE3E656240CED83F3C9904AE5C5342AE",
+					"class": "K2Node_FunctionEntry",
+					"title": "Construction Script",
+					"member": "UserConstructionScript",
+					"role": "other",
+					"kind": "entry",
+					"pos": [
+						0,
+						0
+					],
+					"functionFlags": [
+						"Event",
+						"BlueprintEvent"
+					],
+					"pins": [
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "EventGraph",
+			"kind": "event",
+			"nodes": [
+				{
+					"id": "FEEB823C4AABAD025B20F7A0025811FA",
+					"class": "K2Node_Event",
+					"title": "OnBoxDamaged 이벤트",
+					"member": "OnBoxDamaged",
+					"memberOwner": "/Script/DWO_Proj_01.CombatDamageableBox",
+					"override": true,
+					"role": "event",
+					"kind": "event",
+					"pos": [
+						-384,
+						-128
+					],
+					"pins": [
+						{
+							"name": "OutputDelegate",
+							"dir": "out",
+							"type":
+							{
+								"text": "delegate",
+								"category": "delegate"
+							}
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "BF5BD39042FF33110628B0ACA96129EA",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "DamageLocation",
+							"dir": "out",
+							"type":
+							{
+								"text": "Vector&",
+								"category": "struct",
+								"object": "/Script/CoreUObject.Vector",
+								"ref": true,
+								"const": true
+							},
+							"default": "0, 0, 0",
+							"autoDefault": "0, 0, 0",
+							"links": [
+								{
+									"node": "BF5BD39042FF33110628B0ACA96129EA",
+									"pin": "Location"
+								}
+							]
+						},
+						{
+							"name": "DamageImpulse",
+							"dir": "out",
+							"type":
+							{
+								"text": "Vector&",
+								"category": "struct",
+								"object": "/Script/CoreUObject.Vector",
+								"ref": true,
+								"const": true
+							},
+							"default": "0, 0, 0",
+							"autoDefault": "0, 0, 0",
+							"links": [
+								{
+									"node": "52FECB88453FD8429F2229B65081AA42",
+									"pin": "InVec"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "985439BB40BED3E3F3FA528CD6FF02C1",
+					"class": "K2Node_Event",
+					"title": "OnBoxDestroyed 이벤트",
+					"member": "OnBoxDestroyed",
+					"memberOwner": "/Script/DWO_Proj_01.CombatDamageableBox",
+					"override": true,
+					"role": "event",
+					"kind": "event",
+					"pos": [
+						-384,
+						640
+					],
+					"pins": [
+						{
+							"name": "OutputDelegate",
+							"dir": "out",
+							"type":
+							{
+								"text": "delegate",
+								"category": "delegate"
+							}
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "ED7F712E4DFE2A03171A37B47AD2C1AE",
+									"pin": "execute"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "BF5BD39042FF33110628B0ACA96129EA",
+					"class": "K2Node_CallFunction",
+					"title": "Spawn System at Location",
+					"member": "SpawnSystemAtLocation",
+					"memberOwner": "/Script/Niagara.NiagaraFunctionLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pos": [
+						240,
+						-128
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "FEEB823C4AABAD025B20F7A0025811FA",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "NiagaraFunctionLibrary",
+								"category": "object",
+								"object": "/Script/Niagara.NiagaraFunctionLibrary"
+							},
+							"defaultObject": "/Script/Niagara.Default__NiagaraFunctionLibrary",
+							"hidden": true
+						},
+						{
+							"name": "WorldContextObject",
+							"dir": "in",
+							"type":
+							{
+								"text": "Object",
+								"category": "object",
+								"object": "/Script/CoreUObject.Object",
+								"const": true
+							},
+							"hidden": true
+						},
+						{
+							"name": "SystemTemplate",
+							"dir": "in",
+							"type":
+							{
+								"text": "NiagaraSystem",
+								"category": "object",
+								"object": "/Script/Niagara.NiagaraSystem"
+							},
+							"defaultObject": "/Game/Variant_Combat/VFX/NS_Damage.NS_Damage"
+						},
+						{
+							"name": "Location",
+							"dir": "in",
+							"type":
+							{
+								"text": "Vector",
+								"category": "struct",
+								"object": "/Script/CoreUObject.Vector"
+							},
+							"default": "0, 0, 0",
+							"autoDefault": "0, 0, 0",
+							"links": [
+								{
+									"node": "FEEB823C4AABAD025B20F7A0025811FA",
+									"pin": "DamageLocation"
+								}
+							]
+						},
+						{
+							"name": "Rotation",
+							"dir": "in",
+							"type":
+							{
+								"text": "Rotator",
+								"category": "struct",
+								"object": "/Script/CoreUObject.Rotator"
+							},
+							"default": "0, 0, 0",
+							"autoDefault": "0, 0, 0",
+							"links": [
+								{
+									"node": "52FECB88453FD8429F2229B65081AA42",
+									"pin": "ReturnValue"
+								}
+							]
+						},
+						{
+							"name": "Scale",
+							"dir": "in",
+							"type":
+							{
+								"text": "Vector",
+								"category": "struct",
+								"object": "/Script/CoreUObject.Vector"
+							},
+							"default": "1.000000,1.000000,1.000000",
+							"autoDefault": "1.000000,1.000000,1.000000"
+						},
+						{
+							"name": "bAutoDestroy",
+							"dir": "in",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "true",
+							"autoDefault": "true"
+						},
+						{
+							"name": "bAutoActivate",
+							"dir": "in",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "true",
+							"autoDefault": "true"
+						},
+						{
+							"name": "PoolingMethod",
+							"dir": "in",
+							"type":
+							{
+								"text": "ENCPoolMethod",
+								"category": "byte",
+								"object": "/Script/Niagara.ENCPoolMethod"
+							},
+							"default": "None",
+							"autoDefault": "None"
+						},
+						{
+							"name": "bPreCullCheck",
+							"dir": "in",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "true",
+							"autoDefault": "true"
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "NiagaraComponent",
+								"category": "object",
+								"object": "/Script/Niagara.NiagaraComponent"
+							}
+						}
+					]
+				},
+				{
+					"id": "52FECB88453FD8429F2229B65081AA42",
+					"class": "K2Node_CallFunction",
+					"title": "Rotation From X Vector",
+					"member": "Conv_VectorToRotator",
+					"memberOwner": "/Script/Engine.KismetMathLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						-48,
+						48
+					],
+					"pins": [
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "KismetMathLibrary",
+								"category": "object",
+								"object": "/Script/Engine.KismetMathLibrary"
+							},
+							"defaultObject": "/Script/Engine.Default__KismetMathLibrary",
+							"hidden": true
+						},
+						{
+							"name": "InVec",
+							"dir": "in",
+							"type":
+							{
+								"text": "Vector",
+								"category": "struct",
+								"object": "/Script/CoreUObject.Vector"
+							},
+							"default": "0, 0, 0",
+							"autoDefault": "0, 0, 0",
+							"links": [
+								{
+									"node": "FEEB823C4AABAD025B20F7A0025811FA",
+									"pin": "DamageImpulse"
+								}
+							]
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "Rotator",
+								"category": "struct",
+								"object": "/Script/CoreUObject.Rotator"
+							},
+							"default": "0, 0, 0",
+							"autoDefault": "0, 0, 0",
+							"links": [
+								{
+									"node": "BF5BD39042FF33110628B0ACA96129EA",
+									"pin": "Rotation"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "40B69EDA4347E2BD73FAB79867327ED3",
+					"class": "K2Node_CallFunction",
+					"title": "Delay",
+					"member": "Delay",
+					"memberOwner": "/Script/Engine.KismetSystemLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Static"
+					],
+					"latent": true,
+					"role": "call",
+					"kind": "call",
+					"pos": [
+						224,
+						1056
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "ED7F712E4DFE2A03171A37B47AD2C1AE",
+									"pin": "then_1"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"label": "Completed",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "7C91F2564D232E0F2DC247BDAFAB5459",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "KismetSystemLibrary",
+								"category": "object",
+								"object": "/Script/Engine.KismetSystemLibrary"
+							},
+							"defaultObject": "/Script/Engine.Default__KismetSystemLibrary",
+							"hidden": true
+						},
+						{
+							"name": "WorldContextObject",
+							"dir": "in",
+							"type":
+							{
+								"text": "Object",
+								"category": "object",
+								"object": "/Script/CoreUObject.Object",
+								"const": true
+							},
+							"hidden": true
+						},
+						{
+							"name": "Duration",
+							"dir": "in",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "float"
+							},
+							"default": "5.000000",
+							"autoDefault": "0.2"
+						},
+						{
+							"name": "LatentInfo",
+							"dir": "in",
+							"type":
+							{
+								"text": "LatentActionInfo",
+								"category": "struct",
+								"object": "/Script/Engine.LatentActionInfo"
+							},
+							"default": "(Linkage=-1,UUID=-1,ExecutionFunction=\"\",CallbackTarget=None)",
+							"autoDefault": "LatentInfo",
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "C72C3EC3486A70EDA1034782012DC71C",
+					"class": "K2Node_Timeline",
+					"title": "Timeline",
+					"member": "Timeline",
+					"role": "other",
+					"kind": "timeline",
+					"props":
+					{
+						"TimelineName": "Timeline",
+						"bAutoPlay": "False",
+						"TimelineGuid": "0D1931CD401351559F87A5A19AACAE48",
+						"bLoop": "False",
+						"bReplicated": "False",
+						"bIgnoreTimeDilation": "False"
+					},
+					"pos": [
+						832,
+						1024
+					],
+					"pins": [
+						{
+							"name": "Play",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "PlayFromStart",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "7C91F2564D232E0F2DC247BDAFAB5459",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "Stop",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "Reverse",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "ReverseFromEnd",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "Update",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "53CD1A5C43A597627C5320A9FCD8512A",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "Finished",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "SetNewTime",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "NewTime",
+							"dir": "in",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "float"
+							},
+							"default": "0.0",
+							"autoDefault": "0.0"
+						},
+						{
+							"name": "Direction",
+							"dir": "out",
+							"type":
+							{
+								"text": "ETimelineDirection",
+								"category": "byte",
+								"object": "/Script/Engine.ETimelineDirection"
+							}
+						},
+						{
+							"name": "Scale",
+							"dir": "out",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "float"
+							},
+							"links": [
+								{
+									"node": "0B8A4DD94269BBA2FB521F9C5E0AA306",
+									"pin": "InDouble"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "C7DA6EED4C58A524E5A2259A283728F3",
+					"class": "K2Node_CallFunction",
+					"title": "Set Material\n타깃은 Primitive Component",
+					"member": "SetMaterial",
+					"memberOwner": "/Script/Engine.PrimitiveComponent",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable"
+					],
+					"role": "call",
+					"kind": "call",
+					"pos": [
+						512,
+						560
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "0C961E224F23BA8714249A869C89F2EA",
+									"pin": "OutputPin"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "PrimitiveComponent",
+								"category": "object",
+								"object": "/Script/Engine.PrimitiveComponent"
+							},
+							"links": [
+								{
+									"node": "E0C4ACCD454CC56EBD40D4977B0B89D3",
+									"pin": "Mesh"
+								}
+							]
+						},
+						{
+							"name": "ElementIndex",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0"
+						},
+						{
+							"name": "Material",
+							"dir": "in",
+							"type":
+							{
+								"text": "MaterialInterface",
+								"category": "object",
+								"object": "/Script/Engine.MaterialInterface"
+							},
+							"defaultObject": "/Game/Variant_Combat/Materials/MI_Box_Destroyed.MI_Box_Destroyed"
+						}
+					]
+				},
+				{
+					"id": "8D42CCC54EB822E0A1232FAE26D4D898",
+					"class": "EdGraphNode_Comment",
+					"title": "Swap the box's Material for a destroyed variant",
+					"size": [
+						1024,
+						384
+					],
+					"role": "other",
+					"kind": "comment",
+					"pos": [
+						160,
+						432
+					],
+					"pins": []
+				},
+				{
+					"id": "0C961E224F23BA8714249A869C89F2EA",
+					"class": "K2Node_Knot",
+					"title": "경유 노드",
+					"role": "other",
+					"kind": "knot",
+					"pure": true,
+					"pos": [
+						240,
+						608
+					],
+					"pins": [
+						{
+							"name": "InputPin",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "ED7F712E4DFE2A03171A37B47AD2C1AE",
+									"pin": "then_0"
+								}
+							]
+						},
+						{
+							"name": "OutputPin",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "C7DA6EED4C58A524E5A2259A283728F3",
+									"pin": "execute"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "9328ECCA488294F3DDD46E9BC4EA578E",
+					"class": "EdGraphNode_Comment",
+					"title": "Wait for a bit, and use a Timeline to scale the box to nothing",
+					"size": [
+						1456,
+						368
+					],
+					"role": "other",
+					"kind": "comment",
+					"pos": [
+						160,
+						944
+					],
+					"pins": []
+				},
+				{
+					"id": "53CD1A5C43A597627C5320A9FCD8512A",
+					"class": "K2Node_CallFunction",
+					"title": "Set Actor Scale 3D\n타깃은 Actor",
+					"member": "SetActorScale3D",
+					"memberOwner": "/Script/Engine.Actor",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable"
+					],
+					"role": "call",
+					"kind": "call",
+					"pos": [
+						1392,
+						1008
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "C72C3EC3486A70EDA1034782012DC71C",
+									"pin": "Update"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "Actor",
+								"category": "object",
+								"object": "/Script/Engine.Actor"
+							}
+						},
+						{
+							"name": "NewScale3D",
+							"dir": "in",
+							"type":
+							{
+								"text": "Vector",
+								"category": "struct",
+								"object": "/Script/CoreUObject.Vector"
+							},
+							"default": "0, 0, 0",
+							"autoDefault": "0, 0, 0",
+							"links": [
+								{
+									"node": "0B8A4DD94269BBA2FB521F9C5E0AA306",
+									"pin": "ReturnValue"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "0B8A4DD94269BBA2FB521F9C5E0AA306",
+					"class": "K2Node_CallFunction",
+					"title": "To Vector (Float)",
+					"member": "Conv_DoubleToVector",
+					"memberOwner": "/Script/Engine.KismetMathLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						1184,
+						1136
+					],
+					"pins": [
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "KismetMathLibrary",
+								"category": "object",
+								"object": "/Script/Engine.KismetMathLibrary"
+							},
+							"defaultObject": "/Script/Engine.Default__KismetMathLibrary",
+							"hidden": true
+						},
+						{
+							"name": "InDouble",
+							"dir": "in",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "double"
+							},
+							"default": "0.0",
+							"autoDefault": "0.0",
+							"links": [
+								{
+									"node": "C72C3EC3486A70EDA1034782012DC71C",
+									"pin": "Scale"
+								}
+							]
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "Vector",
+								"category": "struct",
+								"object": "/Script/CoreUObject.Vector"
+							},
+							"default": "0, 0, 0",
+							"autoDefault": "0, 0, 0",
+							"links": [
+								{
+									"node": "53CD1A5C43A597627C5320A9FCD8512A",
+									"pin": "NewScale3D"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "7C91F2564D232E0F2DC247BDAFAB5459",
+					"class": "K2Node_CallFunction",
+					"title": "Set Simulate Physics\n타깃은 Primitive Component",
+					"member": "SetSimulatePhysics",
+					"memberOwner": "/Script/Engine.PrimitiveComponent",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable"
+					],
+					"role": "call",
+					"kind": "call",
+					"pos": [
+						528,
+						1040
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "40B69EDA4347E2BD73FAB79867327ED3",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "C72C3EC3486A70EDA1034782012DC71C",
+									"pin": "PlayFromStart"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "PrimitiveComponent",
+								"category": "object",
+								"object": "/Script/Engine.PrimitiveComponent"
+							},
+							"links": [
+								{
+									"node": "4615DF0F45955670509592AC8B7BD840",
+									"pin": "Mesh"
+								}
+							]
+						},
+						{
+							"name": "bSimulate",
+							"dir": "in",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false"
+						}
+					]
+				},
+				{
+					"id": "ED7F712E4DFE2A03171A37B47AD2C1AE",
+					"class": "K2Node_ExecutionSequence",
+					"title": "시퀀스",
+					"role": "other",
+					"kind": "sequence",
+					"pos": [
+						-128,
+						640
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "985439BB40BED3E3F3FA528CD6FF02C1",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then_0",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "0C961E224F23BA8714249A869C89F2EA",
+									"pin": "InputPin"
+								}
+							]
+						},
+						{
+							"name": "then_1",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "40B69EDA4347E2BD73FAB79867327ED3",
+									"pin": "execute"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "E0C4ACCD454CC56EBD40D4977B0B89D3",
+					"class": "K2Node_VariableGet",
+					"title": "Get Mesh",
+					"member": "Mesh",
+					"memberOwner": "/Game/Variant_Combat/Blueprints/Interactables/BP_CombatDamageableBox.SKEL_BP_CombatDamageableBox_C",
+					"memberCpp": "UStaticMeshComponent*",
+					"memberName": "Mesh",
+					"memberAccess": "private",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						288,
+						720
+					],
+					"pins": [
+						{
+							"name": "Mesh",
+							"dir": "out",
+							"type":
+							{
+								"text": "StaticMeshComponent",
+								"category": "object",
+								"object": "/Script/Engine.StaticMeshComponent"
+							},
+							"links": [
+								{
+									"node": "C7DA6EED4C58A524E5A2259A283728F3",
+									"pin": "self"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "CombatDamageableBox",
+								"category": "object",
+								"object": "/Script/DWO_Proj_01.CombatDamageableBox"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "4615DF0F45955670509592AC8B7BD840",
+					"class": "K2Node_VariableGet",
+					"title": "Get Mesh",
+					"member": "Mesh",
+					"memberOwner": "/Game/Variant_Combat/Blueprints/Interactables/BP_CombatDamageableBox.SKEL_BP_CombatDamageableBox_C",
+					"memberCpp": "UStaticMeshComponent*",
+					"memberName": "Mesh",
+					"memberAccess": "private",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						528,
+						1200
+					],
+					"pins": [
+						{
+							"name": "Mesh",
+							"dir": "out",
+							"type":
+							{
+								"text": "StaticMeshComponent",
+								"category": "object",
+								"object": "/Script/Engine.StaticMeshComponent"
+							},
+							"links": [
+								{
+									"node": "7C91F2564D232E0F2DC247BDAFAB5459",
+									"pin": "self"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "CombatDamageableBox",
+								"category": "object",
+								"object": "/Script/DWO_Proj_01.CombatDamageableBox"
+							},
+							"hidden": true
+						}
+					]
+				}
+			]
+		}
+	],
+	"native":
+	{
+		"types":
+		{
+			"/Script/DWO_Proj_01.CombatDamageableBox":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "ACombatDamageableBox",
+				"include": "Variant_Combat/Gameplay/CombatDamageableBox.h",
+				"module": "DWO_Proj_01",
+				"nativeParent": "/Script/DWO_Proj_01.CombatDamageableBox",
+				"super": "/Script/Engine.Actor",
+				"abstract": true,
+				"actor": true
+			},
+			"/Script/Engine.Actor":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "AActor",
+				"include": "GameFramework/Actor.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.Actor",
+				"super": "/Script/CoreUObject.Object",
+				"actor": true
+			},
+			"/Script/CoreUObject.Object":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UObject",
+				"include": "UObject/Object.h",
+				"module": "CoreUObject",
+				"nativeParent": "/Script/CoreUObject.Object",
+				"abstract": true
+			},
+			"/Script/CoreUObject.Vector":
+			{
+				"kind": "struct",
+				"native": true,
+				"cpp": "FVector",
+				"include": "UObject/NoExportTypes.h",
+				"module": "CoreUObject"
+			},
+			"/Script/Niagara.NiagaraFunctionLibrary":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UNiagaraFunctionLibrary",
+				"include": "NiagaraFunctionLibrary.h",
+				"module": "Niagara",
+				"nativeParent": "/Script/Niagara.NiagaraFunctionLibrary",
+				"super": "/Script/Engine.BlueprintFunctionLibrary"
+			},
+			"/Script/Niagara.NiagaraSystem":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UNiagaraSystem",
+				"include": "NiagaraSystem.h",
+				"module": "Niagara",
+				"nativeParent": "/Script/Niagara.NiagaraSystem",
+				"super": "/Script/Engine.FXSystemAsset"
+			},
+			"/Script/CoreUObject.Rotator":
+			{
+				"kind": "struct",
+				"native": true,
+				"cpp": "FRotator",
+				"include": "UObject/NoExportTypes.h",
+				"module": "CoreUObject"
+			},
+			"/Script/Niagara.NiagaraComponent":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UNiagaraComponent",
+				"include": "NiagaraComponent.h",
+				"module": "Niagara",
+				"nativeParent": "/Script/Niagara.NiagaraComponent",
+				"super": "/Script/Engine.FXSystemComponent",
+				"component": true
+			},
+			"/Script/Engine.KismetMathLibrary":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UKismetMathLibrary",
+				"include": "Kismet/KismetMathLibrary.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.KismetMathLibrary",
+				"super": "/Script/Engine.BlueprintFunctionLibrary"
+			},
+			"/Script/Engine.KismetSystemLibrary":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UKismetSystemLibrary",
+				"include": "Kismet/KismetSystemLibrary.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.KismetSystemLibrary",
+				"super": "/Script/Engine.BlueprintFunctionLibrary"
+			},
+			"/Script/Engine.LatentActionInfo":
+			{
+				"kind": "struct",
+				"native": true,
+				"cpp": "FLatentActionInfo",
+				"include": "Engine/LatentActionManager.h",
+				"module": "Engine"
+			},
+			"/Script/Engine.PrimitiveComponent":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UPrimitiveComponent",
+				"include": "Components/PrimitiveComponent.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.PrimitiveComponent",
+				"super": "/Script/Engine.SceneComponent",
+				"abstract": true,
+				"component": true
+			},
+			"/Script/Engine.MaterialInterface":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UMaterialInterface",
+				"include": "Materials/MaterialInterface.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.MaterialInterface",
+				"super": "/Script/CoreUObject.Object",
+				"abstract": true
+			},
+			"/Script/Engine.StaticMeshComponent":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UStaticMeshComponent",
+				"include": "Components/StaticMeshComponent.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.StaticMeshComponent",
+				"super": "/Script/Engine.MeshComponent",
+				"component": true
+			}
+		},
+		"enums":
+		{
+			"/Script/Niagara.ENCPoolMethod":
+			{
+				"native": true,
+				"cpp": "ENCPoolMethod",
+				"form": "enumClass",
+				"include": "NiagaraComponentPoolMethodEnum.h",
+				"values":
+				{
+					"None": "ENCPoolMethod::None",
+					"AutoRelease": "ENCPoolMethod::AutoRelease",
+					"ManualRelease": "ENCPoolMethod::ManualRelease",
+					"ManualRelease_OnComplete": "ENCPoolMethod::ManualRelease_OnComplete",
+					"FreeInPool": "ENCPoolMethod::FreeInPool"
+				}
+			},
+			"/Script/Engine.ETimelineDirection":
+			{
+				"native": true,
+				"cpp": "ETimelineDirection::Type",
+				"form": "namespaced",
+				"include": "Components/TimelineComponent.h",
+				"values":
+				{
+					"Forward": "ETimelineDirection::Forward",
+					"Backward": "ETimelineDirection::Backward"
+				}
+			}
+		},
+		"functions":
+		{
+			"/Script/Engine.Actor:UserConstructionScript":
+			{
+				"name": "UserConstructionScript",
+				"owner": "/Script/Engine.Actor",
+				"flags": [
+					"Event",
+					"BlueprintEvent"
+				],
+				"native": true,
+				"access": "public",
+				"internalOnly": true,
+				"params": []
+			},
+			"/Script/DWO_Proj_01.CombatDamageableBox:OnBoxDamaged":
+			{
+				"name": "OnBoxDamaged",
+				"owner": "/Script/DWO_Proj_01.CombatDamageableBox",
+				"flags": [
+					"Event",
+					"BlueprintEvent",
+					"Protected"
+				],
+				"native": true,
+				"access": "protected",
+				"params": [
+					{
+						"name": "DamageLocation",
+						"cpp": "FVector",
+						"ref": true,
+						"const": true
+					},
+					{
+						"name": "DamageImpulse",
+						"cpp": "FVector",
+						"ref": true,
+						"const": true
+					}
+				]
+			},
+			"/Script/DWO_Proj_01.CombatDamageableBox:OnBoxDestroyed":
+			{
+				"name": "OnBoxDestroyed",
+				"owner": "/Script/DWO_Proj_01.CombatDamageableBox",
+				"flags": [
+					"Event",
+					"BlueprintEvent",
+					"Protected"
+				],
+				"native": true,
+				"access": "protected",
+				"params": []
+			},
+			"/Script/Niagara.NiagaraFunctionLibrary:SpawnSystemAtLocation":
+			{
+				"name": "SpawnSystemAtLocation",
+				"owner": "/Script/Niagara.NiagaraFunctionLibrary",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Static"
+				],
+				"native": true,
+				"access": "public",
+				"worldContext": "WorldContextObject",
+				"params": [
+					{
+						"name": "WorldContextObject",
+						"cpp": "UObject*",
+						"const": true
+					},
+					{
+						"name": "SystemTemplate",
+						"cpp": "UNiagaraSystem*"
+					},
+					{
+						"name": "Location",
+						"cpp": "FVector"
+					},
+					{
+						"name": "Rotation",
+						"cpp": "FRotator"
+					},
+					{
+						"name": "Scale",
+						"cpp": "FVector",
+						"cppDefault": "1.000000,1.000000,1.000000"
+					},
+					{
+						"name": "bAutoDestroy",
+						"cpp": "bool",
+						"cppDefault": "true"
+					},
+					{
+						"name": "bAutoActivate",
+						"cpp": "bool",
+						"cppDefault": "true"
+					},
+					{
+						"name": "PoolingMethod",
+						"cpp": "ENCPoolMethod",
+						"cppDefault": "None"
+					},
+					{
+						"name": "bPreCullCheck",
+						"cpp": "bool",
+						"cppDefault": "true"
+					},
+					{
+						"name": "ReturnValue",
+						"cpp": "UNiagaraComponent*",
+						"return": true
+					}
+				]
+			},
+			"/Script/Engine.KismetMathLibrary:Conv_VectorToRotator":
+			{
+				"name": "Conv_VectorToRotator",
+				"owner": "/Script/Engine.KismetMathLibrary",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Pure",
+					"Static"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "InVec",
+						"cpp": "FVector"
+					},
+					{
+						"name": "ReturnValue",
+						"cpp": "FRotator",
+						"return": true
+					}
+				]
+			},
+			"/Script/Engine.KismetSystemLibrary:Delay":
+			{
+				"name": "Delay",
+				"owner": "/Script/Engine.KismetSystemLibrary",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Static"
+				],
+				"native": true,
+				"access": "public",
+				"latent": true,
+				"latentInfo": "LatentInfo",
+				"worldContext": "WorldContextObject",
+				"params": [
+					{
+						"name": "WorldContextObject",
+						"cpp": "UObject*",
+						"const": true
+					},
+					{
+						"name": "Duration",
+						"cpp": "float"
+					},
+					{
+						"name": "LatentInfo",
+						"cpp": "FLatentActionInfo"
+					}
+				]
+			},
+			"/Script/Engine.PrimitiveComponent:SetMaterial":
+			{
+				"name": "SetMaterial",
+				"owner": "/Script/Engine.PrimitiveComponent",
+				"flags": [
+					"Native",
+					"BlueprintCallable"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "ElementIndex",
+						"cpp": "int32"
+					},
+					{
+						"name": "Material",
+						"cpp": "UMaterialInterface*"
+					}
+				]
+			},
+			"/Script/Engine.Actor:SetActorScale3D":
+			{
+				"name": "SetActorScale3D",
+				"owner": "/Script/Engine.Actor",
+				"flags": [
+					"Native",
+					"BlueprintCallable"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "NewScale3D",
+						"cpp": "FVector"
+					}
+				]
+			},
+			"/Script/Engine.KismetMathLibrary:Conv_DoubleToVector":
+			{
+				"name": "Conv_DoubleToVector",
+				"owner": "/Script/Engine.KismetMathLibrary",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Pure",
+					"Static"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "InDouble",
+						"cpp": "double"
+					},
+					{
+						"name": "ReturnValue",
+						"cpp": "FVector",
+						"return": true
+					}
+				]
+			},
+			"/Script/Engine.PrimitiveComponent:SetSimulatePhysics":
+			{
+				"name": "SetSimulatePhysics",
+				"owner": "/Script/Engine.PrimitiveComponent",
+				"flags": [
+					"Native",
+					"BlueprintCallable"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "bSimulate",
+						"cpp": "bool"
+					}
+				]
+			}
+		},
+		"parentMembers": [
+			"Mesh",
+			"CurrentHP",
+			"DeathDelayTime",
+			"PrimaryActorTick",
+			"bNetTemporary",
+			"bOnlyRelevantToOwner",
+			"bAlwaysRelevant",
+			"bReplicateMovement",
+			"bCallPreReplication",
+			"bCallPreReplicationForReplay",
+			"bHidden",
+			"bTearOff",
+			"bForceNetAddressable",
+			"LevelInstanceType",
+			"LevelInstanceFlags",
+			"bIsMainWorldOnly",
+			"bIgnoreInPIE",
+			"bExchangedRoles",
+			"bNetLoadOnClient",
+			"bNetUseOwnerRelevancy",
+			"bRelevantForNetworkReplays",
+			"bRelevantForLevelBounds",
+			"bReplayRewindable",
+			"bAllowTickBeforeBeginPlay",
+			"bAutoDestroyWhenFinished",
+			"bCanBeDamaged",
+			"bBlockInput",
+			"bCollideWhenPlacing",
+			"bFindCameraComponentWhenViewTarget",
+			"bGenerateOverlapEventsDuringLevelStreaming",
+			"bIgnoresOriginShifting",
+			"bEnableAutoLODGeneration",
+			"bIsEditorOnlyActor",
+			"bReplicates",
+			"bCanBeInCluster",
+			"bMigratingAsset",
+			"bAllowReceiveTickEventOnDedicatedServer",
+			"bReplicateUsingRegisteredSubObjectList",
+			"bActorEnableCollision",
+			"bActorIsBeingDestroyed",
+			"bAsyncPhysicsTickEnabled",
+			"UpdateOverlapsMethodDuringLevelStreaming",
+			"DefaultUpdateOverlapsMethodDuringLevelStreaming",
+			"RemoteRole",
+			"InitialLifeSpan",
+			"CustomTimeDilation",
+			"RayTracingGroupId",
+			"GridPlacement",
+			"RuntimeGrid",
+			"AttachmentReplication",
+			"ReplicatedMovement",
+			"Owner",
+			"NetDriverName",
+			"Role",
+			"NetDormancy",
+			"SpawnCollisionHandlingMethod",
+			"AutoReceiveInput",
+			"InputPriority",
+			"InputComponent",
+			"NetTag",
+			"NetCullDistanceSquared",
+			"NetUpdateFrequency",
+			"MinNetUpdateFrequency",
+			"NetPriority",
+			"PhysicsReplicationMode",
+			"Instigator",
+			"Children",
+			"RootComponent",
+			"PivotOffset",
+			"HLODLayer",
+			"ObjectsDetachedFromExternalPackage",
+			"Layers",
+			"ParentComponentActor",
+			"ParentComponent",
+			"ActorGuid",
+			"ActorInstanceGuid",
+			"ContentBundleGuid",
+			"DataLayers",
+			"DataLayerAssets",
+			"ExternalDataLayerAsset",
+			"GroupActor",
+			"SpriteScale",
+			"HiddenEditorViews",
+			"ActorLabel",
+			"FolderPath",
+			"FolderGuid",
+			"bHiddenEd",
+			"bIsEditorPreviewActor",
+			"bHiddenEdLayer",
+			"bHiddenEdLevel",
+			"bLockLocation",
+			"bActorLabelEditable",
+			"bEditable",
+			"bListedInSceneOutliner",
+			"bOptimizeBPComponentData",
+			"bCanPlayFromHere",
+			"bIsSpatiallyLoaded",
+			"bHiddenEdTemporary",
+			"bForceExternalActorLevelReferenceForPIE",
+			"Tags",
+			"OnTakeAnyDamage",
+			"OnTakePointDamage",
+			"OnTakeRadialDamage",
+			"OnActorBeginOverlap",
+			"OnActorEndOverlap",
+			"OnBeginCursorOver",
+			"OnEndCursorOver",
+			"OnClicked",
+			"OnReleased",
+			"OnInputTouchBegin",
+			"OnInputTouchEnd",
+			"OnInputTouchEnter",
+			"OnInputTouchLeave",
+			"OnActorHit",
+			"OnDestroyed",
+			"OnEndPlay",
+			"InstanceComponents",
+			"BlueprintCreatedComponents",
+			"OnBoxDestroyed",
+			"OnBoxDamaged",
+			"WasRecentlyRendered",
+			"UserConstructionScript",
+			"UnregisterAsFocalPointInPhysicsReplicationLOD",
+			"TearOff",
+			"SetTickGroup",
+			"SetTickableWhenPaused",
+			"SetReplicates",
+			"SetReplicateMovement",
+			"SetRayTracingGroupId",
+			"SetPhysicsReplicationMode",
+			"SetOwner",
+			"SetNetUpdateFrequency",
+			"SetNetDormancy",
+			"SetNetCullDistanceSquared",
+			"SetMinNetUpdateFrequency",
+			"SetLifeSpan",
+			"SetIsTemporarilyHiddenInEditor",
+			"SetFolderPath",
+			"SetAutoDestroyWhenFinished",
+			"SetActorTickInterval",
+			"SetActorTickEnabled",
+			"SetActorScale3D",
+			"SetActorRelativeScale3D",
+			"SetActorLabel",
+			"SetActorHiddenInGame",
+			"SetActorEnableCollision",
+			"RemoveTickPrerequisiteComponent",
+			"RemoveTickPrerequisiteActor",
+			"RegisterAsFocalPointInPhysicsReplicationLOD",
+			"ReceiveTick",
+			"ReceiveRadialDamage",
+			"ReceivePointDamage",
+			"ReceiveHit",
+			"ReceiveEndPlay",
+			"ReceiveDestroyed",
+			"ReceiveBeginPlay",
+			"ReceiveAsyncPhysicsTick",
+			"ReceiveAnyDamage",
+			"ReceiveActorOnReleased",
+			"ReceiveActorOnInputTouchLeave",
+			"ReceiveActorOnInputTouchEnter",
+			"ReceiveActorOnInputTouchEnd",
+			"ReceiveActorOnInputTouchBegin",
+			"ReceiveActorOnClicked",
+			"ReceiveActorEndOverlap",
+			"ReceiveActorEndCursorOver",
+			"ReceiveActorBeginOverlap",
+			"ReceiveActorBeginCursorOver",
+			"PrestreamTextures",
+			"OnRep_ReplicateMovement",
+			"OnRep_ReplicatedMovement",
+			"OnRep_Owner",
+			"OnRep_Instigator",
+			"OnRep_AttachmentReplication",
+			"MakeNoise",
+			"K2_TeleportTo",
+			"K2_SetActorTransform",
+			"K2_SetActorRotation",
+			"K2_SetActorRelativeTransform",
+			"K2_SetActorRelativeRotation",
+			"K2_SetActorRelativeLocation",
+			"K2_SetActorLocationAndRotation",
+			"K2_SetActorLocation",
+			"K2_OnReset",
+			"K2_OnEndViewTarget",
+			"K2_OnBecomeViewTarget",
+			"K2_GetRootComponent",
+			"K2_GetComponentsByClass",
+			"K2_GetActorRotation",
+			"K2_GetActorLocation",
+			"K2_DetachFromActor",
+			"K2_DestroyActor",
+			"K2_AttachToComponent",
+			"K2_AttachToActor",
+			"K2_AttachRootComponentToActor",
+			"K2_AttachRootComponentTo",
+			"K2_AddActorWorldTransformKeepScale",
+			"K2_AddActorWorldTransform",
+			"K2_AddActorWorldRotation",
+			"K2_AddActorWorldOffset",
+			"K2_AddActorLocalTransform",
+			"K2_AddActorLocalRotation",
+			"K2_AddActorLocalOffset",
+			"IsTemporarilyHiddenInEditor",
+			"IsSelectable",
+			"IsOverlappingActor",
+			"IsHiddenEdAtStartup",
+			"IsHiddenEd",
+			"IsEditable",
+			"IsChildActor",
+			"IsActorTickEnabled",
+			"IsActorBeingDestroyed",
+			"HasAuthority",
+			"GetVerticalDistanceTo",
+			"GetVelocity",
+			"GetTransform",
+			"GetTickableWhenPaused",
+			"GetSquaredHorizontalDistanceTo",
+			"GetSquaredDistanceTo",
+			"GetResimulationThreshold",
+			"GetRemoteRole",
+			"GetRayTracingGroupId",
+			"GetPhysicsReplicationMode",
+			"GetParentComponent",
+			"GetParentActor",
+			"GetOwner",
+			"GetOverlappingComponents",
+			"GetOverlappingActors",
+			"GetNetUpdateFrequency",
+			"GetNetCullDistanceSquared",
+			"GetMinNetUpdateFrequency",
+			"GetLocalRole",
+			"GetLifeSpan",
+			"GetLevelTransform",
+			"GetLevel",
+			"GetInstigatorController",
+			"GetInstigator",
+			"GetInputVectorAxisValue",
+			"GetInputAxisValue",
+			"GetInputAxisKeyValue",
+			"GetHorizontalDotProductTo",
+			"GetHorizontalDistanceTo",
+			"GetGameTimeSinceCreation",
+			"GetFolderPath",
+			"GetDotProductTo",
+			"GetDistanceTo",
+			"GetDefaultActorLabel",
+			"GetComponentsByTag",
+			"GetComponentsByInterface",
+			"GetComponentByClass",
+			"GetAttachParentSocketName",
+			"GetAttachParentActor",
+			"GetAttachedActors",
+			"GetAllChildActors",
+			"GetActorUpVector",
+			"GetActorTimeDilation",
+			"GetActorTickInterval",
+			"GetActorScale3D",
+			"GetActorRightVector",
+			"GetActorRelativeScale3D",
+			"GetActorLabel",
+			"GetActorForwardVector",
+			"GetActorEyesViewPoint",
+			"GetActorEnableCollision",
+			"GetActorBounds",
+			"ForceNetUpdate",
+			"FlushNetDormancy",
+			"FinishAddComponent",
+			"FindComponentByTag",
+			"EnableInput",
+			"DisableInput",
+			"DetachRootComponentFromParent",
+			"CreateInputComponent",
+			"CanTriggerResimulation",
+			"AddTickPrerequisiteComponent",
+			"AddTickPrerequisiteActor",
+			"AddComponentByClass",
+			"AddComponent",
+			"ActorHasTag",
+			"ExecuteUbergraph"
+		]
+	}
+}

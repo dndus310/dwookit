@@ -18,6 +18,9 @@
 #include "Engine/SCS_Node.h"
 #include "Engine/SimpleConstructionScript.h"
 #include "Engine/TimelineTemplate.h"
+#include "Curves/CurveFloat.h"
+#include "Curves/CurveLinearColor.h"
+#include "Curves/CurveVector.h"
 #include "HAL/FileManager.h"
 #include "K2Node.h"
 #include "K2Node_BaseMCDelegate.h"
@@ -335,6 +338,22 @@ namespace DwoLensInspector::BpExport
 
 		Out->SetStringField(TEXT("role"), Role);
 		Out->SetStringField(TEXT("kind"), Kind);
+		// Settings of input event and timeline nodes (action name, consume input, chord keys, the Enhanced Input
+		// action asset ...): the properties the node class itself declares, as text.
+		const FString NodeClass = Node->GetClass()->GetName();
+		if (NodeClass.StartsWith(TEXT("K2Node_Input")) || NodeClass.StartsWith(TEXT("K2Node_EnhancedInput")) || NodeClass == TEXT("K2Node_Timeline"))
+		{
+			FJsonRef Props = MakeShared<FJsonObject>();
+			for (TFieldIterator<FProperty> It(Node->GetClass()); It; ++It)
+			{
+				const UClass* Owner = It->GetOwnerClass();
+				if (!Owner || !Owner->IsChildOf(UK2Node::StaticClass()) || Owner == UK2Node::StaticClass()) { continue; }
+				FString Text;
+				It->ExportTextItem_Direct(Text, It->ContainerPtrToValuePtr<void>(Node), nullptr, nullptr, PPF_None);
+				Props->SetStringField(It->GetName(), Text);
+			}
+			Out->SetObjectField(TEXT("props"), Props);
+		}
 		if (const UK2Node* K2 = Cast<UK2Node>(Node))
 		{
 			if (K2->IsNodePure()) { Out->SetBoolField(TEXT("pure"), true); }
@@ -602,6 +621,69 @@ namespace DwoLensInspector::BpExport
 			AddTracks(Timeline->LinearColorTracks, TEXT("color"));
 			AddTracks(Timeline->EventTracks, TEXT("event"));
 			Entry->SetArrayField(TEXT("tracks"), Tracks);
+
+			Entry->SetStringField(TEXT("lengthMode"), Timeline->LengthMode == TL_LastKeyFrame ? TEXT("LastKeyFrame") : TEXT("TimelineLength"));
+			if (Timeline->bReplicated) { Entry->SetBoolField(TEXT("replicated"), true); }
+			if (Timeline->bIgnoreTimeDilation) { Entry->SetBoolField(TEXT("ignoreTimeDilation"), true); }
+			Entry->SetStringField(TEXT("tickGroup"), StaticEnum<ETickingGroup>()->GetNameStringByValue(static_cast<int64>(Timeline->TimelineTickGroup.GetValue())));
+			Entry->SetStringField(TEXT("directionProperty"), Timeline->GetDirectionPropertyName().ToString());
+			Entry->SetStringField(TEXT("updateFunction"), Timeline->GetUpdateFunctionName().ToString());
+			Entry->SetStringField(TEXT("finishedFunction"), Timeline->GetFinishedFunctionName().ToString());
+			auto Curve = [](const FRichCurve& C) -> FJsonRef
+			{
+				FJsonRef R = MakeShared<FJsonObject>();
+				R->SetNumberField(TEXT("pre"), static_cast<double>(C.PreInfinityExtrap.GetValue()));
+				R->SetNumberField(TEXT("post"), static_cast<double>(C.PostInfinityExtrap.GetValue()));
+				R->SetNumberField(TEXT("default"), C.DefaultValue);
+				FJsonValues Keys;
+				for (const FRichCurveKey& K : C.Keys)
+				{
+					FJsonValues Key;
+					for (const double V : { static_cast<double>(K.Time), static_cast<double>(K.Value), static_cast<double>(K.InterpMode.GetValue()),
+						static_cast<double>(K.TangentMode.GetValue()), static_cast<double>(K.TangentWeightMode.GetValue()), static_cast<double>(K.ArriveTangent),
+						static_cast<double>(K.ArriveTangentWeight), static_cast<double>(K.LeaveTangent), static_cast<double>(K.LeaveTangentWeight) })
+					{
+						Key.Add(MakeShared<FJsonValueNumber>(V));
+					}
+					Keys.Add(MakeShared<FJsonValueArray>(Key));
+				}
+				R->SetArrayField(TEXT("keys"), Keys);
+				return R;
+			};
+			FJsonValues Detail;
+			auto Track = [&](const FTTTrackBase& T, const TCHAR* Type, const UObject* CurveObject, TArray<const FRichCurve*> Curves) -> FJsonRef
+			{
+				FJsonRef R = MakeShared<FJsonObject>();
+				R->SetStringField(TEXT("type"), Type);
+				R->SetStringField(TEXT("name"), T.GetTrackName().ToString());
+				if (T.bIsExternalCurve && CurveObject) { R->SetStringField(TEXT("externalCurve"), PathOf(CurveObject)); }
+				FJsonValues List;
+				for (const FRichCurve* C : Curves) { if (C) { List.Add(MakeShared<FJsonValueObject>(Curve(*C))); } }
+				R->SetArrayField(TEXT("curves"), List);
+				PushObject(Detail, R);
+				return R;
+			};
+			for (const FTTFloatTrack& T : Timeline->FloatTracks)
+			{
+				Track(T, TEXT("float"), T.CurveFloat, { T.CurveFloat ? &T.CurveFloat->FloatCurve : nullptr })->SetStringField(TEXT("property"), T.GetPropertyName().ToString());
+			}
+			for (const FTTVectorTrack& T : Timeline->VectorTracks)
+			{
+				TArray<const FRichCurve*> C;
+				for (int32 I = 0; I < 3; ++I) { C.Add(T.CurveVector ? &T.CurveVector->FloatCurves[I] : nullptr); }
+				Track(T, TEXT("vector"), T.CurveVector, C)->SetStringField(TEXT("property"), T.GetPropertyName().ToString());
+			}
+			for (const FTTLinearColorTrack& T : Timeline->LinearColorTracks)
+			{
+				TArray<const FRichCurve*> C;
+				for (int32 I = 0; I < 4; ++I) { C.Add(T.CurveLinearColor ? &T.CurveLinearColor->FloatCurves[I] : nullptr); }
+				Track(T, TEXT("color"), T.CurveLinearColor, C)->SetStringField(TEXT("property"), T.GetPropertyName().ToString());
+			}
+			for (const FTTEventTrack& T : Timeline->EventTracks)
+			{
+				Track(T, TEXT("event"), T.CurveKeys, { T.CurveKeys ? &T.CurveKeys->FloatCurve : nullptr })->SetStringField(TEXT("function"), T.GetFunctionName().ToString());
+			}
+			Entry->SetArrayField(TEXT("detail"), Detail);
 			PushObject(Out, Entry);
 		}
 		return Out;
@@ -729,6 +811,8 @@ namespace DwoLensInspector::BpExport
 		if (Function->HasMetaData(TEXT("CustomThunk"))) { Out->SetBoolField(TEXT("customThunk"), true); }
 		if (Function->HasMetaData(TEXT("BlueprintInternalUseOnly"))) { Out->SetBoolField(TEXT("internalOnly"), true); }
 		if (Function->HasMetaData(TEXT("Latent"))) { Out->SetBoolField(TEXT("latent"), true); }
+		SetIf(Out, TEXT("latentInfo"), Function->GetMetaData(TEXT("LatentInfo")));
+		SetIf(Out, TEXT("expandEnumAsExecs"), Function->GetMetaData(TEXT("ExpandEnumAsExecs")));
 		SetIf(Out, TEXT("worldContext"), Function->GetMetaData(TEXT("WorldContext")));
 		SetIf(Out, TEXT("deterministic"), Function->HasMetaData(TEXT("NativeMakeFunc")) ? TEXT("make") : Function->HasMetaData(TEXT("NativeBreakFunc")) ? TEXT("break") : FString());
 		SetIf(Out, TEXT("scriptName"), Function->GetMetaData(TEXT("ScriptName")));
@@ -778,6 +862,7 @@ namespace DwoLensInspector::BpExport
 				const UClass* NativeParent = Class;
 				while (NativeParent && !NativeParent->HasAnyClassFlags(CLASS_Native)) { NativeParent = NativeParent->GetSuperClass(); }
 				SetIf(T, TEXT("nativeParent"), PathOf(NativeParent));
+				SetIf(T, TEXT("super"), PathOf(Class->GetSuperClass()));
 				if (Class->HasAnyClassFlags(CLASS_Abstract)) { T->SetBoolField(TEXT("abstract"), true); }
 				if (Class->IsChildOf(AActor::StaticClass())) { T->SetBoolField(TEXT("actor"), true); }
 				if (Class->IsChildOf(UActorComponent::StaticClass())) { T->SetBoolField(TEXT("component"), true); }
@@ -818,11 +903,8 @@ namespace DwoLensInspector::BpExport
 
 	static void CollectNative(const UBlueprint* Blueprint, FNativeCollector& Collector)
 	{
-		for (const UClass* Class = Blueprint->ParentClass; Class; Class = Class->GetSuperClass())
-		{
-			Collector.Types.Add(Class);
-			if (Class->HasAnyClassFlags(CLASS_Native)) { break; }
-		}
+		// the whole parent chain: what self is a kind of decides which inherited functions C++ can call on this
+		for (const UClass* Class = Blueprint->ParentClass; Class; Class = Class->GetSuperClass()) { Collector.Types.Add(Class); }
 		for (const FBPVariableDescription& Variable : Blueprint->NewVariables) { Collector.AddPinType(Variable.VarType); }
 		if (const UWidgetBlueprint* WidgetBlueprint = Cast<UWidgetBlueprint>(Blueprint))
 		{
@@ -843,7 +925,12 @@ namespace DwoLensInspector::BpExport
 			for (const UEdGraphNode* Node : Graph->Nodes)
 			{
 				if (!Node) { continue; }
-				for (const UEdGraphPin* Pin : Node->Pins) { if (Pin) { Collector.AddPinType(Pin->PinType); } }
+				for (const UEdGraphPin* Pin : Node->Pins)
+				{
+					if (!Pin) { continue; }
+					Collector.AddPinType(Pin->PinType);
+					if (const UClass* Picked = Cast<UClass>(Pin->DefaultObject)) { Collector.AddObject(Picked); }   // a class chosen in a pin
+				}
 				if (const UK2Node_CallFunction* Call = Cast<UK2Node_CallFunction>(Node)) { Collector.AddFunction(Call->GetTargetFunction()); }
 				else if (const UK2Node_ComponentBoundEvent* Bound = Cast<UK2Node_ComponentBoundEvent>(Node))
 				{
@@ -854,6 +941,10 @@ namespace DwoLensInspector::BpExport
 				else if (const UK2Node_FunctionEntry* Entry = Cast<UK2Node_FunctionEntry>(Node))
 				{
 					for (const FBPVariableDescription& Local : Entry->LocalVariables) { Collector.AddPinType(Local.VarType); }
+					if (Blueprint->ParentClass)
+					{
+						Collector.AddFunction(Blueprint->ParentClass->FindFunctionByName(Entry->FunctionReference.GetMemberName()));
+					}
 				}
 			}
 		}

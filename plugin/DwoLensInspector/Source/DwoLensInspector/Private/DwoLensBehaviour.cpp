@@ -147,6 +147,17 @@ int32 DwoLensInspector::RunBehaviour(const FString& ScenarioFile, const FString&
 		ProbeOffset = FVector((*Offset)[0]->AsNumber(), (*Offset)[1]->AsNumber(), (*Offset)[2]->AsNumber());
 	}
 	Trace->SetStringField(TEXT("blueprint"), BlueprintPath);
+	// calls: functions or events to run on the actor at a frame (an implementable event the C++ parent would fire)
+	TArray<TPair<int32, FString>> Calls;
+	const TArray<TSharedPtr<FJsonValue>>* CallList = nullptr;
+	if (Scenario->TryGetArrayField(TEXT("calls"), CallList))
+	{
+		for (const TSharedPtr<FJsonValue>& V : *CallList)
+		{
+			const TSharedPtr<FJsonObject> C = V->AsObject();
+			if (C.IsValid()) { Calls.Emplace(static_cast<int32>(C->GetNumberField(TEXT("frame"))), C->GetStringField(TEXT("function"))); }
+		}
+	}
 
 	UBlueprint* Blueprint = LoadObject<UBlueprint>(nullptr, *BlueprintPath);
 	UClass* Class = Blueprint ? Blueprint->GeneratedClass.Get() : nullptr;
@@ -210,6 +221,20 @@ int32 DwoLensInspector::RunBehaviour(const FString& ScenarioFile, const FString&
 			// it passes through on the way, like something landing on the actor
 			Probe->SetActorLocation(Subject->GetActorLocation() + ProbeOffset, true, nullptr, ETeleportType::None);
 			Record(TEXT("probe"), Frame);
+		}
+		for (const TPair<int32, FString>& Call : Calls)
+		{
+			if (Call.Key != Frame || !IsValid(Subject)) { continue; }
+			UFunction* Function = Subject->FindFunction(FName(*Call.Value));
+			if (!Function) { Wrapper.DestroyTestWorld(false); return Write(false, TEXT("no function ") + Call.Value + TEXT(" on the actor")); }
+			// default arguments: every parameter value-initialized
+			uint8* Params = static_cast<uint8*>(FMemory::Malloc(FMath::Max<int32>(1, Function->ParmsSize), 16));
+			FMemory::Memzero(Params, FMath::Max<int32>(1, Function->ParmsSize));
+			for (TFieldIterator<FProperty> It(Function); It && It->HasAnyPropertyFlags(CPF_Parm); ++It) { It->InitializeValue_InContainer(Params); }
+			Subject->ProcessEvent(Function, Params);
+			for (TFieldIterator<FProperty> It(Function); It && It->HasAnyPropertyFlags(CPF_Parm); ++It) { It->DestroyValue_InContainer(Params); }
+			FMemory::Free(Params);
+			Record(TEXT("call ") + Call.Value, Frame);
 		}
 		Wrapper.TickTestWorld(Dt);
 		if (Frame % Every == 0 || Frame == Frames) { Record(FString::Printf(TEXT("frame %d"), Frame), Frame); }

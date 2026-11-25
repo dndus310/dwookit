@@ -1035,14 +1035,132 @@ class NativeMigrationTests(TempDir):
         self.assertNotIn("NotifyActorBeginOverlap", files["JumpPadBase.h"])
         self.assertLess(s["coverage"]["migrated"], s["coverage"]["nodes"])
 
-    def test_implementable_events_and_their_callers_stay(self):
-        plan = self.plan("BP_SideScrollingMovingPlatform")
-        s = plan.summary()
+    def test_implementable_event_keeps_a_blueprint_event_that_calls_cpp(self):
+        plan, s, files = self.generate("BP_SideScrollingMovingPlatform")
         ev = {e["bp"]: e for e in s["events"]}
-        self.assertFalse(ev["BP_MoveToTarget"]["migrated"])
-        self.assertIn("BlueprintImplementableEvent", ev["BP_MoveToTarget"]["reason"])
-        self.assertFalse(ev["OnComponentBeginOverlap"]["migrated"])
-        self.assertIn("BP_MoveToTarget", ev["OnComponentBeginOverlap"]["reason"])
+        self.assertTrue(ev["BP_MoveToTarget"]["migrated"], ev["BP_MoveToTarget"]["reason"])
+        self.assertEqual(ev["BP_MoveToTarget"]["kind"], "thunk")                    # rebase keeps the event, adds the call
+        self.assertTrue(ev["OnComponentBeginOverlap"]["migrated"], ev["OnComponentBeginOverlap"]["reason"])
+        h, cpp = files["SideScrollingMovingPlatformBase.h"], files["SideScrollingMovingPlatformBase.cpp"]
+        self.assertIn('UFUNCTION(BlueprintCallable, Category = "Native")\n\tvoid BP_MoveToTargetNative();', h)
+        self.assertIn("\t\tBP_MoveToTarget();", cpp)                                 # callers go through the event, as in Blueprint
+        # MoveComponentTo: latent, entered through its 'Move' exec pin, resumes in its own UFUNCTION
+        self.assertIn("EMoveComponentAction::Move, FLatentActionInfo(0, (int32)GetTypeHash(FGuid(0x90BA7C85u", cpp)
+        self.assertIn('TEXT("Latent_90BA7C85"), this)', cpp)
+        self.assertIn("void ASideScrollingMovingPlatformBase::Latent_90BA7C85()\n{\n\tResetInteraction();", cpp)
+        self.assertIn("UFUNCTION()\n\tvoid Latent_90BA7C85();", h)
+        # FlipFlop: A first (the macro's IsA starts false and flips before branching)
+        self.assertIn("bool bFlipFlop_70BDFE5B = false;", h)
+
+    def test_delay_timeline_and_private_parent_members(self):
+        plan, s, files = self.generate("BP_CombatDamageableBox")
+        self.assertEqual(s["coverage"]["migrated"], s["coverage"]["nodes"])
+        tl = {t["bp"]: t for t in s["timelines"]}["Timeline"]
+        self.assertTrue(tl["migrated"], tl["reason"])
+        self.assertIn("Timeline_Scale", tl["properties"].values())                  # rebase renames the track property
+        cpp = files["CombatDamageableBoxBase.cpp"]
+        self.assertIn("UKismetSystemLibrary::Delay(this, 5.0f, FLatentActionInfo(0, (int32)GetTypeHash(FGuid(0x40B69EDAu", cpp)
+        self.assertIn("if (Timeline) { Timeline->PlayFromStart(); }", cpp)
+        self.assertIn('NewObject<UTimelineComponent>(this, FName(TEXT("Timeline")))', cpp)
+        self.assertIn("NewTimeline->CreationMethod = EComponentCreationMethod::UserConstructionScript;", cpp)
+        self.assertIn("DwoNative::SetCurve(Curve->FloatCurve, { DwoNative::Key(", cpp)
+        self.assertIn('NewTimeline->AddInterpFloat(Curve, FOnTimelineFloat(), FName(TEXT("Timeline_Scale")), FName(TEXT("Scale")));', cpp)
+        # Mesh is private in ACombatDamageableBox (AllowPrivateAccess): read through its property
+        self.assertIn('FindFProperty<FObjectPropertyBase>(ACombatDamageableBox::StaticClass(), TEXT("Mesh"))', cpp)
+        self.assertNotIn("Target_7C91F256 = Mesh;", cpp)
+        self.assertIn('#include "../DwoNativeLiterals.h"', files["DwoNativeLiterals.h"])
+        self.assertIn("inline FRichCurveKey Key(", (self.tmp / "DwoNativeLiterals.h").read_text(encoding="utf-8"))
+
+    def test_timeline_stays_while_blueprint_code_drives_it(self):
+        def keep_event(doc):                      # an unknown node in the event that plays the timeline
+            for g in doc["graphs"]:
+                for n in g["nodes"]:
+                    if n.get("member") == "Delay":
+                        n["class"] = "K2Node_Mystery"
+        s = self.plan("BP_CombatDamageableBox", keep_event).summary()
+        tl = {t["bp"]: t for t in s["timelines"]}["Timeline"]
+        self.assertFalse(tl["migrated"])
+        self.assertIn("stays in Blueprint", tl["reason"])
+
+    @staticmethod
+    def input_doc(doc):
+        """BP_JumpPad plus three input events, as DwoLens exports them (the QA project has no input sample)."""
+        exec_t = {"category": "exec"}
+
+        def pin(name, d, t, links=None, **kw):
+            p = {"name": name, "dir": d, "type": t, **kw}
+            if links:
+                p["links"] = links
+            return p
+
+        def bid(i):
+            return f"BB{i:030d}"
+
+        def branch(i):
+            return {"id": bid(i), "class": "K2Node_IfThenElse", "title": "Branch", "kind": "branch",
+                    "pins": [pin("execute", "in", exec_t), pin("Condition", "in", {"category": "bool"}, default="true"),
+                             pin("then", "out", exec_t), pin("else", "out", exec_t)]}
+        key_t = {"category": "struct", "object": "/Script/InputCore.Key"}
+        flags = {"bConsumeInput": "True", "bExecuteWhenPaused": "False", "bOverrideParentBinding": "True"}
+        nodes = [
+            {"id": "A1" + "0" * 30, "class": "K2Node_InputAction", "title": "InputAction Jump", "kind": "node",
+             "props": {"InputActionName": "Jump", **flags},
+             "pins": [pin("Pressed", "out", exec_t, [{"node": bid(1), "pin": "execute"}]),
+                      pin("Released", "out", exec_t), pin("Key", "out", key_t)]},
+            {"id": "A2" + "0" * 30, "class": "K2Node_InputAxisEvent", "title": "MoveForward", "kind": "event",
+             "props": {"InputAxisName": "MoveForward", **flags},
+             "pins": [pin("then", "out", exec_t, [{"node": bid(2), "pin": "execute"}]),
+                      pin("AxisValue", "out", {"category": "real", "subCategory": "float"})]},
+            {"id": "A3" + "0" * 30, "class": "K2Node_EnhancedInputAction", "title": "IA_Move", "kind": "node",
+             "props": {"InputAction": "/Script/EnhancedInput.InputAction'/Game/Input/IA_Move.IA_Move'"},
+             "pins": [pin("Triggered", "out", exec_t, [{"node": bid(3), "pin": "execute"}]),
+                      pin("Started", "out", exec_t), pin("Completed", "out", exec_t),
+                      pin("ActionValue", "out", {"category": "struct", "object": "/Script/CoreUObject.Vector2D"}),
+                      pin("ElapsedSeconds", "out", {"category": "real", "subCategory": "double"}),
+                      pin("TriggeredSeconds", "out", {"category": "real", "subCategory": "double"}),
+                      pin("InputAction", "out", {"category": "object", "object": "/Script/EnhancedInput.InputAction"})]},
+            branch(1), branch(2), branch(3)]
+        g = next(g for g in doc["graphs"] if g["kind"] == "event")
+        g["nodes"] += nodes
+        types = doc["native"]["types"]
+        types["/Script/InputCore.Key"] = {"kind": "struct", "native": True, "cpp": "FKey", "include": "InputCoreTypes.h", "module": "InputCore"}
+        types["/Script/CoreUObject.Vector2D"] = {"kind": "struct", "native": True, "cpp": "FVector2D", "module": "CoreUObject"}
+        types["/Script/EnhancedInput.InputAction"] = {"kind": "class", "native": True, "cpp": "UInputAction", "include": "InputAction.h", "module": "EnhancedInput"}
+
+    def test_input_events_bind_where_the_engine_binds_blueprint_input(self):
+        plan, s, files = self.generate("BP_JumpPad", self.input_doc)
+        ev = [e for e in s["events"] if e["kind"] == "input"]
+        self.assertEqual(len(ev), 3)
+        self.assertTrue(all(e["migrated"] for e in ev), [e["reason"] for e in ev])
+        h, cpp = files["JumpPadBase.h"], files["JumpPadBase.cpp"]
+        self.assertIn("virtual void EnableInput(APlayerController* PlayerController) override;", h)   # a plain actor
+        self.assertIn("const bool bCreates = PlayerController && !InputComponent;", cpp)
+        self.assertIn('FInputActionBinding B(FName(TEXT("Jump")), IE_Pressed);', cpp)
+        self.assertIn("if (E.GetActionName() == B.GetActionName() && E.KeyEvent == B.KeyEvent) { IC->RemoveActionBinding(I); }", cpp)
+        self.assertIn("GET_FUNCTION_NAME_CHECKED(ThisClass, InpAct_Jump_Pressed_A1000000)", cpp)
+        self.assertIn("InKey_A1000000 = Key;", cpp)                                   # the Key pin, kept like the Blueprint's temp
+        self.assertIn('FInputAxisBinding B(FName(TEXT("MoveForward")));', cpp)
+        self.assertIn("EIC->BindAction(NativeLiteral_", cpp)
+        self.assertIn("ETriggerEvent::Triggered, this, GET_FUNCTION_NAME_CHECKED(ThisClass, InpAct_IA_Move_Triggered_A3000000));", cpp)
+        self.assertIn("EIA_A3000000_ActionValue = ActionValue.Get<FVector2D>();", cpp)
+        self.assertIn("void InpAct_IA_Move_Triggered_A3000000(FInputActionValue ActionValue, float ElapsedTime, float TriggeredTime, const UInputAction* SourceAction);", h)
+        self.assertIn("EnhancedInput", s["modules"])
+
+        def pawn(doc):
+            self.input_doc(doc)
+            doc["parent"] = "/Script/Engine.Character"
+            doc["parentChain"] = ["/Script/Engine.Character"]
+        plan, s, files = self.generate("BP_JumpPad", pawn)
+        self.assertIn("virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;", files["JumpPadBase.h"])
+        self.assertIn("Super::SetupPlayerInputComponent(PlayerInputComponent);", files["JumpPadBase.cpp"])
+
+    def test_signature_helpers(self):
+        import lens_native
+        self.assertEqual(lens_native.enum_exec_value("TEnumAsByte<EMoveComponentAction::Type>", "Stop"), "EMoveComponentAction::Stop")
+        self.assertEqual(lens_native.enum_exec_value("ETriggerEvent", "Started"), "ETriggerEvent::Started")
+        self.assertEqual(lens_native.param_decl({"name": "Hit", "cpp": "FHitResult", "ref": True, "const": True}), "const FHitResult& Hit")
+        self.assertEqual(lens_native.param_decl({"name": "R", "cpp": "TEnumAsByte<EEndPlayReason::Type>"}, enum_as_byte=False), "EEndPlayReason::Type R")
+        self.assertEqual(lens_native.guid_args("90BA7C85447D62D6171E398EDD8E6B19"), "0x90BA7C85u, 0x447D62D6u, 0x171E398Eu, 0xDD8E6B19u")
 
     def test_anim_blueprint_uses_native_overrides_and_public_getters(self):
         plan, s, files = self.generate("ABP_Unarmed")

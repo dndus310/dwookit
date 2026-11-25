@@ -27,6 +27,7 @@
 #include "K2Node_Event.h"
 #include "K2Node.h"
 #include "K2Node_FunctionEntry.h"
+#include "K2Node_FunctionResult.h"
 #include "K2Node_Variable.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Kismet2/CompilerResultsLog.h"
@@ -61,6 +62,9 @@ namespace DwoLensInspector::NativeRebase
 		TSet<FString> EventRoots;              // the event nodes themselves
 		TSet<FString> ConstructionNodes;
 		bool bConstruction = false;
+		TMap<FString, FString> EventThunks;    // implementable event node id -> C++ function it now calls
+		TMap<FString, FString> FunctionThunks; // implementable event function graph -> C++ function it now calls
+		TMap<FString, TSet<FString>> ThunkNodes;   // function graph -> its nodes that moved
 		TArray<TPair<FString, FString>> Literals;   // C++ property -> asset path
 	};
 
@@ -93,6 +97,14 @@ namespace DwoLensInspector::NativeRebase
 				const FJson F = V->AsObject();
 				if (!F.IsValid() || !F->GetBoolField(TEXT("migrated"))) { continue; }
 				const FString Bp = F->GetStringField(TEXT("bp"));
+				bool bThunk = false;
+				if (F->TryGetBoolField(TEXT("thunk"), bThunk) && bThunk)
+				{
+					Out.FunctionThunks.Add(Bp, F->GetStringField(TEXT("cpp")));
+					TSet<FString>& Nodes = Out.ThunkNodes.Add(Bp);
+					for (const TSharedPtr<FJsonValue>& N : F->GetArrayField(TEXT("nodes"))) { Nodes.Add(N->AsString()); }
+					continue;
+				}
 				if (Bp == TEXT("UserConstructionScript"))
 				{
 					Out.bConstruction = true;
@@ -114,12 +126,40 @@ namespace DwoLensInspector::NativeRebase
 			{
 				const FJson E = V->AsObject();
 				if (!E.IsValid() || !E->GetBoolField(TEXT("migrated"))) { continue; }
-				Out.EventNodes.Add(E->GetStringField(TEXT("node")));
-				Out.EventRoots.Add(E->GetStringField(TEXT("node")));
+				const FString Node = E->GetStringField(TEXT("node"));
+				FString Kind;
+				E->TryGetStringField(TEXT("kind"), Kind);
+				if (Kind == TEXT("thunk"))
+				{
+					// the event stays and calls the C++ function; only its body moves
+					Out.EventThunks.Add(Node, E->GetStringField(TEXT("cpp")));
+					for (const TSharedPtr<FJsonValue>& N : E->GetArrayField(TEXT("nodes"))) { if (N->AsString() != Node) { Out.EventNodes.Add(N->AsString()); } }
+					continue;
+				}
+				Out.EventNodes.Add(Node);
+				Out.EventRoots.Add(Node);
 				for (const TSharedPtr<FJsonValue>& N : E->GetArrayField(TEXT("nodes"))) { Out.EventNodes.Add(N->AsString()); }
 				// a migrated custom event is called like a function: same name in C++
 				const FString Cpp = E->GetStringField(TEXT("cpp"));
-				if (!Cpp.IsEmpty()) { Out.Functions.FindOrAdd(E->GetStringField(TEXT("bp")), Cpp); }
+				if (!Cpp.IsEmpty() && (Kind.IsEmpty() || Kind == TEXT("custom"))) { Out.Functions.FindOrAdd(E->GetStringField(TEXT("bp")), Cpp); }
+			}
+		}
+		// timelines: the timeline node and its flows move (removing the node removes the template); the timeline
+		// variable and the properties its tracks drove are C++ members now (renamed where the names differ)
+		const TArray<TSharedPtr<FJsonValue>>* Timelines = nullptr;
+		if (Root->TryGetArrayField(TEXT("timelines"), Timelines))
+		{
+			for (const TSharedPtr<FJsonValue>& V : *Timelines)
+			{
+				const FJson T = V->AsObject();
+				if (!T.IsValid() || !T->GetBoolField(TEXT("migrated"))) { continue; }
+				for (const TSharedPtr<FJsonValue>& N : T->GetArrayField(TEXT("nodes"))) { Out.EventNodes.Add(N->AsString()); }
+				Out.Variables.Add(T->GetStringField(TEXT("bp")), T->GetStringField(TEXT("cpp")));
+				const TSharedPtr<FJsonObject>* Props = nullptr;
+				if (T->TryGetObjectField(TEXT("properties"), Props))
+				{
+					for (const TPair<FString, TSharedPtr<FJsonValue>>& P : (*Props)->Values) { Out.Variables.Add(P.Key, P.Value->AsString()); }
+				}
 			}
 		}
 		const TArray<TSharedPtr<FJsonValue>>* Literals = nullptr;
@@ -173,7 +213,22 @@ namespace DwoLensInspector::NativeRebase
 			FString Now;
 			Property->ExportTextItem_InContainer(Now, Object, nullptr, Object, PPF_None);
 			if (Now == Pair.Value) { continue; }
-			if (!Property->ImportText_InContainer(*Pair.Value, Object, Object, PPF_None)) { Failed.Add(Name); }
+			if (!Property->ImportText_InContainer(*Pair.Value, Object, Object, PPF_None)) { Failed.Add(Name); continue; }
+			// The snapshot text leaves out struct fields that are zero (false, 0, None); importing it onto a value the C++
+			// constructor set keeps that value instead (BodyInstance.bEnableGravity: false in the Blueprint, true in C++).
+			// Fields the text does not name are zero in the original: set them so.
+			if (const FStructProperty* StructProperty = CastField<FStructProperty>(Property))
+			{
+				void* Value = StructProperty->ContainerPtrToValuePtr<void>(Object);
+				for (TFieldIterator<FProperty> Inner(StructProperty->Struct); Inner; ++Inner)
+				{
+					if (Inner->ArrayDim != 1 || !Inner->ShouldPort(PPF_None)) { continue; }
+					if (Inner->Identical_InContainer(Value, nullptr, 0, PPF_None)) { continue; }
+					const FString Key = Inner->GetName() + TEXT("=");
+					if (Pair.Value.Contains(TEXT("(") + Key) || Pair.Value.Contains(TEXT(",") + Key)) { continue; }
+					Inner->ClearValue_InContainer(Value);
+				}
+			}
 		}
 		return Failed;
 	}
@@ -194,7 +249,13 @@ namespace DwoLensInspector::NativeRebase
 					if (!New) { New = Map.Components.Find(Old); }
 					if (!New) { New = Map.Dispatchers.Find(Old); }
 					if (!New) { continue; }
-					for (UEdGraphPin* Pin : Var->Pins) { if (Pin->PinName.ToString() == Old) { Pin->PinName = FName(**New); } }
+					for (UEdGraphPin* Pin : Var->Pins)
+					{
+						// the value pin, and the pins of a split struct value ('Door Size_X')
+						const FString PinName = Pin->PinName.ToString();
+						if (PinName == Old) { Pin->PinName = FName(**New); }
+						else if (PinName.StartsWith(Old + TEXT("_"))) { Pin->PinName = FName(*(*New + PinName.RightChop(Old.Len()))); }
+					}
 					Var->VariableReference.SetSelfMember(FName(**New));
 				}
 				else if (UK2Node_CallFunction* Call = Cast<UK2Node_CallFunction>(Node))
@@ -229,14 +290,19 @@ namespace DwoLensInspector::NativeRebase
 	 * twice. A pure data node another kept node also reads stays (it is harmless). If kept code reads the output of a
 	 * node that is removed, the Blueprint would change behaviour: reported, and the rebase is not saved.
 	 */
-	static int32 RemoveNodes(UBlueprint* Blueprint, const TSet<FString>& Ids, const TArray<UEdGraph*>& Graphs, TArray<FString>& Problems)
+	static FString Id(const UEdGraphNode* Node) { return Node->NodeGuid.ToString(EGuidFormats::Digits); }
+
+	static int32 RemoveNodes(UBlueprint* Blueprint, const TSet<FString>& Ids, const TArray<UEdGraph*>& Graphs, TArray<FString>& Problems,
+		const TSet<FString>& KeptRoots = TSet<FString>(), bool bKeepResults = false)
 	{
 		TArray<UEdGraphNode*> Candidates;
 		for (UEdGraph* Graph : Graphs)
 		{
 			for (UEdGraphNode* Node : Graph->Nodes)
 			{
-				if (Node && Ids.Contains(Node->NodeGuid.ToString(EGuidFormats::Digits))) { Candidates.Add(Node); }
+				if (!Node || !Ids.Contains(Id(Node)) || KeptRoots.Contains(Id(Node))) { continue; }
+				if (bKeepResults && Cast<UK2Node_FunctionResult>(Node)) { continue; }
+				Candidates.Add(Node);
 			}
 		}
 		bool bChanged = true;
@@ -279,6 +345,27 @@ namespace DwoLensInspector::NativeRebase
 				}
 			}
 		}
+		// code that stays must not run into code that moved: it would silently stop there
+		for (UEdGraph* Graph : Graphs)
+		{
+			for (const UEdGraphNode* Node : Graph->Nodes)
+			{
+				if (!Node || Candidates.Contains(Node) || KeptRoots.Contains(Id(Node))) { continue; }
+				if (Cast<UK2Node_FunctionEntry>(Node) && bKeepResults) { continue; }
+				for (const UEdGraphPin* Pin : Node->Pins)
+				{
+					if (Pin->Direction != EGPD_Output || Pin->PinType.PinCategory != UEdGraphSchema_K2::PC_Exec) { continue; }
+					for (const UEdGraphPin* Linked : Pin->LinkedTo)
+					{
+						if (Linked && Candidates.Contains(Linked->GetOwningNode()) && !Cast<UK2Node_FunctionEntry>(Linked->GetOwningNode()))
+						{
+							Problems.Add(FString::Printf(TEXT("kept Blueprint code '%s' runs into '%s', which moved to C++"),
+								*Node->GetNodeTitle(ENodeTitleType::ListView).ToString(), *Linked->GetOwningNode()->GetNodeTitle(ENodeTitleType::ListView).ToString()));
+						}
+					}
+				}
+			}
+		}
 		for (UEdGraphNode* Node : Candidates)
 		{
 			if (!Cast<UK2Node_FunctionEntry>(Node)) { FBlueprintEditorUtils::RemoveNode(Blueprint, Node, true); }
@@ -286,13 +373,43 @@ namespace DwoLensInspector::NativeRebase
 		return Candidates.Num();
 	}
 
+	/** A call to Function placed next to From, its exec input wired to From's ExecOut and its inputs to From's outputs of the same name. */
+	static UK2Node_CallFunction* AddThunkCall(UEdGraph* Graph, UEdGraphNode* From, UEdGraphPin* ExecOut, UFunction* Function, TArray<FString>& Problems)
+	{
+		const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
+		FGraphNodeCreator<UK2Node_CallFunction> Creator(*Graph);
+		UK2Node_CallFunction* Call = Creator.CreateNode(false);
+		Call->SetFromFunction(Function);
+		Call->NodePosX = From->NodePosX + 320;
+		Call->NodePosY = From->NodePosY;
+		Creator.Finalize();
+		if (ExecOut && !Schema->TryCreateConnection(ExecOut, Call->GetExecPin()))
+		{
+			Problems.Add(TEXT("could not wire the call to ") + Function->GetName());
+		}
+		for (UEdGraphPin* Pin : From->Pins)
+		{
+			if (Pin->Direction != EGPD_Output || Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Exec || Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Delegate) { continue; }
+			UEdGraphPin* In = Call->FindPin(Pin->PinName, EGPD_Input);
+			if (!In || !Schema->TryCreateConnection(Pin, In))
+			{
+				Problems.Add(FString::Printf(TEXT("could not pass %s to %s"), *Pin->PinName.ToString(), *Function->GetName()));
+			}
+		}
+		return Call;
+	}
+
 	static FJson Diff(const TCHAR* Scope, const FString& Name, const FString& Before, const FString& After)
 	{
 		FJson D = MakeShared<FJsonObject>();
 		D->SetStringField(TEXT("scope"), Scope);
 		D->SetStringField(TEXT("property"), Name);
-		D->SetStringField(TEXT("before"), Before.Left(500));
-		D->SetStringField(TEXT("after"), After.Left(500));
+		// long values (a BodyInstance is thousands of characters): the part around the first difference
+		int32 First = 0;
+		while (First < Before.Len() && First < After.Len() && Before[First] == After[First]) { ++First; }
+		const int32 From = (Before.Len() > 500 || After.Len() > 500) ? FMath::Max(0, First - 200) : 0;
+		D->SetStringField(TEXT("before"), (From > 0 ? TEXT("...") : TEXT("")) + Before.Mid(From, 500));
+		D->SetStringField(TEXT("after"), (From > 0 ? TEXT("...") : TEXT("")) + After.Mid(From, 500));
 		return D;
 	}
 }
@@ -392,7 +509,17 @@ int32 DwoLensInspector::RebaseBlueprint(const FString& MappingFile, const FStrin
 	}
 	for (UEdGraph* Graph : RemoveGraphs) { FBlueprintEditorUtils::RemoveGraph(Blueprint, Graph, EGraphRemoveFlags::None); ++Moved; }
 	TArray<FString> RemoveProblems;
-	const int32 EventNodes = RemoveNodes(Blueprint, Map.EventNodes, Blueprint->UbergraphPages, RemoveProblems);
+	TSet<FString> ThunkRoots;
+	for (const TPair<FString, FString>& Pair : Map.EventThunks) { ThunkRoots.Add(Pair.Key); }
+	const int32 EventNodes = RemoveNodes(Blueprint, Map.EventNodes, Blueprint->UbergraphPages, RemoveProblems, ThunkRoots);
+	for (UEdGraph* Graph : Blueprint->FunctionGraphs)
+	{
+		if (const TSet<FString>* Nodes = Graph ? Map.ThunkNodes.Find(Graph->GetName()) : nullptr)
+		{
+			TArray<UEdGraph*> One = { Graph };
+			RemoveNodes(Blueprint, *Nodes, One, RemoveProblems, TSet<FString>(), true);
+		}
+	}
 	int32 ConstructionNodes = 0;
 	if (Map.bConstruction)
 	{
@@ -424,6 +551,49 @@ int32 DwoLensInspector::RebaseBlueprint(const FString& MappingFile, const FStrin
 		FKismetEditorUtilities::CompileBlueprint(Blueprint, EBlueprintCompileOptions::SkipGarbageCollection, &First);
 	}
 	for (USCS_Node* Node : RemoveScs) { Scs->RemoveNodeAndPromoteChildren(Node); ++Moved; }
+	TArray<FString> ThunkProblems;
+	for (UEdGraph* Graph : Blueprint->UbergraphPages)
+	{
+		for (UEdGraphNode* Node : TArray<UEdGraphNode*>(Graph->Nodes))
+		{
+			const FString* Cpp = Node ? Map.EventThunks.Find(Id(Node)) : nullptr;
+			if (!Cpp) { continue; }
+			UFunction* Function = NewParent->FindFunctionByName(FName(**Cpp));
+			if (!Function) { ThunkProblems.Add(TEXT("generated function not found: ") + *Cpp); continue; }
+			AddThunkCall(Graph, Node, Node->FindPin(UEdGraphSchema_K2::PN_Then, EGPD_Output), Function, ThunkProblems);
+		}
+	}
+	for (UEdGraph* Graph : Blueprint->FunctionGraphs)
+	{
+		const FString* Cpp = Graph ? Map.FunctionThunks.Find(Graph->GetName()) : nullptr;
+		if (!Cpp) { continue; }
+		UFunction* Function = NewParent->FindFunctionByName(FName(**Cpp));
+		UK2Node_FunctionEntry* Entry = nullptr;
+		UK2Node_FunctionResult* Result = nullptr;
+		for (UEdGraphNode* Node : Graph->Nodes)
+		{
+			if (!Entry) { Entry = Cast<UK2Node_FunctionEntry>(Node); }
+			if (!Result) { Result = Cast<UK2Node_FunctionResult>(Node); }
+		}
+		if (!Function || !Entry) { ThunkProblems.Add(TEXT("cannot write the call in ") + Graph->GetName()); continue; }
+		UK2Node_CallFunction* Call = AddThunkCall(Graph, Entry, Entry->FindPin(UEdGraphSchema_K2::PN_Then, EGPD_Output), Function, ThunkProblems);
+		if (Result)
+		{
+			const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
+			Schema->TryCreateConnection(Call->GetThenPin(), Result->GetExecPin());
+			for (UEdGraphPin* Pin : Call->Pins)
+			{
+				if (Pin->Direction != EGPD_Output || Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Exec) { continue; }
+				UEdGraphPin* In = Result->FindPin(Pin->PinName, EGPD_Input);
+				if (!In || !Schema->TryCreateConnection(Pin, In)) { ThunkProblems.Add(FString::Printf(TEXT("could not return %s from %s"), *Pin->PinName.ToString(), *Graph->GetName())); }
+			}
+		}
+	}
+	for (const FString& Text : ThunkProblems) { Problem(Text); }
+	if (Map.EventThunks.Num() + Map.FunctionThunks.Num() > 0)
+	{
+		Step(FString::Printf(TEXT("implementable events now call C++: %d event(s), %d function(s)"), Map.EventThunks.Num(), Map.FunctionThunks.Num()));
+	}
 	UObject* NewDefaults = NewParent->GetDefaultObject();
 	for (const TPair<USCS_Node*, FString>& Pair : Reattach)
 	{

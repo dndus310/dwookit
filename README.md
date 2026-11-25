@@ -446,6 +446,8 @@ __dwookit.bat compile                                        :: 에디터 대상
 __dwookit.bat native rebase   /Game/Props/BP_JumpPad --dry-run   :: 검증만
 __dwookit.bat native rebase   /Game/Props/BP_JumpPad        :: 백업 후 상속 전환, 검증 통과 시에만 저장
 __dwookit.bat native verify   /Game/Props/BP_JumpPad        :: 동작 비교: 원본과 마이그레이션본을 같은 시나리오로 실행
+__dwookit.bat native verify   /Game/Props/BP_Box --frames 220 --no-probe --call OnBoxDestroyed@10   :: 부모 C++가 부르는 이벤트를 10프레임에 실행
+__dwookit.bat native verify   /Game/Props/BP_Door --probe-offset 0:200:100                         :: 프로브가 떨어질 위치(액터 기준)
 __dwookit.bat native restore  /Game/Props/BP_JumpPad        :: 마지막 백업으로 되돌리기
 ```
 
@@ -453,7 +455,7 @@ __dwookit.bat native restore  /Game/Props/BP_JumpPad        :: 마지막 백업�
 - **정확하거나, 옮기지 않거나**: 함수·이벤트는 안의 노드가 모두 같은 의미의 C++로 바뀔 때만 옮깁니다. 노드 하나라도 모르면 그 함수 전체가 블루프린트에 남고, 리포트(`<이름>.native.md`)에 이유와 노드를 적습니다.
 - **같은 이름**: 변수와 컴포넌트는 블루프린트 이름 그대로 C++ 멤버가 됩니다(참조, 레벨 인스턴스, 저장된 값이 그대로 연결). 식별자가 될 수 없는 이름(공백 등)은 바꾼 이름과 원래 이름(DisplayName)을 기록합니다.
 - **블루프린트 의미 그대로**: 대상이 None인 호출은 건너뛰고 출력은 기본값(블루프린트와 같음, C++에서 크래시 없음). 이벤트 그래프의 임시 값은 멤버로(블루프린트의 지속 프레임), 순수 노드는 사용할 때마다 다시 계산, 리터럴은 블루프린트 컴파일러와 같은 방식으로 해석(`FDefaultValueHelper` 다음 `ImportText`), 엔진 이벤트는 엔진이 부르는 순서에 맞춘 네이티브 오버라이드(`BeginPlay`, `Tick`, `NativeConstruct`, `NativeUpdateAnimation` …).
-- **정확한 시그니처**: 내보내기(`bp export`)가 호출하는 함수마다 C++ 매개변수 타입·순서·접근 수준, 헤더 경로, 열거형 C++ 표기를 기록하므로 추측하지 않습니다. 블루프린트 전용(CustomThunk, BlueprintInternalUseOnly), 지연(Delay 등), private 멤버는 옮기지 않습니다(알려진 엔진 getter로 바꿀 수 있는 것은 바꿈: `CharacterMovement` → `GetCharacterMovement()`).
+- **정확한 시그니처**: 내보내기(`bp export`)가 호출하는 함수마다 C++ 매개변수 타입·순서·접근 수준, 헤더 경로, 열거형 C++ 표기를 기록하므로 추측하지 않습니다. 블루프린트 전용(CustomThunk, BlueprintInternalUseOnly) 함수는 옮기지 않습니다. 부모의 private 멤버는 알려진 getter로(`CharacterMovement` → `GetCharacterMovement()`), 없으면 블루프린트처럼 리플렉션으로 읽습니다(`AllowPrivateAccess`).
 - **값은 블루프린트에**: 컴포넌트 템플릿 값, 에셋 참조, 변수 기본값은 블루프린트의 기본값으로 남깁니다(rebase가 옮기고 검증). C++ 초기값은 단순한 값만 같은 값으로 적습니다. 코드가 쓰는 에셋은 숨은 UPROPERTY로 만들어 하드 참조(쿠킹 포함)를 유지합니다.
 
 안정성(rebase, DwoLensInspector commandlet):
@@ -469,9 +471,21 @@ __dwookit.bat native restore  /Game/Props/BP_JumpPad        :: 마지막 백업�
 - 기록: 10프레임마다 액터와 각 컴포넌트의 편집 가능·블루프린트에서 보이는 모든 값과 월드 변환, 프로브의 위치·속도·이동 모드·발사 요청.
 - 비교: 숫자는 부동소수 오차(1e-3)까지 같으면 같음으로 봅니다. 스폰마다 바뀌는 GUID와 임시 월드 이름은 제외하고, C++에만 있는 멤버는 따로 나열합니다. 결과는 `__dwookit/native/<이름>.behaviour.md`.
 - 같은 원본을 두 번 돌린 결과가 같음(결정적)을 확인했습니다. 생성된 C++에 일부러 넣은 오류(발사 속도 절반)는 바로 "다름"으로 잡힙니다.
+- `--call 함수@프레임`: 부모 C++가 게임 중에 부르는 이벤트(BlueprintImplementableEvent 등)를 기본 인자로 실행합니다. `--probe-offset X:Y:Z`: 프로브가 떨어질 위치.
 - 한계: 액터만 대상입니다(위젯·애니메이션은 아직). 무작위 값이나 실제 시간을 쓰는 로직은 차이로 나올 수 있습니다. 시나리오가 건드리지 않는 경로(특정 입력, 다른 액터와의 상호작용)는 검증되지 않습니다.
 
-현재 범위: 액터·컴포넌트·위젯·애니메이션 블루프린트의 변수, 컴포넌트(SCS), BindWidget 위젯, 이벤트 디스패처, 함수, 엔진 이벤트·커스텀 이벤트·컴포넌트 바운드 이벤트, Construction Script(`OnConstruction`), 분기·시퀀스·스위치·캐스트·For/ForEach/While·IsValid·FlipFlop·DoOnce. 블루프린트에 남는 것: 지연·타임라인·입력 이벤트, 복제 함수, 부모 C++의 BlueprintImplementableEvent 구현, 블루프린트 매크로·구조체·열거형을 쓰는 코드, AnimGraph(상태 머신), 비헤이비어 트리 노드 블루프린트(계획 중). 비헤이비어 트리 에셋 자체는 데이터라 옮길 대상이 아닙니다.
+현재 범위: 액터·컴포넌트·위젯·애니메이션 블루프린트의 변수, 컴포넌트(SCS), BindWidget 위젯, 이벤트 디스패처, 함수, 엔진 이벤트·커스텀 이벤트·컴포넌트 바운드 이벤트, Construction Script(`OnConstruction`), 분기·시퀀스·스위치·캐스트·For/ForEach/While·IsValid·FlipFlop·DoOnce, 배열 함수(Length, Get, Add, Contains …).
+
+엔진과 같은 방식으로 옮기는 것:
+- **지연(latent) 액션**(Delay, RetriggerableDelay, MoveComponentTo …): 호출은 그대로 두고, Completed 뒤의 흐름을 별도 UFUNCTION(`Latent_<노드>`)으로 만들어 latent 액션 매니저가 부르게 합니다. UUID는 블루프린트 컴파일러와 같은 노드 GUID 해시라, 대기 중 재호출 무시 같은 동작이 같습니다. 이벤트 인자는 멤버로 복사해 나중에 읽어도 블루프린트 프레임처럼 남아 있습니다. `Move`/`Stop`처럼 실행 핀이 여러 개인 노드(ExpandEnumAsExecs)는 들어온 핀에 맞는 값을 넘깁니다. 루프 안의 지연은 블루프린트에 남습니다.
+- **타임라인**: 블루프린트가 만들던 것(`UBlueprintGeneratedClass::CreateTimelineComponent`)과 같은 순서로 `OnConstruction`에서 컴포넌트를 만듭니다. 길이·자동 재생·반복·복제·틱 그룹·시간 팽창 무시, 커브 키(탄젠트까지 저장된 값 그대로), 이벤트 트랙, Update/Finished가 같습니다. 외부 커브 에셋은 하드 참조로 유지합니다. 타임라인을 재생하는 코드가 하나라도 블루프린트에 남으면 타임라인도 남습니다. rebase는 타임라인 템플릿과 트랙 속성을 C++ 멤버로 옮기고 이름을 다시 연결합니다.
+- **입력 이벤트**(InputAction, InputKey, InputAxis, Enhanced Input): 엔진이 블루프린트 입력을 묶는 자리(폰 `SetupPlayerInputComponent`, 플레이어 컨트롤러 `SetupInputComponent`, 그 밖의 액터 `EnableInput`)에서 같은 규칙(부모 바인딩 덮어쓰기, 입력 소비, 일시정지 중 실행)으로 묶습니다. Key·ActionValue 같은 출력은 블루프린트의 임시 변수처럼 멤버에 둡니다.
+- **부모의 BlueprintNativeEvent**: `_Implementation` 오버라이드로 옮깁니다(이벤트와 함수 그래프 모두).
+- **부모의 BlueprintImplementableEvent**: C++에서는 오버라이드할 수 없으므로 본문을 `<이벤트>Native` 함수로 옮기고, 블루프린트에는 그 이벤트와 C++ 호출 노드 하나만 남깁니다(rebase가 연결). 부모 C++가 이벤트를 부르는 경로는 그대로입니다.
+
+블루프린트에 남는 것: 복제 함수, 블루프린트 매크로·구조체·열거형을 쓰는 코드, AddComponent 노드, 터치·벡터 축 입력, AnimGraph(상태 머신), 비헤이비어 트리 노드 블루프린트(계획 중). 비헤이비어 트리 에셋 자체는 데이터라 옮길 대상이 아닙니다.
+
+rebase 안전장치: 블루프린트에 남는 실행 흐름이 C++로 옮긴 노드로 이어지면(그 뒤 코드가 조용히 끊기므로) 저장하지 않습니다.
 
 ### 에이전트 안내 (`agent`)
 

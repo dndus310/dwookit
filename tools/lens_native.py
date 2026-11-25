@@ -129,6 +129,46 @@ def fmt_real(v: float, single: bool = False) -> str:
     return s + ("f" if single else "")
 
 
+def param_decl(prm: dict, enum_as_byte: bool = True) -> str:
+    """A parameter as the C++ declaration UHT generated it from: out -> T&, ref -> (const) T&."""
+    t = prm["cpp"]
+    if not enum_as_byte:
+        m = re.fullmatch(r"TEnumAsByte<(.+)>", t)
+        t = m.group(1) if m else t
+    if prm.get("out"):
+        return f"{t}& {prm['name']}"
+    if prm.get("ref"):
+        return f"{'const ' if prm.get('const') else ''}{t}& {prm['name']}"
+    return f"{'const ' if prm.get('const') else ''}{t} {prm['name']}"
+
+
+def enum_exec_value(cpp_type: str, pin: str) -> str:
+    """The enum value an ExpandEnumAsExecs exec pin stands for: TEnumAsByte<EMove::Type> + 'Stop' -> EMove::Stop."""
+    m = re.fullmatch(r"TEnumAsByte<(.+)>", cpp_type.strip())
+    t = m.group(1) if m else cpp_type.strip()
+    t = re.sub(r"::Type$", "", t)
+    return f"{t}::{pin}"
+
+
+def guid_args(node_id: str) -> str:
+    """FGuid(A, B, C, D) for a node id in Digits form: the Blueprint compiler keys latent actions on its hash."""
+    h = node_id.replace("-", "")
+    if not re.fullmatch(r"[0-9A-Fa-f]{32}", h):
+        raise Unsupported(f"node id {node_id} is not a GUID")
+    return ", ".join(f"0x{h[i:i + 8].upper()}u" for i in range(0, 32, 8))
+
+
+def prop_bool(props: dict, name: str, default: bool = False) -> bool:
+    v = (props or {}).get(name)
+    return default if v is None else str(v).strip().lower() == "true"
+
+
+def prop_path(text: str) -> str:
+    """'/Script/EnhancedInput.InputAction'/Game/Input/IA_Jump.IA_Jump'' -> '/Game/Input/IA_Jump.IA_Jump'."""
+    m = re.search(r"'([^']+)'", text or "")
+    return (m.group(1) if m else (text or "")).strip('"')
+
+
 def strip_skel(path: str) -> str:
     """'/Game/A/SKEL_BP_X_C' and '/Game/A/BP_X.BP_X_C' name the same class."""
     return re.sub(r"\.SKEL_", ".", path or "")
@@ -436,6 +476,12 @@ class Fn:
         self.return_type = "void"
         self.pure_done: set[str] = set()     # pure nodes with out params already run for the current statement
         self.guarded: str | None = None      # target local the current call statement must check
+        self.entered: str | None = None      # input exec pin the flow entered the current node through
+        self.loop_depth = 0
+        self.root_fn: Fn = self              # the event this flow belongs to (continuations point back to it)
+        self.conts: set[str] = set()         # latent nodes whose continuation this flow schedules
+        self.prologue: list[str] = []        # event arguments copied to members (continuations read them)
+        self.arg_members: dict | None = None
 
     # -- graph helpers
     def _incoming(self) -> dict[str, int]:
@@ -462,17 +508,41 @@ class Fn:
             return None
         if len(p["links"]) > 1:
             raise Unsupported("one exec output wired to several inputs", node)
-        n = self.node(p["links"][0]["node"])
+        link = p["links"][0]
+        n = self.node(link["node"])
         while n["class"] == "K2Node_Knot":       # reroute: part of the flow it carries
             self.used_nodes.add(n["id"])
-            n = self.node(self.exec_out_links(n, "OutputPin"))
+            link = self.exec_out_link(n, "OutputPin")
+            n = self.node(link["node"])
+        self.entered = link["pin"]
         return n
 
-    def exec_out_links(self, node, pin):
+    def exec_out_link(self, node, pin):
         p = node["_pins"].get(pin)
         if not p or not p.get("links"):
             raise Unsupported("a reroute node that leads nowhere", node)
-        return p["links"][0]["node"]
+        return p["links"][0]
+
+    def multi_entry(self, node: dict) -> bool:
+        """A node with several exec inputs (timeline, ExpandEnumAsExecs): what it does depends on the pin entered."""
+        return sum(1 for p in node.get("pins", []) if p["dir"] == "in" and p["type"].get("category") == "exec") > 1
+
+    def arg_params(self) -> dict:
+        """The event's arguments as members, for code that runs later (a latent continuation): the Blueprint keeps
+        them in its persistent frame until the event fires again, and so do these members."""
+        root = self.root_fn
+        if root.arg_members is None:
+            root.arg_members = {}
+            for (nid, pin_name), expr in root.params.items():
+                pin = self.ex.nodes[nid]["_pins"].get(pin_name)
+                if pin is None:
+                    continue
+                is_obj = self.types.is_object(pin["type"])
+                member = f"EvArg_{nid[:8]}_{ident(pin_name)}"
+                root.members[member] = (self.types.of(pin["type"], header=True, as_property=is_obj), is_obj)
+                root.prologue.append(f"\t{member} = {expr};")
+                root.arg_members[(nid, pin_name)] = member
+        return dict(root.arg_members)
 
     # -- data
     def input(self, node: dict, pin_name: str) -> str:
@@ -517,12 +587,16 @@ class Fn:
             raise Unsupported("a disabled node feeds data", node)
         if cls == "K2Node_Knot":
             return self.input(node, "InputPin")
+        if cls == "K2Node_Timeline":
+            return self.plan.timeline_value(node, pin_name)
         if cls == "K2Node_Self":
             return "this"
         if cls == "K2Node_VariableGet":
             return self.var_get(node)
         if cls == "K2Node_VariableSet" and pin["dir"] == "out" and pin["type"].get("category") != "exec":
             return self.plan.local_names.get(node["member"]) or self.plan.var_cpp(node["member"], node)
+        if cls == "K2Node_CallArrayFunction" and node.get("pure"):
+            return self.array_value(node, pin_name)
         if node.get("pure") and cls in ("K2Node_CallFunction", "K2Node_CommutativeAssociativeBinaryOperator", "K2Node_PromotableOperator"):
             return self.call_expr(node, pin_name, pure=True)
         if cls == "K2Node_DynamicCast" and node.get("pure"):
@@ -570,6 +644,8 @@ class Fn:
         if local and not (target and target.get("links")):
             return local
         if self.ex.is_self_class(owner) and not (target and target.get("links")):
+            if node.get("memberAccess") == "private" and not self.plan.is_own_member(node["member"]):
+                return self.private_read(node)
             return self.plan.var_cpp(node["member"], node)
         # another object's variable
         obj = self.input(node, "self") if target else "this"
@@ -597,9 +673,27 @@ class Fn:
         ot = self.types.of(target["type"]) if target and target["type"].get("object") else "UObject*"
         return f"[&]() -> {t} {{ {ot} O = {obj}; if (O) {{ return O->{member}; }} return {default_of(t)}; }}()"
 
+    def private_read(self, node: dict) -> str:
+        """A private C++ member of the native parent that Blueprint reads (AllowPrivateAccess): C++ cannot name it,
+        so it is read through its property, as the Blueprint VM reads it."""
+        pin = next((p for p in node["pins"] if p["dir"] == "out" and p["type"].get("category") != "exec"), None)
+        if pin is None:
+            raise Unsupported("a variable read without an output", node)
+        t = self.types.of(pin["type"])
+        name = cpp_string(node.get("memberName") or node["member"])
+        owner = self.plan.parent_cpp
+        if self.types.is_object(pin["type"]) and pin["type"].get("category") == "object":
+            return (f"[&]() -> {t} {{ static const FObjectPropertyBase* P = FindFProperty<FObjectPropertyBase>({owner}::StaticClass(), {name}); "
+                    f"return P ? Cast<{t[:-1]}>(P->GetObjectPropertyValue_InContainer(this)) : nullptr; }}()")
+        return (f"[&]() -> {t} {{ static const FProperty* P = FindFProperty<FProperty>({owner}::StaticClass(), {name}); "
+                f"return P ? *P->ContainerPtrToValuePtr<{t}>(this) : {default_of(t)}; }}()")
+
     def native_fn(self, node: dict) -> dict:
         key = f"{node.get('memberOwner', '')}:{node.get('member', '')}"
         f = self.ex.functions.get(key)
+        if (not f or not f.get("native")) and self.ex.is_self_class(node.get("memberOwner", "")) and self.plan.parent_function(node.get("member", "")):
+            # a self call to a function the native parent declares (an implementable event, BlueprintCallable)
+            f = self.plan.parent_function(node.get("member", ""))
         if not f:
             if self.ex.is_self_class(node.get("memberOwner", "")):
                 return {}
@@ -608,20 +702,25 @@ class Fn:
             raise Unsupported(f"{node['member']} is a Blueprint-only (CustomThunk) function", node)
         if f.get("internalOnly"):
             raise Unsupported(f"{node['member']} is internal to Blueprint (BlueprintInternalUseOnly)", node)
-        if f.get("latent"):
-            raise Unsupported(f"{node['member']} is latent (Delay-like); latent actions stay in Blueprint", node)
         if not f.get("native"):
             raise Unsupported(f"{short(node.get('memberOwner'))}.{node['member']} is a Blueprint function", node)
         return f
 
-    def call_expr(self, node: dict, want_pin: str | None, pure: bool) -> str:
-        """The call; for a pure call with out params, the call is run into temporaries first (pre-statements)."""
+    def call_expr(self, node: dict, want_pin: str | None, pure: bool, latent: str | None = None) -> str:
+        """The call; for a pure call with out params, the call is run into temporaries first (pre-statements).
+        latent: the continuation function a latent call resumes (its FLatentActionInfo)."""
         owner = node.get("memberOwner", "")
         if self.ex.is_self_class(owner):
-            return self.self_call(node, want_pin, pure)
+            item = self.plan.function_item(node.get("member", ""))
+            inherited = self.plan.parent_function(node.get("member", ""))
+            if not inherited or (item is not None and not item.extra.get("thunk")):
+                return self.self_call(node, want_pin, pure)
         f = self.native_fn(node)
+        if f.get("latent") and not latent:
+            raise Unsupported(f"{node['member']} is latent and is not called as a statement", node)
         owner_cpp = self.types._class(f["owner"], False)
         flags = set(f.get("flags", []))
+        enum_execs = {x.strip() for x in (f.get("expandEnumAsExecs") or "").split(",") if x.strip()}
         args, outs = [], {}
         ret = None
         for prm in f["params"]:
@@ -629,6 +728,20 @@ class Fn:
             if prm.get("return"):
                 ret = prm
                 continue
+            if latent and (name == f.get("latentInfo") or prm["cpp"] == "FLatentActionInfo"):
+                # same UUID the Blueprint compiler gives this node: GetTypeHash(NodeGuid)
+                args.append(f'FLatentActionInfo(0, (int32)GetTypeHash(FGuid({guid_args(node["id"])})), TEXT("{latent}"), this)')
+                continue
+            if name in enum_execs and not prm.get("out"):
+                entered = self.entered or ""
+                if entered not in node["_pins"]:
+                    raise Unsupported(f"entered through an unknown pin of {node.get('member')}", node)
+                args.append(enum_exec_value(prm["cpp"], entered))
+                continue
+            if name in enum_execs:
+                raise Unsupported(f"{node.get('member')} branches on its result (ExpandEnumAsExecs output)", node)
+            if prm.get("out") and latent:
+                raise Unsupported(f"latent {node.get('member')} has output values (written when it completes)", node)
             if prm.get("out"):
                 pin = node["_pins"].get(name)
                 temp = f"Out_{node['id'][:8]}_{ident(name)}"
@@ -646,6 +759,8 @@ class Fn:
                 raise Unsupported(f"parameter {name} has no pin", node)
             if prm.get("ref") and not prm.get("const"):
                 args.append(self.lvalue(node, name))
+            elif prm["cpp"] == "float" and pin["type"].get("category") in ("real", "double", "float") and pin["type"].get("subCategory") != "float":
+                args.append(f"(float)({self.input(node, name)})")      # the same narrowing the Blueprint does
             else:
                 args.append(self.input(node, name))
         guard = None
@@ -786,6 +901,12 @@ class Fn:
             if node.get("disabled"):
                 raise Unsupported("a disabled node is in the execution path", node)
             nid = node["id"]
+            if self.multi_entry(node):
+                self.used_nodes.add(nid)
+                self.pure_done = set()
+                self.guarded = None
+                node = self.statement(node)
+                continue
             if nid in self.emitted:
                 if nid not in self.labels:
                     raise Unsupported("execution loops back into a running block (unstructured loop)", node)
@@ -808,11 +929,58 @@ class Fn:
         self.depth -= 1
         self.say("}")
 
+    def array_value(self, node: dict, pin_name: str) -> str:
+        """Blueprint array functions are generic (CustomThunk): the TArray member that does the same."""
+        f = node.get("member", "")
+        arr = self.input(node, "TargetArray")
+        if f == "Array_Length":
+            return f"({arr}).Num()"
+        if f == "Array_LastIndex":
+            return f"(({arr}).Num() - 1)"
+        if f == "Array_IsEmpty":
+            return f"({arr}).IsEmpty()"
+        if f == "Array_IsNotEmpty":
+            return f"!({arr}).IsEmpty()"
+        if f == "Array_IsValidIndex":
+            return f"({arr}).IsValidIndex({self.input(node, 'IndexToTest')})"
+        if f == "Array_Contains":
+            return f"({arr}).Contains({self.input(node, 'ItemToFind')})"
+        if f == "Array_Find":
+            return f"({arr}).Find({self.input(node, 'ItemToFind')})"
+        if f == "Array_Get" and pin_name == "Item":
+            t = self.types.of(node["_pins"]["Item"]["type"])
+            # out of range: the Blueprint logs an error and returns the default value
+            return f"[&]() -> {t} {{ const auto& A = {arr}; const int32 I = {self.input(node, 'Index')}; return A.IsValidIndex(I) ? A[I] : {default_of(t)}; }}()"
+        raise Unsupported(f"array function {f} has no C++ translation yet", node)
+
+    def array_statement(self, node: dict):
+        f = node.get("member", "")
+        arr = self.lvalue(node, "TargetArray")
+        ret = node["_pins"].get("ReturnValue")
+        target = None
+        if ret and ret.get("links"):
+            target = self.declare_temp(node, ret)
+        if f in ("Array_Add", "Array_AddUnique"):
+            call = f"({arr}).{'Add' if f == 'Array_Add' else 'AddUnique'}({self.input(node, 'NewItem')})"
+        elif f == "Array_Clear":
+            call = f"({arr}).Empty()"
+        elif f == "Array_RemoveItem":
+            call = f"(({arr}).Remove({self.input(node, 'Item')}) > 0)"
+        elif f == "Array_Remove":
+            self.say(f"if (({arr}).IsValidIndex({self.input(node, 'IndexToRemove')})) {{ ({arr}).RemoveAt({self.input(node, 'IndexToRemove')}); }}")
+            return self.exec_target(node, "then")
+        else:
+            raise Unsupported(f"array function {f} has no C++ translation yet", node)
+        self.say(f"{target} = {call};" if target else f"{call};")
+        return self.exec_target(node, "then")
+
     def statement(self, node: dict) -> dict | None:
         cls, kind = node["class"], node.get("kind")
+        if cls == "K2Node_CallArrayFunction":
+            return self.array_statement(node)
         if cls in ("K2Node_CallFunction", "K2Node_CallParentFunction", "K2Node_CommutativeAssociativeBinaryOperator", "K2Node_PromotableOperator"):
             if node.get("latent"):
-                raise Unsupported(f"{node.get('member')} is latent; latent actions stay in Blueprint", node)
+                return self.latent_call(node)
             if cls == "K2Node_CallParentFunction":
                 call = self.parent_call(node)
                 self.say(call + ";")
@@ -847,6 +1015,8 @@ class Fn:
                     self.say(b)
             return self.exec_target(node, "then")
         if cls == "K2Node_VariableSet":
+            if node.get("memberAccess") == "private" and not self.plan.is_own_member(node["member"]):
+                raise Unsupported(f"sets {node['member']}, which is private in C++", node)
             target = node["_pins"].get("self")
             if target and target.get("links") and not self.ex.is_self_class(node.get("memberOwner", "")):
                 raise Unsupported("sets another object's Blueprint variable", node)
@@ -906,6 +1076,8 @@ class Fn:
             return self.exec_target(node, "then")
         if cls == "K2Node_Knot":
             return self.exec_target(node, "OutputPin")
+        if cls == "K2Node_Timeline":
+            return self.timeline_input(node)
         if cls == "K2Node_VariableGet":            # validated get: branches on IsValid
             self.say(f"if (IsValid({self.var_get(node)}))")
             self.block(self.exec_target(node, "then"))
@@ -915,6 +1087,42 @@ class Fn:
                 self.block(other)
             return None
         raise Unsupported(f"node {cls.replace('K2Node_', '')} ({node.get('title', '').splitlines()[0]}) has no C++ translation yet", node)
+
+    def latent_call(self, node: dict):
+        """Delay, MoveComponentTo ...: the call schedules the latent action; what follows Completed becomes its own
+        UFUNCTION, which the latent action manager calls when the action finishes (as the Blueprint's resume point)."""
+        if self.mode != "event":
+            raise Unsupported("a latent action outside the event graph", node)
+        if self.loop_depth:
+            raise Unsupported("a latent action inside a loop (Completed would run once, after the loop)", node)
+        ret_pin = node["_pins"].get("ReturnValue")
+        if ret_pin and ret_pin.get("links"):
+            raise Unsupported(f"the result of latent {node.get('member')} is used", node)
+        entered = self.entered
+        name = self.plan.continuation(self, node)
+        self.entered = entered
+        self.guarded = None
+        call, _outs, _ret = self.call_expr(node, None, pure=False, latent=name)
+        if self.guarded:
+            self.say(f"if ({self.guarded}) {{ {call}; }}")
+        else:
+            self.say(f"{call};")
+        return None
+
+    def timeline_input(self, node: dict):
+        """Play / Reverse / Stop ... on the timeline component (None: skipped, as the Blueprint does)."""
+        member = self.plan.timeline_member(node)
+        entered = self.entered or ""
+        calls = {"Play": "Play()", "PlayFromStart": "PlayFromStart()", "Stop": "Stop()", "Reverse": "Reverse()",
+                 "ReverseFromEnd": "ReverseFromEnd()"}
+        if entered == "SetNewTime":
+            call = f"SetNewTime((float)({self.input(node, 'NewTime')}))"
+        elif entered in calls:
+            call = calls[entered]
+        else:
+            raise Unsupported(f"timeline entered through '{entered}'", node)
+        self.say(f"if ({member}) {{ {member}->{call}; }}")
+        return None
 
     def parent_call(self, node):
         f = self.native_fn(node)
@@ -973,7 +1181,9 @@ class Fn:
             var = f"Index_{node['id'][:8]}"
             self.loop_vars[(node["id"], "Index")] = var
             self.say(f"for (int32 {var} = {self.input(node, 'FirstIndex')}; {var} <= {self.input(node, 'LastIndex')}; ++{var})")
+            self.loop_depth += 1
             self.block(self.exec_target(node, "LoopBody"))
+            self.loop_depth -= 1
             return self.exec_target(node, "Completed")
         if name in ("ForEachLoop", "ForEachLoopWithBreak"):
             if name == "ForEachLoopWithBreak":
@@ -983,11 +1193,15 @@ class Fn:
             self.loop_vars[(node["id"], "Array Index")] = var
             self.loop_vars[(node["id"], "Array Element")] = f"({arr})[{var}]"
             self.say(f"for (int32 {var} = 0; {var} < ({arr}).Num(); ++{var})")
+            self.loop_depth += 1
             self.block(self.exec_target(node, "LoopBody"))
+            self.loop_depth -= 1
             return self.exec_target(node, "Completed")
         if name == "WhileLoop":
             self.say(f"while ({self.input(node, 'Condition')})")
+            self.loop_depth += 1
             self.block(self.exec_target(node, "LoopBody"))
+            self.loop_depth -= 1
             return self.exec_target(node, "Completed")
         if name == "IsValid":
             self.say(f"if (IsValid({self.input(node, 'InputObject')}))")
@@ -998,7 +1212,8 @@ class Fn:
                 self.block(other)
             return None
         if name == "FlipFlop":
-            state = self.plan.state_member(node, "FlipFlop", "bool", "true")
+            # the macro's IsA starts false and flips before branching: A runs first, with IsA true
+            state = self.plan.state_member(node, "FlipFlop", "bool", "false")
             self.loop_vars[(node["id"], "IsA")] = state
             self.say(f"{state} = !{state};")
             self.say(f"if ({state})")
@@ -1062,6 +1277,8 @@ class Plan:
         self.bodies: dict[str, Fn] = {}
         self.notes: list[str] = []
         self.local_names: dict[str, str] = {}
+        self.timelines: dict[str, Item] = {}
+        self.continuations: dict[str, Fn | None] = {}   # latent node id -> its continuation (None while translating)
 
     def _kind(self) -> str:
         chain = " ".join(short(p) for p in self.ex.doc.get("parentChain", []))
@@ -1097,10 +1314,88 @@ class Plan:
         out = []
         for p in [short(x) for x in self.ex.doc.get("parentChain", [])]:
             out += [p] + known.get(p, [])
-        # the native parent may be a project class: its ancestors come from the export's types (nativeParent)
+        # the native parent may be a project class: walk its super classes as the export describes them
+        path, seen = self.parent_path, set()
+        while path and path not in seen:
+            seen.add(path)
+            out.append(short(path))
+            out += known.get(short(path), [])
+            path = self.ex.type_info(path).get("super", "")
+        return list(dict.fromkeys(out))
+
+    def parent_function(self, name: str) -> dict | None:
+        """A function the native parent (or an ancestor) declares under this name."""
+        for f in self.ex.functions.values():
+            if f.get("name") == name and not self.ex.is_self_class(f.get("owner", "")) and self.inherits(f.get("owner", "")):
+                return f
+        return None
+
+    def input_host(self) -> str | None:
+        anc = set(self.parent_ancestors())
+        if "PlayerController" in anc:
+            return "controller"
+        if "Pawn" in anc:
+            return "pawn"
+        if self.kind == "actor":
+            return "actor"
+        return None
+
+    def continuation(self, fn: Fn, node: dict) -> str:
+        """The UFUNCTION a latent node resumes: the flow after its Completed pin, translated once."""
+        key = node["id"]
+        name = f"Latent_{key[:8]}"
+        fn.conts.add(key)
+        if key not in self.continuations:
+            self.continuations[key] = None
+            root = fn.root_fn
+            cont = Fn(self, fn.graph, root.root, "event", root.arg_params() if root is fn else fn.arg_params())
+            cont.root_fn = root
+            try:
+                cont.translate(cont.exec_target(node, "then"))
+            except Unsupported:
+                del self.continuations[key]
+                raise
+            self.continuations[key] = cont
+        return name
+
+    def cont_closure(self, keys: set[str]) -> set[str]:
+        out, todo = set(), list(keys)
+        while todo:
+            k = todo.pop()
+            if k in out:
+                continue
+            out.add(k)
+            c = self.continuations.get(k)
+            if c:
+                todo += list(c.conts)
         return out
 
+    def timeline_item(self, node: dict) -> Item:
+        item = self.timelines.get(node.get("member", ""))
+        if item is None:
+            raise Unsupported(f"timeline {node.get('member')} is not in the export (export again)", node)
+        if not item.migrated:
+            raise Unsupported(f"timeline {item.bp} stays in Blueprint ({item.reason})", node)
+        return item
+
+    def timeline_member(self, node: dict) -> str:
+        return self.timeline_item(node).cpp
+
+    def timeline_value(self, node: dict, pin: str) -> str:
+        item = self.timeline_item(node)
+        if pin == "Direction":
+            return item.extra["direction"]
+        for tr in item.extra["tracks"]:
+            if tr["name"] == pin and tr["type"] != "event":
+                return tr["member"]
+        raise Unsupported(f"timeline output {pin}", node)
+
     def var_cpp(self, bp_name: str, node=None) -> str:
+        t = self.timelines.get(bp_name)
+        if t is not None:
+            if not t.migrated:
+                raise Unsupported(f"uses the timeline '{bp_name}' that stays in Blueprint ({t.reason})", node)
+            return t.cpp
         v = self.vars.get(bp_name)
         if v and v.migrated:
             return v.cpp
@@ -1114,6 +1409,9 @@ class Plan:
             # a variable the native parent declares (Controller, RootComponent ...)
             return bp_name
         raise Unsupported(f"uses the variable '{bp_name}' that stays in Blueprint ({(v or c or w).reason})", node)
+
+    def is_own_member(self, bp_name: str) -> bool:
+        return bp_name in self.vars or bp_name in self.components or bp_name in self.widgets or bp_name in self.timelines
 
     def rep_notify(self, bp_name: str) -> str | None:
         v = self.vars.get(bp_name)
@@ -1150,6 +1448,7 @@ class Plan:
         self.plan_components()
         self.plan_widgets()
         self.plan_dispatchers()
+        self.plan_timelines()
         self.plan_functions()
         # fixed point: a function may only be migrated if everything it uses is
         for _ in range(8):
@@ -1243,6 +1542,39 @@ class Plan:
                 item.reason = e.reason
             self.dispatchers[g["name"]] = item
 
+    def plan_timelines(self):
+        for t in self.ex.doc.get("timelines", []):
+            item = Item(t["name"], ident(t["name"]), extra={"template": t})
+            node = next((n for g in self.ex.graphs if g["kind"] == "event" for n in g["nodes"]
+                         if n["class"] == "K2Node_Timeline" and n.get("member") == t["name"]), None)
+            taken = self.ex.parent_members | {v.cpp for v in self.vars.values()} | {c.cpp for c in self.components.values()}
+            if self.kind != "actor":
+                item.reason = "timelines only run in actors"
+            elif "detail" not in t:
+                item.reason = "the export has no timeline curves (export again with the current DwoLens)"
+            elif node is None:
+                item.reason = "no timeline node uses it"
+            elif item.cpp in taken:
+                item.reason = f"the name {item.cpp} is already taken"
+            else:
+                item.migrated = True
+                item.extra["node"] = node
+                item.extra["direction"] = f"{item.cpp}_Direction"
+                item.extra["tracks"] = []
+                for tr in t["detail"]:
+                    entry = dict(tr)
+                    if tr["type"] == "event":
+                        entry["function"] = f"{item.cpp}__{ident(tr['name'])}"
+                    else:
+                        entry["member"] = f"{item.cpp}_{ident(tr['name'])}"
+                        if tr.get("externalCurve"):
+                            cls = {"float": "UCurveFloat", "vector": "UCurveVector", "color": "UCurveLinearColor"}[tr["type"]]
+                            entry["literal"] = (f"TObjectPtr<{cls}>", tr["externalCurve"])
+                    item.extra["tracks"].append(entry)
+                item.extra["update"] = f"{item.cpp}__Update"
+                item.extra["finished"] = f"{item.cpp}__Finished"
+            self.timelines[t["name"]] = item
+
     def plan_functions(self):
         for g in self.ex.graphs:
             if g["kind"] != "function":
@@ -1252,7 +1584,16 @@ class Plan:
                 continue
             item = Item(g["name"], ident(g["name"]), extra={"graph": g, "entry": entry})
             if item.cpp in self.ex.parent_members and g["name"] != "UserConstructionScript":
-                item.reason = f"the native parent already has a member named {item.cpp} (an override: kept in Blueprint for now)"
+                nf = self.parent_function(g["name"])
+                flags = set((nf or {}).get("flags", []))
+                if not nf or "BlueprintEvent" not in flags:
+                    item.reason = f"the native parent already has a member named {item.cpp}"
+                    self.funcs[g["name"]] = item
+                    continue
+                try:
+                    self.plan_override_function(g, entry, item, nf)
+                except Unsupported as e:
+                    item.migrated, item.reason = False, e.reason
                 self.funcs[g["name"]] = item
                 continue
             flags = set(entry.get("functionFlags", []))
@@ -1295,6 +1636,33 @@ class Plan:
                 except Unsupported as e:
                     self.funcs[n["member"]] = Item(n["member"], ident(n["member"]), False, e.reason, extra={"customEvent": True, "node": n["id"]})
 
+    def plan_override_function(self, g: dict, entry: dict, item: Item, nf: dict):
+        """A BlueprintNativeEvent / BlueprintImplementableEvent the Blueprint implements as a function (it has outputs).
+        Native event: becomes the C++ _Implementation. Implementable event: C++ cannot override it, so the body moves to
+        a C++ function and the Blueprint function keeps only a call to it (rebase writes that call)."""
+        native = "Native" in nf.get("flags", [])
+        params, ret = [], None
+        decls = []
+        for prm in nf["params"]:
+            if prm.get("return"):
+                ret = prm["cpp"]
+                continue
+            t = prm["cpp"]
+            params.append((prm["name"], prm["name"], bool(prm.get("out")), t))
+            decls.append(param_decl(prm, enum_as_byte=not native))
+        item.extra.update(params=params, decls=decls, flags=sorted(set(entry.get("functionFlags", []))),
+                          **{"return": ret})
+        if native:
+            item.extra["impl"] = f"{g['name']}_Implementation"
+            item.extra["bne"] = True
+            item.cpp = g["name"]                 # the Blueprint calls keep calling the UFUNCTION
+        else:
+            item.extra["thunk"] = True
+            item.cpp = f"{g['name']}Native"
+            if item.cpp in self.ex.parent_members:
+                raise Unsupported(f"the name {item.cpp} is already taken")
+        item.migrated = True
+
     def event_roots(self) -> list[tuple[dict, dict]]:
         out = []
         for g in self.ex.graphs:
@@ -1302,7 +1670,8 @@ class Plan:
                 continue
             for n in g["nodes"]:
                 if n["class"] in ("K2Node_Event", "K2Node_CustomEvent", "K2Node_ComponentBoundEvent", "K2Node_EnhancedInputAction",
-                                  "K2Node_InputAction", "K2Node_InputKey", "K2Node_WidgetAnimationEvent", "K2Node_InputAxisEvent"):
+                                  "K2Node_InputAction", "K2Node_InputKey", "K2Node_WidgetAnimationEvent", "K2Node_InputAxisEvent",
+                                  "K2Node_InputAxisKeyEvent", "K2Node_InputTouch", "K2Node_InputVectorAxisEvent"):
                     out.append((g, n))
         return out
 
@@ -1322,6 +1691,7 @@ class Plan:
         self.event_members.clear()
         self.state_members.clear()
         self.literal_props.clear()
+        self.continuations.clear()
         for name, item in self.funcs.items():
             if not item.migrated or item.extra.get("customEvent"):
                 continue
@@ -1354,6 +1724,16 @@ class Plan:
                 changed = True
             finally:
                 self.local_names = {}
+        # timelines: their Update / Finished / event track outputs are functions the timeline component calls
+        for name, item in self.timelines.items():
+            if not item.migrated:
+                continue
+            try:
+                self.translate_timeline(item)
+            except Unsupported as e:
+                item.migrated = False
+                item.reason = e.reason + (f" [node {e.node['id'][:8]} {e.node.get('title', '').splitlines()[0]}]" if e.node else "")
+                changed = True
         events = []
         for g, n in self.event_roots():
             item = Item(n.get("member") or n.get("title", ""), "", extra={"node": n["id"], "class": n["class"]})
@@ -1379,13 +1759,170 @@ class Plan:
                     changed = True
         if prev and prev != {(e.extra["node"], e.migrated) for e in events}:
             changed = True
+        # a timeline moves only with everything that drives it: code that stays in Blueprint could not reach it
+        moved = set()
+        for e in events:
+            if e.migrated:
+                moved |= set(e.extra.get("nodes", []))
+        for t in self.timelines.values():
+            if t.migrated:
+                moved |= set(t.extra.get("nodes", []))
+        for t in self.timelines.values():
+            if not t.migrated:
+                continue
+            tl = t.extra["node"]
+            g = self.ex.node_graph[tl["id"]]
+            for n in g["nodes"]:
+                for p in n.get("pins", []):
+                    if p["dir"] == "out" and p["type"].get("category") == "exec" and any(l["node"] == tl["id"] for l in p.get("links", [])):
+                        if n["id"] not in moved:
+                            t.migrated = False
+                            t.reason = f"driven by '{n.get('title', '').splitlines()[0]}', which stays in Blueprint"
+                            changed = True
         # a custom event other code calls must be migrated for those callers to stay migrated: handled by the
         # caller translation (self_call looks custom events up in funcs)
         return changed
 
+    def translate_timeline(self, item: Item):
+        node = item.extra["node"]
+        g = self.ex.node_graph[node["id"]]
+        used, conts = {node["id"]}, set()
+        outs = [("Update", item.extra["update"]), ("Finished", item.extra["finished"])]
+        outs += [(tr["name"], tr["function"]) for tr in item.extra["tracks"] if tr["type"] == "event"]
+        item.extra["functions"] = []
+        for pin, fname in outs:
+            fn = Fn(self, g, node, "event", {})
+            fn.translate(fn.exec_target(node, pin) if node["_pins"].get(pin) else None)
+            used |= fn.used_nodes
+            conts |= fn.conts
+            for k, v in fn.members.items():
+                self.event_members[k] = v
+            self.bodies[f"tl:{item.bp}:{pin}"] = fn
+            item.extra["functions"].append((fname, f"tl:{item.bp}:{pin}"))
+        for k in self.cont_closure(conts):
+            c = self.continuations.get(k)
+            if c:
+                used |= c.used_nodes
+                self.event_members.update(c.members)
+        item.extra["continuations"] = sorted(self.cont_closure(conts))
+        item.extra["nodes"] = sorted(used)
+        for tr in item.extra["tracks"]:
+            if tr.get("literal"):
+                tr["literalCpp"] = self.literal_raw(*tr["literal"])
+
+    def literal_raw(self, cpp_type: str, path: str) -> str:
+        if path not in self.literal_props:
+            self.literal_props[path] = {"cpp": f"NativeLiteral_{len(self.literal_props)}", "type": cpp_type, "path": path}
+        return self.literal_props[path]["cpp"]
+
+    def translate_input(self, g: dict, n: dict, item: Item):
+        """Input events: one UFUNCTION per exec output, bound where the engine binds the Blueprint's input delegates
+        (after SetupPlayerInputComponent / SetupInputComponent, or when EnableInput creates the input component)."""
+        cls = n["class"]
+        host = self.input_host()
+        if host is None:
+            raise Unsupported("input events outside an actor")
+        props = n.get("props")
+        if props is None:
+            raise Unsupported("the export has no input node settings (export again with the current DwoLens)")
+        nid8 = n["id"][:8]
+        parts, bindings = [], []
+        shared: dict = {}
+        if cls in ("K2Node_InputAction", "K2Node_InputKey"):
+            key_pin = n["_pins"]["Key"]
+            member = f"InKey_{nid8}"
+            self.event_members[member] = (self.types.of(key_pin["type"], header=True), False)
+            self.types.header_includes.add("InputCoreTypes.h")
+            self.types.modules.add("InputCore")
+            shared[(n["id"], "Key")] = member
+            if cls == "K2Node_InputAction":
+                label = ident(props.get("InputActionName", ""))
+                what = {"kind": "action", "name": props.get("InputActionName", "")}
+            else:
+                key = props.get("InputKey", "")
+                key = re.sub(r"^\(KeyName=\"?([^\")]+)\"?\)$", r"\1", key)
+                label = ident(key)
+                what = {"kind": "key", "key": key, "shift": prop_bool(props, "bShift"), "ctrl": prop_bool(props, "bControl"),
+                        "alt": prop_bool(props, "bAlt"), "cmd": prop_bool(props, "bCommand")}
+                self.types.modules |= {"Slate", "SlateCore"}
+            for pin, evt in (("Pressed", "IE_Pressed"), ("Released", "IE_Released")):
+                if not n["_pins"].get(pin, {}).get("links"):
+                    continue
+                fname = f"Inp{'Act' if cls == 'K2Node_InputAction' else 'Key'}_{label}_{pin}_{nid8}"
+                parts.append({"pin": pin, "function": fname, "signature": f"void {fname}(FKey Key)", "prologue": [f"\t{member} = Key;"]})
+                bindings.append(dict(what, event=evt, function=fname, consume=prop_bool(props, "bConsumeInput", True),
+                                     paused=prop_bool(props, "bExecuteWhenPaused"), override=prop_bool(props, "bOverrideParentBinding", True)))
+        elif cls == "K2Node_InputAxisEvent":
+            fname = f"InpAxis_{ident(props.get('InputAxisName', ''))}_{nid8}"
+            shared[(n["id"], "AxisValue")] = "AxisValue"
+            parts.append({"pin": "then", "function": fname, "signature": f"void {fname}(float AxisValue)", "prologue": []})
+            bindings.append({"kind": "axis", "name": props.get("InputAxisName", ""), "function": fname,
+                             "consume": prop_bool(props, "bConsumeInput", True), "paused": prop_bool(props, "bExecuteWhenPaused"),
+                             "override": prop_bool(props, "bOverrideParentBinding", True)})
+        elif cls == "K2Node_EnhancedInputAction":
+            path = prop_path(props.get("InputAction", ""))
+            if not path or path == "None":
+                raise Unsupported("Enhanced Input event without an input action")
+            ia_pin = n["_pins"].get("InputAction")
+            if not ia_pin:
+                raise Unsupported("Enhanced Input event without its InputAction pin")
+            literal = self.literal_property(ia_pin["type"], path)
+            self.types.modules.add("EnhancedInput")
+            self.types.includes |= {"EnhancedInputComponent.h", "InputAction.h"}
+            self.types.header_includes.add("InputActionValue.h")
+            value_pin = n["_pins"]["ActionValue"]
+            vt = value_pin["type"]
+            get_t = {"bool": "bool", "real": "float", "double": "float", "float": "float"}.get(vt.get("category"))
+            if vt.get("category") == "struct":
+                get_t = {"Vector2D": "FVector2D", "Vector": "FVector"}.get(short(vt.get("object", "")))
+            if not get_t:
+                raise Unsupported(f"Enhanced Input value of type {vt.get('category')}")
+            members = {}
+            for pin_name, expr in (("ActionValue", f"ActionValue.Get<{get_t}>()"), ("ElapsedSeconds", "ElapsedTime"),
+                                   ("TriggeredSeconds", "TriggeredTime"), ("InputAction", "const_cast<UInputAction*>(SourceAction)")):
+                p = n["_pins"][pin_name]
+                m = f"EIA_{nid8}_{pin_name}"
+                is_obj = self.types.is_object(p["type"])
+                self.event_members[m] = (self.types.of(p["type"], header=True, as_property=is_obj), is_obj)
+                shared[(n["id"], pin_name)] = m
+                members[m] = expr
+            prologue = [f"\t{m} = {e};" for m, e in members.items()]
+            for p in n["pins"]:
+                if p["dir"] != "out" or p["type"].get("category") != "exec" or not p.get("links"):
+                    continue
+                fname = f"InpAct_{ident(short(path))}_{p['name']}_{nid8}"
+                parts.append({"pin": p["name"], "function": fname,
+                              "signature": f"void {fname}(FInputActionValue ActionValue, float ElapsedTime, float TriggeredTime, const UInputAction* SourceAction)",
+                              "prologue": prologue})
+                bindings.append({"kind": "enhanced", "literal": literal, "trigger": p["name"], "function": fname})
+            self.types.forward.add("UInputAction")
+        else:
+            raise Unsupported(f"{cls.replace('K2Node_', '')} events are not translated yet")
+        used, conts = {n["id"]}, set()
+        for part in parts:
+            fn = Fn(self, g, n, "event", dict(shared))
+            fn.translate(fn.exec_target(n, part["pin"]))
+            used |= fn.used_nodes
+            conts |= fn.conts
+            for k, v in fn.members.items():
+                self.event_members[k] = v
+            fn.lines = part["prologue"] + fn.prologue + fn.lines
+            self.bodies[f"in:{n['id']}:{part['pin']}"] = fn
+            part["body"] = f"in:{n['id']}:{part['pin']}"
+        for k in self.cont_closure(conts):
+            c = self.continuations.get(k)
+            if c:
+                used |= c.used_nodes
+                self.event_members.update(c.members)
+        item.cpp = ""
+        item.extra.update(input=host, parts=parts, bindings=bindings, nodes=sorted(used), continuations=sorted(self.cont_closure(conts)))
+
     def translate_event(self, g: dict, n: dict, item: Item):
         cls = n["class"]
         params: dict = {}
+        if cls.startswith("K2Node_Input") or cls == "K2Node_EnhancedInputAction":
+            self.translate_input(g, n, item)
+            return
         if cls == "K2Node_Event":
             ov = self.override_for(n)
             native = self.ex.functions.get(f"{n.get('memberOwner', '')}:{n.get('member', '')}") or {}
@@ -1402,12 +1939,25 @@ class Plan:
                 for prm in native["params"]:
                     if prm.get("return"):
                         raise Unsupported("native event with a return value")
-                    args.append(f"{prm['cpp']} {prm['name']}")
+                    args.append(param_decl(prm, enum_as_byte=False))
                     params[(n["id"], prm["name"])] = prm["name"]
                 item.cpp = native["name"] + "_Implementation"
                 item.extra.update(signature=f"void {item.cpp}({', '.join(args)})", order="none", superCall="", override=True)
+            elif native and "BlueprintEvent" in native.get("flags", []):
+                # BlueprintImplementableEvent: C++ cannot override it. The body moves to a C++ function and the
+                # Blueprint event stays with a single call to it, so the native parent still reaches it.
+                args = []
+                for prm in native["params"]:
+                    if prm.get("return"):
+                        raise Unsupported("implementable event with a return value")
+                    args.append(param_decl(prm))
+                    params[(n["id"], prm["name"])] = prm["name"]
+                item.cpp = f"{native['name']}Native"
+                if item.cpp in self.ex.parent_members:
+                    raise Unsupported(f"the name {item.cpp} is already taken")
+                item.extra.update(signature=f"void {item.cpp}({', '.join(args)})", order="none", superCall="", thunk=True)
             else:
-                raise Unsupported(f"event {n.get('member')} has no native override to put it in (BlueprintImplementableEvent)")
+                raise Unsupported(f"event {n.get('member')} has no native signature in the export")
         elif cls == "K2Node_CustomEvent":
             if set(n.get("memberFlags", [])) & {"Net", "Server", "Client", "Multicast"}:
                 raise Unsupported("replicated custom events are not translated yet")
@@ -1441,7 +1991,15 @@ class Plan:
         fn = Fn(self, g, n, "event", params)
         then = "then" if "then" in n["_pins"] else None
         fn.translate(fn.exec_target(n, then) if then else None)
-        item.extra["nodes"] = sorted(fn.used_nodes)
+        used = set(fn.used_nodes)
+        for k in self.cont_closure(fn.conts):
+            c = self.continuations.get(k)
+            if c:
+                used |= c.used_nodes
+                self.event_members.update(c.members)
+        fn.lines = fn.prologue + fn.lines
+        item.extra["nodes"] = sorted(used)
+        item.extra["continuations"] = sorted(self.cont_closure(fn.conts))
         for k, v in fn.members.items():
             self.event_members[k] = v
         self.bodies[f"ev:{n['id']}"] = fn
@@ -1450,11 +2008,28 @@ class Plan:
     def summary(self) -> dict:
         def items(d):
             return [{"bp": i.bp, "cpp": i.cpp, "migrated": i.migrated, "reason": i.reason} for i in d]
+        def ev_kind(e):
+            x = e.extra
+            return ("custom" if x.get("custom") else "thunk" if x.get("thunk") else "input" if x.get("input")
+                    else "bound" if x.get("bind") else "override")
         ev = [{"bp": e.bp, "cpp": e.cpp, "node": e.extra["node"], "migrated": e.migrated, "reason": e.reason,
-               "nodes": e.extra.get("nodes", [])} for e in self.events]
+               "kind": ev_kind(e), "nodes": e.extra.get("nodes", [])} for e in self.events]
         fns = [{"bp": f.bp, "cpp": f.cpp, "migrated": f.migrated, "reason": f.reason, "nodes": f.extra.get("nodes", []),
+                "thunk": bool(f.extra.get("thunk")), "override": bool(f.extra.get("bne")),
                 "params": [{"bp": p, "cpp": c, "out": o} for p, c, o, _t in f.extra.get("params", [])]}
                for f in self.funcs.values() if not f.extra.get("customEvent")]
+        tls = []
+        for t in self.timelines.values():
+            props = {}
+            if t.migrated:
+                tmpl = t.extra["template"]
+                props[tmpl.get("directionProperty", "")] = t.extra["direction"]
+                for tr in t.extra["tracks"]:
+                    if tr.get("property"):
+                        props[tr["property"]] = tr["member"]
+            tls.append({"bp": t.bp, "cpp": t.cpp, "migrated": t.migrated, "reason": t.reason,
+                        "node": (t.extra.get("node") or {}).get("id", ""), "nodes": t.extra.get("nodes", []),
+                        "properties": {k: v for k, v in props.items() if k}})
         graph_nodes = {n["id"] for g in self.ex.graphs if g["kind"] in ("event", "function") for n in g["nodes"]
                        if n["class"] not in ("EdGraphNode_Comment",)}
         graph_nodes -= {e.extra["node"] for e in self.events if e.extra.get("empty")}   # unwired template events
@@ -1462,10 +2037,13 @@ class Plan:
         for e in self.events:
             if e.migrated:
                 moved |= set(e.extra.get("nodes", []))
+        for t in self.timelines.values():
+            if t.migrated:
+                moved |= set(t.extra.get("nodes", []))
         for f in self.funcs.values():
             if f.migrated:
                 moved |= set(f.extra.get("nodes", []))
-                if f.extra.get("graph"):
+                if f.extra.get("graph") and not f.extra.get("thunk"):
                     moved |= {n["id"] for n in f.extra["graph"]["nodes"] if n["class"] != "EdGraphNode_Comment"}
         return {
             "schema": SCHEMA, "blueprint": self.ex.doc.get("asset"), "package": self.ex.doc.get("package"), "name": self.ex.name,
@@ -1473,7 +2051,7 @@ class Plan:
             "parent": self.parent_cpp, "parentPath": self.parent_path, "exportedAtUtc": self.ex.doc.get("exportedAtUtc"),
             "variables": items(self.vars.values()), "components": items(self.components.values()),
             "widgets": items(self.widgets.values()), "dispatchers": items(self.dispatchers.values()),
-            "functions": fns, "events": ev,
+            "functions": fns, "events": ev, "timelines": tls,
             "literals": [{"cpp": v["cpp"], "path": v["path"], "type": v["type"]} for v in self.literal_props.values()],
             "modules": sorted(m for m in self.types.modules if m not in ("CoreUObject", "Engine", "Core") and m != self.module),
             "coverage": {"nodes": len(graph_nodes), "migrated": len(moved & graph_nodes)},
@@ -1482,17 +2060,40 @@ class Plan:
 
 # ------------------------------------------------------------------------------------------------ C++ writer
 
+LITERALS_FORWARD = ("// Generated by dwookit native migration: the helpers live in the shared copy one folder up.\n"
+                    "#pragma once\n#include \"../DwoNativeLiterals.h\"\n")
+
+
 def literals_header() -> str:
     return """// Generated by dwookit native migration. Literal helpers that parse values exactly as the Blueprint compiler
 // does (FDefaultValueHelper first, then the struct's ImportText), evaluated once per use site.
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Curves/RichCurve.h"
 #include "Misc/DefaultValueHelper.h"
 #include "UObject/Class.h"
 
 namespace DwoNative
 {
+	/** A curve key exactly as the Blueprint's timeline stored it (tangents included, nothing recomputed). */
+	inline FRichCurveKey Key(float Time, float Value, uint8 Interp, uint8 TangentMode, uint8 WeightMode, float Arrive, float ArriveWeight, float Leave, float LeaveWeight)
+	{
+		FRichCurveKey K(Time, Value, Arrive, Leave, static_cast<ERichCurveInterpMode>(Interp));
+		K.TangentMode = static_cast<ERichCurveTangentMode>(TangentMode);
+		K.TangentWeightMode = static_cast<ERichCurveTangentWeightMode>(WeightMode);
+		K.ArriveTangentWeight = ArriveWeight;
+		K.LeaveTangentWeight = LeaveWeight;
+		return K;
+	}
+	inline void SetCurve(FRichCurve& Curve, const TArray<FRichCurveKey>& Keys, uint8 Pre, uint8 Post, float Default)
+	{
+		Curve.Reset();
+		Curve.Keys = Keys;
+		Curve.PreInfinityExtrap = static_cast<ERichCurveExtrapolation>(Pre);
+		Curve.PostInfinityExtrap = static_cast<ERichCurveExtrapolation>(Post);
+		Curve.DefaultValue = Default;
+	}
 	inline FVector ParseVector(const TCHAR* Text)
 	{
 		FVector Value(ForceInit);
@@ -1533,9 +2134,27 @@ def write(plan: Plan, out: Path) -> dict:
     vars_ = [v for v in plan.vars.values() if v.migrated]
     comps = [c for c in plan.components.values() if c.migrated]
     widgets = [w for w in plan.widgets.values() if w.migrated]
-    funcs = [f for f in plan.funcs.values() if f.migrated and not f.extra.get("customEvent") and not f.extra.get("construction")]
+    all_funcs = [f for f in plan.funcs.values() if f.migrated and not f.extra.get("customEvent") and not f.extra.get("construction")]
+    funcs = [f for f in all_funcs if not f.extra.get("bne") and not f.extra.get("thunk")]
+    override_funcs = [f for f in all_funcs if f.extra.get("bne") or f.extra.get("thunk")]
     construction = next((f for f in plan.funcs.values() if f.migrated and f.extra.get("construction")), None)
     events = [e for e in plan.events if e.migrated]
+    timelines = [t for t in plan.timelines.values() if t.migrated]
+    inputs = [e for e in events if e.extra.get("input")]
+    events = [e for e in events if not e.extra.get("input")]
+    cont_keys = set()
+    for x in events + inputs + timelines:
+        cont_keys |= set(x.extra.get("continuations", []))
+    conts = sorted(k for k in cont_keys if plan.continuations.get(k))
+    on_construction = bool(construction or timelines)
+    if timelines:
+        t.header_includes.add("Components/TimelineComponent.h")
+        t.includes |= {"Curves/CurveFloat.h", "Curves/CurveVector.h", "Curves/CurveLinearColor.h"}
+        t.forward |= {"UCurveFloat", "UCurveVector", "UCurveLinearColor", "UTimelineComponent"}
+        plan.literals.uses_helpers = True
+    if inputs:
+        t.includes.add("Components/InputComponent.h")
+    h_inc = sorted(t.header_includes - {pi})
     dispatchers = [d for d in plan.dispatchers.values() if d.migrated]
     needs_net = any("Replicated" in v.extra.get("flags", []) for v in vars_)
 
@@ -1570,6 +2189,12 @@ def write(plan: Plan, out: Path) -> dict:
     for c in comps:
         H.append(f'\tUPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")')
         H.append(f"\tTObjectPtr<{c.extra['cppClass']}> {c.cpp};")
+        H.append("")
+    for tl in timelines:
+        meta = f', meta = (DisplayName = "{tl.bp}")' if tl.cpp != tl.bp else ""
+        H.append(f'\t/** Timeline {tl.bp}: created at construction, as the Blueprint created it. */')
+        H.append(f'\tUPROPERTY(BlueprintReadWrite, Category = "Timelines"{meta})')
+        H.append(f"\tTObjectPtr<UTimelineComponent> {tl.cpp};")
         H.append("")
     for w in widgets:
         H.append("\tUPROPERTY(BlueprintReadOnly, meta = (BindWidget))")
@@ -1639,11 +2264,29 @@ def write(plan: Plan, out: Path) -> dict:
             H.append("")
     protected = [e for e in events if e.extra.get("override")]
     bound = [e for e in events if e.extra.get("bind")]
-    if protected or bound or needs_net or construction:
+    thunks = [e for e in events if e.extra.get("thunk")]
+    hosts = sorted({e.extra["input"] for e in inputs})
+    if protected or bound or needs_net or on_construction or thunks or override_funcs or hosts:
         H.append("protected:")
         for e in protected:
             H.append(f"\tvirtual {e.extra['signature']} override;")
-        if construction:
+        for e in thunks:
+            H.append(f"\t/** The Blueprint's {e.bp} event calls this (an implementable event cannot be overridden in C++). */")
+            H.append('\tUFUNCTION(BlueprintCallable, Category = "Native")')
+            H.append(f"\t{e.extra['signature']};")
+        for f in override_funcs:
+            ret = f.extra.get("return") or "void"
+            if f.extra.get("bne"):
+                H.append(f"\tvirtual {ret} {f.extra['impl']}({', '.join(f.extra['decls'])}) override;")
+            else:
+                H.append(f"\t/** The Blueprint's {f.bp} function calls this (an implementable event cannot be overridden in C++). */")
+                H.append('\tUFUNCTION(BlueprintCallable, Category = "Native")')
+                H.append(f"\t{ret} {f.cpp}({', '.join(f.extra['decls'])});")
+        for h in hosts:
+            H.append({"pawn": "\tvirtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;",
+                      "controller": "\tvirtual void SetupInputComponent() override;",
+                      "actor": "\tvirtual void EnableInput(APlayerController* PlayerController) override;"}[h])
+        if on_construction:
             H.append("\tvirtual void OnConstruction(const FTransform& Transform) override;")
         if needs_net:
             H.append("\tvirtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;")
@@ -1657,6 +2300,23 @@ def write(plan: Plan, out: Path) -> dict:
                 H.append(f"\t{e.extra['signature']};")
         H.append("")
     privates = []
+    callbacks = []
+    for e in inputs:
+        for part in e.extra["parts"]:
+            callbacks.append(f"\t{part['signature']};")
+    for tl in timelines:
+        for fname, _key in tl.extra["functions"]:
+            callbacks.append(f"\tvoid {fname}();")
+        privates.append(f"\tUPROPERTY()\n\tTEnumAsByte<ETimelineDirection::Type> {tl.extra['direction']};")
+        for tr in tl.extra["tracks"]:
+            if tr["type"] != "event":
+                ty = {"float": "float", "vector": "FVector", "color": "FLinearColor"}[tr["type"]]
+                privates.append(f"\tUPROPERTY()\n\t{ty} {tr['member']}{{}};")
+    for k in conts:
+        callbacks.append(f"\tvoid Latent_{k[:8]}();")
+    for cb in callbacks:
+        privates.append("\tUFUNCTION()")
+        privates.append(cb)
     for name, (ty, is_prop) in sorted(plan.event_members.items()):
         if is_prop:
             privates.append("\tUPROPERTY(Transient)")
@@ -1727,6 +2387,14 @@ def write(plan: Plan, out: Path) -> dict:
             out.append(f"\t{ty} {name}{(' = ' + init) if init else '{}'};")
         return out + fn.lines
 
+    for f in override_funcs:
+        fn = plan.bodies.get("fn:" + f.bp)
+        name = f.extra["impl"] if f.extra.get("bne") else f.cpp
+        C.append(f"{f.extra.get('return') or 'void'} {cls}::{name}({', '.join(f.extra['decls'])})")
+        C.append("{")
+        C += body(fn)
+        C.append("}")
+        C.append("")
     for f in funcs:
         fn = plan.bodies.get("fn:" + f.bp)
         args = []
@@ -1737,14 +2405,39 @@ def write(plan: Plan, out: Path) -> dict:
         C += body(fn)
         C.append("}")
         C.append("")
-    if construction:
-        fn = plan.bodies.get("fn:" + construction.bp)
+    if on_construction:
         C.append(f"void {cls}::OnConstruction(const FTransform& Transform)")
         C.append("{")
         C.append("\tSuper::OnConstruction(Transform);")
-        C += body(fn)
+        for tl in timelines:
+            C += timeline_construction(tl)
+        if construction:
+            C += body(plan.bodies.get("fn:" + construction.bp))
         C.append("}")
         C.append("")
+    for tl in timelines:
+        for fname, key in tl.extra["functions"]:
+            C.append(f"void {cls}::{fname}()")
+            C.append("{")
+            C += body(plan.bodies[key])
+            C.append("}")
+            C.append("")
+    for k in conts:
+        C.append(f"void {cls}::Latent_{k[:8]}()")
+        C.append("{")
+        C += body(plan.continuations[k])
+        C.append("}")
+        C.append("")
+    for h in hosts:
+        C += input_host(cls, h, [b for e in inputs if e.extra["input"] == h for b in e.extra["bindings"]])
+    for e in inputs:
+        for part in e.extra["parts"]:
+            m = re.match(r"void (\w+)\((.*)\)$", part["signature"])
+            C.append(f"void {cls}::{m.group(1)}({m.group(2)})")
+            C.append("{")
+            C += body(plan.bodies[part["body"]])
+            C.append("}")
+            C.append("")
     for e in events:
         fn = plan.bodies.get(f"ev:{e.extra['node']}")
         sig = e.extra["signature"]
@@ -1768,13 +2461,158 @@ def write(plan: Plan, out: Path) -> dict:
 
     files = {f"{header_name}.h": "\n".join(H) + "\n", f"{header_name}.cpp": "\n".join(C) + "\n"}
     if plan.literals.uses_helpers:
-        files["DwoNativeLiterals.h"] = literals_header()
+        # one shared copy next to the Blueprint folders; each folder's copy only forwards to it, so a unity build
+        # that puts two generated classes in one file never sees two different versions of the helpers
+        (out.parent / "DwoNativeLiterals.h").write_text(literals_header(), encoding="utf-8", newline="\n")
+        for old in out.parent.glob("*/DwoNativeLiterals.h"):
+            old.write_text(LITERALS_FORWARD, encoding="utf-8", newline="\n")
+        files["DwoNativeLiterals.h"] = LITERALS_FORWARD
     for name, text in files.items():
         (out / name).write_text(text, encoding="utf-8", newline="\n")
     s["files"] = sorted(files)
     (out / f"{plan.ex.name}.native.json").write_text(json.dumps(s, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     (out / f"{plan.ex.name}.native.md").write_text(report_md(s), encoding="utf-8")
     return s
+
+
+def timeline_construction(tl: Item) -> list[str]:
+    """UBlueprintGeneratedClass::CreateTimelineComponent, line for line, with this timeline's settings."""
+    tm = tl.extra["template"]
+    o = [f"\t// timeline {tl.bp} (as UBlueprintGeneratedClass::CreateTimelineComponent creates it)",
+         "\tif (!IsTemplate())", "\t{",
+         f"\t\tUTimelineComponent* NewTimeline = NewObject<UTimelineComponent>(this, FName({cpp_string(tl.bp)}));",
+         "\t\tNewTimeline->CreationMethod = EComponentCreationMethod::UserConstructionScript;",
+         "\t\tBlueprintCreatedComponents.Add(NewTimeline);",
+         "\t\tNewTimeline->SetNetAddressable();",
+         "\t\tNewTimeline->SetPropertySetObject(this);",
+         f"\t\tNewTimeline->SetDirectionPropertyName(FName(TEXT(\"{tl.extra['direction']}\")));",
+         f"\t\tNewTimeline->SetTimelineLength({fmt_real(tm.get('length', 5.0), True)});",
+         f"\t\tNewTimeline->SetTimelineLengthMode({'TL_LastKeyFrame' if tm.get('lengthMode') == 'LastKeyFrame' else 'TL_TimelineLength'});",
+         f"\t\tNewTimeline->PrimaryComponentTick.TickGroup = {tm.get('tickGroup') or 'TG_PrePhysics'};",
+         f"\t\t{tl.cpp} = NewTimeline;"]
+
+    def curve(target: str, c: dict) -> str:
+        keys = ", ".join("DwoNative::Key(" + ", ".join([fmt_real(k[0], True), fmt_real(k[1], True), str(int(k[2])), str(int(k[3])), str(int(k[4])),
+                                                         fmt_real(k[5], True), fmt_real(k[6], True), fmt_real(k[7], True), fmt_real(k[8], True)]) + ")"
+                         for k in c["keys"])
+        return f"\t\t\tDwoNative::SetCurve({target}, {{ {keys} }}, {int(c['pre'])}, {int(c['post'])}, {fmt_real(c['default'], True)});"
+
+    for tr in tl.extra["tracks"]:
+        if tr["type"] == "event" and tr.get("curves"):
+            o.append("\t\t{")
+            o.append("\t\t\tFScriptDelegate EventDelegate;")
+            o.append(f"\t\t\tEventDelegate.BindUFunction(this, FName(TEXT(\"{tr['function']}\")));")
+            for k in tr["curves"][0]["keys"]:
+                o.append(f"\t\t\tNewTimeline->AddEvent({fmt_real(k[0], True)}, FOnTimelineEvent(EventDelegate));")
+            o.append("\t\t}")
+    for kind, cls, add, member, n in (("float", "UCurveFloat", "AddInterpFloat", "FloatCurve", 1), ("vector", "UCurveVector", "AddInterpVector", "FloatCurves", 3),
+                                      ("color", "UCurveLinearColor", "AddInterpLinearColor", "FloatCurves", 4)):
+        for tr in tl.extra["tracks"]:
+            if tr["type"] != kind or not (tr.get("curves") or tr.get("literalCpp")):
+                continue
+            delegate = {"float": "FOnTimelineFloat", "vector": "FOnTimelineVector", "color": "FOnTimelineLinearColor"}[kind]
+            o.append("\t\t{")
+            if tr.get("literalCpp"):
+                o.append(f"\t\t\t{cls}* Curve = {tr['literalCpp']};")
+            else:
+                o.append(f"\t\t\t{cls}* Curve = NewObject<{cls}>(this);")
+                for i, c in enumerate(tr["curves"]):
+                    o.append(curve(f"Curve->{member}" if n == 1 else f"Curve->{member}[{i}]", c))
+            o.append(f"\t\t\tNewTimeline->{add}(Curve, {delegate}(), FName(TEXT(\"{tr['member']}\")), FName({cpp_string(tr['name'])}));")
+            o.append("\t\t}")
+    for what, fname in (("SetTimelinePostUpdateFunc", tl.extra["update"]), ("SetTimelineFinishedFunc", tl.extra["finished"])):
+        o.append("\t\t{")
+        o.append("\t\t\tFScriptDelegate Delegate;")
+        o.append(f"\t\t\tDelegate.BindUFunction(this, FName(TEXT(\"{fname}\")));")
+        o.append(f"\t\t\tNewTimeline->{what}(FOnTimelineEvent(Delegate));")
+        o.append("\t\t}")
+    o.append("\t\tNewTimeline->RegisterComponent();")
+    if tm.get("autoPlay"):
+        o += ["\t\tNewTimeline->bAutoActivate = true;", "\t\tNewTimeline->Play();"]
+    if tm.get("loop"):
+        o.append("\t\tNewTimeline->SetLooping(true);")
+    if tm.get("replicated"):
+        o.append("\t\tNewTimeline->SetIsReplicated(true);")
+    if tm.get("ignoreTimeDilation"):
+        o.append("\t\tNewTimeline->SetIgnoreTimeDilation(true);")
+    o.append("\t}")
+    return o
+
+
+def input_host(cls: str, host: str, bindings: list[dict]) -> list[str]:
+    """Input bindings as the engine's UInputActionDelegateBinding & co. add them for a Blueprint: per kind, bindings
+    that override the parent's first remove existing ones with the same name and event, then all are added."""
+    head = {"pawn": (f"void {cls}::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)", "\tSuper::SetupPlayerInputComponent(PlayerInputComponent);", "PlayerInputComponent"),
+            "controller": (f"void {cls}::SetupInputComponent()", "\tSuper::SetupInputComponent();", "InputComponent"),
+            "actor": (f"void {cls}::EnableInput(APlayerController* PlayerController)", "\tconst bool bCreates = PlayerController && !InputComponent;\n\tSuper::EnableInput(PlayerController);", "InputComponent")}[host]
+    o = [head[0], "{", head[1]]
+    cond = f"bCreates ? {head[2]}.Get() : nullptr" if host == "actor" else head[2]
+    o.append(f"\tif (UInputComponent* IC = {cond})")
+    o.append("\t{")
+    actions = [b for b in bindings if b["kind"] == "action"]
+    keys = [b for b in bindings if b["kind"] == "key"]
+    axes = [b for b in bindings if b["kind"] == "axis"]
+    enhanced = [b for b in bindings if b["kind"] == "enhanced"]
+    if actions:
+        o.append("\t\tTArray<FInputActionBinding> Actions;")
+        for b in actions:
+            o.append("\t\t{")
+            o.append(f"\t\t\tFInputActionBinding B(FName({cpp_string(b['name'])}), {b['event']});")
+            o.append(f"\t\t\tB.bConsumeInput = {'true' if b['consume'] else 'false'};")
+            o.append(f"\t\t\tB.bExecuteWhenPaused = {'true' if b['paused'] else 'false'};")
+            o.append(f"\t\t\tB.ActionDelegate.BindDelegate(this, GET_FUNCTION_NAME_CHECKED(ThisClass, {b['function']}));")
+            if b["override"]:
+                o.append("\t\t\tfor (int32 I = IC->GetNumActionBindings() - 1; I >= 0; --I)")
+                o.append("\t\t\t{")
+                o.append("\t\t\t\tconst FInputActionBinding& E = IC->GetActionBinding(I);")
+                o.append("\t\t\t\tif (E.GetActionName() == B.GetActionName() && E.KeyEvent == B.KeyEvent) { IC->RemoveActionBinding(I); }")
+                o.append("\t\t\t}")
+            o.append("\t\t\tActions.Add(B);")
+            o.append("\t\t}")
+        o.append("\t\tfor (const FInputActionBinding& B : Actions) { IC->AddActionBinding(B); }")
+    if keys:
+        o.append("\t\tTArray<FInputKeyBinding> Keys;")
+        for b in keys:
+            chord = f"FInputChord(FKey(FName({cpp_string(b['key'])})), {'true' if b['shift'] else 'false'}, {'true' if b['ctrl'] else 'false'}, {'true' if b['alt'] else 'false'}, {'true' if b['cmd'] else 'false'})"
+            o.append("\t\t{")
+            o.append(f"\t\t\tFInputKeyBinding B({chord}, {b['event']});")
+            o.append(f"\t\t\tB.bConsumeInput = {'true' if b['consume'] else 'false'};")
+            o.append(f"\t\t\tB.bExecuteWhenPaused = {'true' if b['paused'] else 'false'};")
+            o.append(f"\t\t\tB.KeyDelegate.BindDelegate(this, GET_FUNCTION_NAME_CHECKED(ThisClass, {b['function']}));")
+            if b["override"]:
+                o.append("\t\t\tfor (int32 I = IC->KeyBindings.Num() - 1; I >= 0; --I)")
+                o.append("\t\t\t{")
+                o.append("\t\t\t\tif (IC->KeyBindings[I].Chord == B.Chord && IC->KeyBindings[I].KeyEvent == B.KeyEvent) { IC->KeyBindings.RemoveAt(I); }")
+                o.append("\t\t\t}")
+            o.append("\t\t\tKeys.Add(B);")
+            o.append("\t\t}")
+        o.append("\t\tIC->KeyBindings.Append(Keys);")
+    if axes:
+        o.append("\t\tTArray<FInputAxisBinding> Axes;")
+        for b in axes:
+            o.append("\t\t{")
+            o.append(f"\t\t\tFInputAxisBinding B(FName({cpp_string(b['name'])}));")
+            o.append(f"\t\t\tB.bConsumeInput = {'true' if b['consume'] else 'false'};")
+            o.append(f"\t\t\tB.bExecuteWhenPaused = {'true' if b['paused'] else 'false'};")
+            o.append(f"\t\t\tB.AxisDelegate.BindDelegate(this, GET_FUNCTION_NAME_CHECKED(ThisClass, {b['function']}));")
+            if b["override"]:
+                o.append("\t\t\tfor (int32 I = IC->AxisBindings.Num() - 1; I >= 0; --I)")
+                o.append("\t\t\t{")
+                o.append("\t\t\t\tconst FInputAxisBinding& E = IC->AxisBindings[I];")
+                o.append("\t\t\t\tconst bool bNoneDelegate = !E.AxisDelegate.GetDelegate().IsBound() && E.AxisDelegate.GetDynamicDelegate().GetFunctionName().IsNone();")
+                o.append("\t\t\t\tif (E.AxisName == B.AxisName && !bNoneDelegate) { IC->AxisBindings.RemoveAt(I); }")
+                o.append("\t\t\t}")
+            o.append("\t\t\tAxes.Add(B);")
+            o.append("\t\t}")
+        o.append("\t\tIC->AxisBindings.Append(Axes);")
+    if enhanced:
+        o.append("\t\tif (UEnhancedInputComponent* EIC = Cast<UEnhancedInputComponent>(IC))")
+        o.append("\t\t{")
+        for b in enhanced:
+            o.append(f"\t\t\tEIC->BindAction({b['literal']}, ETriggerEvent::{b['trigger']}, this, GET_FUNCTION_NAME_CHECKED(ThisClass, {b['function']}));")
+        o.append("\t\t}")
+    o += ["\t}", "}", ""]
+    return o
 
 
 def report_md(s: dict) -> str:
@@ -1800,6 +2638,7 @@ def report_md(s: dict) -> str:
     table("Event dispatchers", s["dispatchers"], [("Blueprint", lambda r: r["bp"]), ("Where", state), ("Why it stays", lambda r: r["reason"])])
     table("Functions", s["functions"], [("Blueprint", lambda r: r["bp"]), ("C++", lambda r: r["cpp"]), ("Where", state), ("Nodes", lambda r: len(r["nodes"])), ("Why it stays", lambda r: r["reason"])])
     table("Events", s["events"], [("Blueprint", lambda r: r["bp"]), ("C++", lambda r: r["cpp"] or "-"), ("Where", state), ("Nodes", lambda r: len(r["nodes"])), ("Why it stays", lambda r: r["reason"])])
+    table("Timelines", s.get("timelines", []), [("Blueprint", lambda r: r["bp"]), ("C++", lambda r: r["cpp"]), ("Where", state), ("Nodes", lambda r: len(r["nodes"])), ("Why it stays", lambda r: r["reason"])])
     if s["literals"]:
         lines += ["## Asset references used by the code", "", "Kept as hidden properties the rebase fills from the Blueprint, so they stay hard references (cooked).", ""]
         lines += [f"- `{l['cpp']}` = `{l['path']}`" for l in s["literals"]]

@@ -15,6 +15,14 @@ setlocal EnableExtensions
 set "PROJ=%~dp0"
 set "PROJ=%PROJ:~0,-1%"
 set "CMD=%~1"
+rem every argument after the command, not only %2..%9 (native verify takes several --call options)
+set "ARGS="
+:dwookit_args
+shift
+if "%~1"=="" goto dwookit_args_done
+set ARGS=%ARGS% %1
+goto dwookit_args
+:dwookit_args_done
 if "%CMD%"=="" (
   if exist "%PROJ%\__dwookit\state.json" (set "CMD=gui") else (set "CMD=connect")
 )
@@ -42,7 +50,7 @@ set "DWOOKIT_FROM_BAT=1"
 set "DWO_FORGE_FROM_BAT="
 set "DWO_LENS_FROM_BAT="
 cd /d "%PROJ%"
-powershell -NoProfile -ExecutionPolicy Bypass -File "%HOME_DIR%\tools\dwookit.ps1" -Command %CMD% -Project "%PROJ%" %2 %3 %4 %5 %6 %7 %8 %9
+powershell -NoProfile -ExecutionPolicy Bypass -File "%HOME_DIR%\tools\dwookit.ps1" -Command %CMD% -Project "%PROJ%"%ARGS%
 set "RC=%ERRORLEVEL%"
 
 rem 0 = clean, 3 = removed but something differs; either way dwookit is gone, so is this file.
