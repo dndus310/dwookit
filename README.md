@@ -479,7 +479,16 @@ __dwookit.bat native restore  /Game/Props/BP_JumpPad        :: 마지막 백업�
 - 바운드 이벤트의 바인딩은 블루프린트가 만든 함수(`BndEvt__...`)와 그것을 옮긴 C++ 함수를 같은 바인딩으로 봅니다.
 - 한계: 위젯은 그리지 않으므로 바인딩(속성 바인딩 함수)과 그리기 결과는 비교하지 않습니다. 무작위 값이나 실제 시간을 쓰는 로직은 차이로 나올 수 있습니다. 시나리오가 건드리지 않는 경로(특정 입력, 다른 액터와의 상호작용)는 검증되지 않습니다.
 
-현재 범위: 액터·컴포넌트·위젯·애니메이션 블루프린트의 변수, 컴포넌트(SCS), BindWidget 위젯, 이벤트 디스패처, 함수, 엔진 이벤트·커스텀 이벤트·컴포넌트 바운드 이벤트, Construction Script(`OnConstruction`), 분기·시퀀스·스위치·캐스트·For/ForEach/While·IsValid·FlipFlop·DoOnce, 배열 함수(Length, Get, Add, Contains …).
+현재 범위: 액터·컴포넌트·위젯·애니메이션 블루프린트의 변수, 컴포넌트(SCS), BindWidget 위젯, 이벤트 디스패처, 함수, 엔진 이벤트·커스텀 이벤트·컴포넌트 바운드 이벤트, Construction Script(`OnConstruction`), 분기·시퀀스·스위치·캐스트·For/ForEach/While·IsValid·FlipFlop.
+
+엔진 표준 매크로와 노드는 엔진이 컴파일하는 그대로 옮깁니다(StandardMacros 그래프와 블루프린트 컴파일러 소스를 확인해 맞춤):
+- **흐름**: ForLoopWithBreak(Break 뒤에는 인덱스를 올리지 않고 Completed), ForEachLoopWithBreak, ReverseForEachLoop, Gate(첫 진입에서 Start Closed로 열림 상태를 정함, Open/Close/Toggle), Do N(Counter, Reset), DoOnce(Reset, Start Closed), MultiGate(`UKismetNodeHelperLibrary`의 같은 비트 함수, Start Index·Random·Loop·Reset).
+- **배열·맵**: MakeArray, MakeMap, 배열 함수(Length, Get, Add, Contains, Insert, Set(Size to Fit), Swap, Append, Reverse, Resize, Identical …, 범위 밖이면 블루프린트처럼 아무것도 안 함), 맵 함수(Add, Find, Contains, Length, Remove, Clear, Keys, Values).
+- **열거형·구조체·클래스**: Enum ==/!=, Get Enumerator Name(As String)(엔진과 같은 `UKismetNodeHelperLibrary` 함수), Set Members in Struct(보이는 핀만), 클래스 캐스트(Cast To ...Class), Get Class Defaults(리플렉션으로 읽어 접근 지정자·비트필드와 무관).
+- **객체 생성**: SpawnActor from Class(`BeginDeferredActorSpawnFromClass` → `FinishSpawningActor`, 컴파일러의 확장과 같음), Construct Object from Class(`SpawnObject`), Create Widget(`UWidgetBlueprintLibrary::Create`). 블루프린트 클래스의 인스턴스는 가장 가까운 네이티브 부모 타입으로 둡니다.
+- **델리게이트**: Create Event, 커스텀 이벤트를 Set Timer by Event 등 델리게이트 인자로 넘기기, Bind / Unbind / Unbind All(디스패처를 이름으로 찾아 VM처럼 묶음; 블루프린트 클래스의 디스패처에도 동작).
+
+이 노드들은 QA 프로젝트에서 실제 블루프린트로 검증했습니다: `tests/fixtures/native/lab/*.build.json`으로 테스트 블루프린트를 만들고(DwoLens `-LensBuildBlueprint`, dwookit 자체 QA용), rebase(값 차이 0)와 동작 비교(같음)를 거쳤습니다.
 
 엔진과 같은 방식으로 옮기는 것:
 - **지연(latent) 액션**(Delay, RetriggerableDelay, MoveComponentTo …): 호출은 그대로 두고, Completed 뒤의 흐름을 별도 UFUNCTION(`Latent_<노드>`)으로 만들어 latent 액션 매니저가 부르게 합니다. UUID는 블루프린트 컴파일러와 같은 노드 GUID 해시라, 대기 중 재호출 무시 같은 동작이 같습니다. 이벤트 인자는 멤버로 복사해 나중에 읽어도 블루프린트 프레임처럼 남아 있습니다. `Move`/`Stop`처럼 실행 핀이 여러 개인 노드(ExpandEnumAsExecs)는 들어온 핀에 맞는 값을 넘깁니다. 루프 안의 지연은 블루프린트에 남습니다.

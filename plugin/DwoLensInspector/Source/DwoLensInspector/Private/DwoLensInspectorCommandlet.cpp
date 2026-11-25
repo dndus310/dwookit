@@ -2,6 +2,7 @@
 #include "DwoLensBlueprintExport.h"
 #include "DwoLensNativeRebase.h"
 #include "DwoLensBehaviour.h"
+#include "DwoLensBuildBlueprint.h"
 
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetRegistry/IAssetRegistry.h"
@@ -463,6 +464,13 @@ UDwoLensInspectorCommandlet::UDwoLensInspectorCommandlet()
 int32 UDwoLensInspectorCommandlet::Main(const FString& Params)
 {
 	using namespace DwoLensInspector;
+
+	// dwookit QA: -LensBuildBlueprint=<spec.json> creates a test Blueprint (DwoLensBuildBlueprint.cpp)
+	FString BuildSpec;
+	if (FParse::Value(*Params, TEXT("LensBuildBlueprint="), BuildSpec) && !BuildSpec.IsEmpty())
+	{
+		return BuildBlueprint(BuildSpec);
+	}
 
 	// Native migration, behaviour check: -LensBehave=<scenario.json> -LensBehaveOut=<trace.json>
 	FString BehaveScenario;

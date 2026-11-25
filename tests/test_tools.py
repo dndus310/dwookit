@@ -1219,6 +1219,57 @@ class NativeMigrationTests(TempDir):
         self.assertEqual(lens_native.compare_traces(mk(bp), mk(cpp), handlers={"OnThumbstick_MoveStickInput"})["verdict"], "same")
         self.assertEqual(lens_native.compare_traces(mk(bp), mk("(/Engine/Transient.GI.Subject.Other)"), handlers={"OnThumbstick_MoveStickInput"})["verdict"], "different")
 
+    # BP_Lab*: test Blueprints built in the QA project from tests/fixtures/native/lab/*.build.json (DwoLensBuildBlueprint)
+    # and exported; each was rebased with 0 differences and behaved the same before and after.
+    def test_flow_macros_follow_standard_macros(self):
+        plan, s, files = self.generate("BP_LabFlow")
+        self.assertEqual(s["coverage"]["migrated"], s["coverage"]["nodes"])
+        cpp, h = files["LabFlowBase.cpp"], files["LabFlowBase.h"]
+        # ForLoopWithBreak: after a break the index is not incremented and Completed runs
+        self.assertIn("if (bBreak_987F9619) { break; }", cpp)
+        self.assertIn("bBreak_987F9619 = true;", cpp)
+        self.assertIn("!bBreak_6CFC2E80 && Index_6CFC2E80 < (Nums).Num()", cpp)            # ForEachLoopWithBreak
+        self.assertIn("Index_99ECE0F1 = (Nums).Num() - 1; Index_99ECE0F1 >= 0; --Index_99ECE0F1", cpp)   # ReverseForEachLoop
+        # Gate: the first entry through any pin sets Open from Start Closed
+        self.assertEqual(cpp.count("if (!bGateInit_AB768438) { bGateInit_AB768438 = true; bGateOpen_AB768438 = !(true); }"), 3)
+        self.assertIn("if (DoNCounter_0EC5526D < 5)", cpp)                                   # Do N
+        self.assertIn("DoNCount = DoNCounter_0EC5526D;", cpp)                                # its Counter output
+        self.assertIn("UKismetNodeHelperLibrary::MarkBit(MultiGateData_E87D539B, GateIndex_E87D539B);", cpp)
+        self.assertIn("bDoOnceDone_5B20B0B5 = false;", cpp)                                  # DoOnce Reset
+        self.assertIn("int32 MultiGateData_E87D539B", h)
+
+    def test_data_nodes(self):
+        plan, s, files = self.generate("BP_LabData")
+        self.assertEqual(s["coverage"]["migrated"], s["coverage"]["nodes"])
+        cpp = files["LabDataBase.cpp"]
+        self.assertIn("Nums = TArray<int32>{3, 1, 2};", cpp)                                  # MakeArray
+        self.assertIn("if (I >= 0 && I <= A_269C1543.Num()) { A_269C1543.Insert(9, I); }", cpp)
+        self.assertIn("Algo::Reverse(", cpp)
+        self.assertIn("Same = (Nums == Nums);", cpp)                                          # Array_Identical
+        self.assertIn("(static_cast<uint8>(Mode) != static_cast<uint8>(MOVE_Flying))", cpp)  # EnumInequality
+        self.assertIn("UKismetNodeHelperLibrary::GetEnumeratorUserFriendlyName(DwoNative::FindEnum(", cpp)
+        self.assertIn("(Vec).X = 1.5;", cpp)                                                  # SetFieldsInStruct
+        self.assertNotIn("(Vec).Y", cpp)                                                     # hidden pin: unchanged
+        self.assertIn("C->IsChildOf(APawn::StaticClass())", cpp)                              # ClassDynamicCast
+        self.assertIn('DwoNative::GetProperty<int32>(DwoNative::ClassDefault(ACharacter::StaticClass()), TEXT("JumpMaxCount"))', cpp)
+        self.assertIn("TMap<FString, int32>{{", cpp)                                           # MakeMap
+        self.assertIn("(Ages).Add(", cpp)                                                     # Map_Add (CustomThunk)
+
+    def test_object_nodes_timers_and_dispatchers(self):
+        plan, s, files = self.generate("BP_LabObjects")
+        self.assertEqual(s["coverage"]["migrated"], s["coverage"]["nodes"])
+        cpp, h = files["LabObjectsBase.cpp"], files["LabObjectsBase.h"]
+        self.assertIn("UGameplayStatics::BeginDeferredActorSpawnFromClass(this, AActor::StaticClass()", cpp)
+        self.assertIn("UGameplayStatics::FinishSpawningActor(", cpp)
+        self.assertIn('DwoNative::AddDynamicByName(Spawned, TEXT("OnDestroyed"), this, TEXT("OnSpawnedDestroyed"));', cpp)
+        self.assertIn('FTimerDynamicDelegate D; D.BindUFunction(this, FName(TEXT("OnTimer")));', cpp)
+        self.assertIn("UGameplayStatics::SpawnObject(UPhysicalMaterial::StaticClass(), this)", cpp)
+        self.assertIn("UWidgetBlueprintLibrary::Create(this, NativeLiteral_0, nullptr)", cpp)
+        # a widget Blueprint's instance is held as its nearest native parent, declared for the header
+        self.assertIn("TObjectPtr<ULifeBarBase> Tmp_67C64FAF_ReturnValue", h)
+        self.assertIn("class ULifeBarBase;", h)
+        self.assertIn("PhysicsCore", s["modules"])
+
     def test_signature_helpers(self):
         import lens_native
         self.assertEqual(lens_native.enum_exec_value("TEnumAsByte<EMoveComponentAction::Type>", "Stop"), "EMoveComponentAction::Stop")

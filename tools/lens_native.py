@@ -608,6 +608,35 @@ class Fn:
             return self.plan.local_names.get(node["member"]) or self.plan.var_cpp(node["member"], node)
         if cls == "K2Node_CallArrayFunction" and node.get("pure"):
             return self.array_value(node, pin_name)
+        if cls == "K2Node_CallFunction" and short(node.get("memberOwner", "")) == "BlueprintMapLibrary" and node.get("pure"):
+            return self.map_value(node, pin_name)
+        if cls == "K2Node_MakeArray":
+            t = self.types.of(pin["type"])
+            items = [self.input(node, p["name"]) for p in node["pins"] if p["dir"] == "in"]
+            return f"{t}{{{', '.join(items)}}}"
+        if cls == "K2Node_MakeMap":
+            t = self.types.of(pin["type"])
+            ins = [p["name"] for p in node["pins"] if p["dir"] == "in"]
+            pairs = [f"{{{self.input(node, k)}, {self.input(node, 'Value' + k[3:])}}}" for k in ins if k.startswith("Key ")]
+            return f"{t}{{{', '.join(pairs)}}}"
+        if cls in ("K2Node_EnumEquality", "K2Node_EnumInequality"):
+            op = "==" if cls == "K2Node_EnumEquality" else "!="
+            return f"(static_cast<uint8>({self.input(node, 'A')}) {op} static_cast<uint8>({self.input(node, 'B')}))"
+        if cls in ("K2Node_GetEnumeratorName", "K2Node_GetEnumeratorNameAsString"):
+            self.types.includes.add("Kismet/KismetNodeHelperLibrary.h")
+            e = node["_pins"]["Enumerator"]
+            fn = "GetEnumeratorName" if cls == "K2Node_GetEnumeratorName" else "GetEnumeratorUserFriendlyName"
+            return f"UKismetNodeHelperLibrary::{fn}({self.enum_object(e)}, static_cast<uint8>({self.input(node, 'Enumerator')}))"
+        if cls == "K2Node_GetClassDefaults":
+            self.plan.literals.uses_helpers = True
+            t = self.types.of(pin["type"])
+            return f"DwoNative::GetProperty<{t}>(DwoNative::ClassDefault({self.input(node, 'Class')}), {cpp_string(pin_name)})"
+        if cls == "K2Node_ClassDynamicCast" and node.get("pure"):
+            if pin_name == "bSuccess":
+                return f"({self.class_cast(node, pure=True)} != nullptr)"
+            return self.class_cast(node, pure=True)
+        if cls == "K2Node_SetFieldsInStruct" and pin_name == "StructOut":
+            return self.lvalue(node, "StructRef")
         if node.get("pure") and cls in ("K2Node_CallFunction", "K2Node_CommutativeAssociativeBinaryOperator", "K2Node_PromotableOperator"):
             return self.call_expr(node, pin_name, pure=True)
         if cls == "K2Node_DynamicCast" and node.get("pure"):
@@ -770,7 +799,9 @@ class Fn:
                 if prm.get("cppDefault") is not None:
                     break                     # trailing C++ defaults: stop, the rest take their defaults
                 raise Unsupported(f"parameter {name} has no pin", node)
-            if prm.get("ref") and not prm.get("const"):
+            if pin["type"].get("category") == "delegate":
+                args.append(self.delegate_value(node, name, self._param_value_type(prm)))
+            elif prm.get("ref") and not prm.get("const"):
                 args.append(self.lvalue(node, name))
             elif prm["cpp"] == "float" and pin["type"].get("category") in ("real", "double", "float") and pin["type"].get("subCategory") != "float":
                 args.append(f"(float)({self.input(node, name)})")      # the same narrowing the Blueprint does
@@ -862,6 +893,7 @@ class Fn:
             raise Unsupported(f"by-reference pin {pin_name} is not connected to a variable", node)
         src = self.node(links[0]["node"])
         if src["class"] == "K2Node_VariableGet":
+            self.used_nodes.add(src["id"])
             return self.var_get(src)
         raise Unsupported(f"by-reference pin {pin_name} must come from a variable", node)
 
@@ -973,6 +1005,8 @@ class Fn:
     def array_value(self, node: dict, pin_name: str) -> str:
         """Blueprint array functions are generic (CustomThunk): the TArray member that does the same."""
         f = node.get("member", "")
+        if f == "Array_Identical":
+            return f"({self.input(node, 'ArrayA')} == {self.input(node, 'ArrayB')})"
         arr = self.input(node, "TargetArray")
         if f == "Array_Length":
             return f"({arr}).Num()"
@@ -1010,6 +1044,33 @@ class Fn:
         elif f == "Array_Remove":
             self.say(f"if (({arr}).IsValidIndex({self.input(node, 'IndexToRemove')})) {{ ({arr}).RemoveAt({self.input(node, 'IndexToRemove')}); }}")
             return self.exec_target(node, "then")
+        elif f in ("Array_Insert", "Array_Set", "Array_Swap", "Array_Append", "Array_Reverse", "Array_Resize"):
+            # the checks KismetArrayLibrary's generic functions make (out of range: nothing happens)
+            k = f"A_{node['id'][:8]}"
+            self.say("{")
+            self.depth += 1
+            self.say(f"auto& {k} = {arr};")
+            if f == "Array_Insert":
+                self.say(f"const int32 I = {self.input(node, 'Index')};")
+                self.say(f"if (I >= 0 && I <= {k}.Num()) {{ {k}.Insert({self.input(node, 'NewItem')}, I); }}")
+            elif f == "Array_Set":
+                self.say(f"const int32 I = {self.input(node, 'Index')};")
+                self.say(f"if (!{k}.IsValidIndex(I) && ({self.input(node, 'bSizeToFit')}) && I >= 0) {{ {k}.SetNum(I + 1); }}")
+                self.say(f"if ({k}.IsValidIndex(I)) {{ {k}[I] = {self.input(node, 'Item')}; }}")
+            elif f == "Array_Swap":
+                self.say(f"const int32 I = {self.input(node, 'FirstIndex')}, J = {self.input(node, 'SecondIndex')};")
+                self.say(f"if (I != J && {k}.IsValidIndex(I) && {k}.IsValidIndex(J)) {{ {k}.Swap(I, J); }}")
+            elif f == "Array_Append":
+                self.say(f"{k}.Append({self.input(node, 'SourceArray')});")
+            elif f == "Array_Reverse":
+                self.types.includes.add("Algo/Reverse.h")
+                self.say(f"Algo::Reverse({k});")
+            elif f == "Array_Resize":
+                self.say(f"const int32 N = {self.input(node, 'Size')};")
+                self.say(f"if (N >= 0) {{ {k}.SetNum(N); }}")
+            self.depth -= 1
+            self.say("}")
+            return self.exec_target(node, "then")
         else:
             raise Unsupported(f"array function {f} has no C++ translation yet", node)
         self.say(f"{target} = {call};" if target else f"{call};")
@@ -1019,6 +1080,8 @@ class Fn:
         cls, kind = node["class"], node.get("kind")
         if cls == "K2Node_CallArrayFunction":
             return self.array_statement(node)
+        if cls == "K2Node_CallFunction" and short(node.get("memberOwner", "")) == "BlueprintMapLibrary":
+            return self.map_statement(node)
         if cls in ("K2Node_CallFunction", "K2Node_CallParentFunction", "K2Node_CommutativeAssociativeBinaryOperator", "K2Node_PromotableOperator"):
             if node.get("latent"):
                 return self.latent_call(node)
@@ -1124,6 +1187,18 @@ class Fn:
             return self.timeline_input(node)
         if cls == "K2Node_Message":
             return self.message(node)
+        if cls == "K2Node_MultiGate":
+            return self.multigate(node)
+        if cls in ("K2Node_AddDelegate", "K2Node_RemoveDelegate", "K2Node_ClearDelegate"):
+            return self.delegate_statement(node)
+        if cls == "K2Node_SpawnActorFromClass":
+            return self.spawn_actor(node)
+        if cls in ("K2Node_GenericCreateObject", "K2Node_ConstructObjectFromClass", "K2Node_CreateWidget"):
+            return self.create_object(node)
+        if cls == "K2Node_SetFieldsInStruct":
+            return self.set_fields(node)
+        if cls == "K2Node_ClassDynamicCast":
+            return self.class_cast(node, pure=False)
         if cls == "K2Node_VariableGet":            # validated get: branches on IsValid
             self.say(f"if (IsValid({self.var_get(node)}))")
             self.block(self.exec_target(node, "then"))
@@ -1266,9 +1341,80 @@ class Fn:
             self.block(self.exec_target(node, "LoopBody"))
             self.loop_depth -= 1
             return self.exec_target(node, "Completed")
+        if name in ("ForLoopWithBreak", "ForEachLoopWithBreak", "ReverseForEachLoop") and self.entered == "Break":
+            # the macro's Break sets its flag; the loop body that reached here then ends, and the loop stops
+            self.say(f"{self.break_flag(node)} = true;")
+            return None
+        if name == "ForLoopWithBreak":
+            # StandardMacros: Index = First; while (Index <= Last && !Break) { body; if (Break) Completed; Index++ }
+            var = f"Index_{node['id'][:8]}"
+            flag = self.break_flag(node)
+            self.loop_vars[(node["id"], "Index")] = var
+            self.say(f"{flag} = false;")
+            self.say(f"for (int32 {var} = {self.input(node, 'FirstIndex')}; {var} <= {self.input(node, 'LastIndex')}; ++{var})")
+            self.say("{")
+            self.depth += 1
+            self.loop_depth += 1
+            self.block(self.exec_target(node, "LoopBody"))
+            self.loop_depth -= 1
+            self.say(f"if ({flag}) {{ break; }}")
+            self.depth -= 1
+            self.say("}")
+            return self.exec_target(node, "Completed")
+        if name in ("ForEachLoopWithBreak", "ReverseForEachLoop"):
+            var = f"Index_{node['id'][:8]}"
+            arr = self.input(node, "Array")
+            reverse = name == "ReverseForEachLoop"
+            index_pin, element_pin = ("ArrayIndex", "ArrayElement") if reverse else ("Array Index", "Array Element")
+            self.loop_vars[(node["id"], index_pin)] = var
+            self.loop_vars[(node["id"], element_pin)] = f"({arr})[{var}]"
+            if reverse:
+                self.say(f"for (int32 {var} = ({arr}).Num() - 1; {var} >= 0; --{var})")
+                self.loop_depth += 1
+                self.block(self.exec_target(node, "LoopBody"))
+                self.loop_depth -= 1
+                return self.exec_target(node, "Completed")
+            flag = self.break_flag(node)
+            self.say(f"{flag} = false;")
+            self.say(f"for (int32 {var} = 0; !{flag} && {var} < ({arr}).Num(); ++{var})")
+            self.loop_depth += 1
+            self.block(self.exec_target(node, "LoopBody"))
+            self.loop_depth -= 1
+            return self.exec_target(node, "Completed")
+        if name == "Gate":
+            # StandardMacros: the first entry through any pin sets Open from Start Closed; Enter runs Exit when open
+            is_open = self.plan.state_member(node, "GateOpen", "bool", "false")
+            init = self.plan.state_member(node, "GateInit", "bool", "false")
+            self.say(f"if (!{init}) {{ {init} = true; {is_open} = !({self.input(node, 'bStartClosed')}); }}")
+            entered = self.entered or "Enter"
+            if entered == "Open":
+                self.say(f"{is_open} = true;")
+            elif entered == "Close":
+                self.say(f"{is_open} = false;")
+            elif entered == "Toggle":
+                self.say(f"{is_open} = !{is_open};")
+            elif entered == "Enter":
+                self.say(f"if ({is_open})")
+                self.block(self.exec_target(node, "Exit"))
+            else:
+                raise Unsupported(f"Gate entered through {entered}", node)
+            return None
+        if name == "Do N":
+            # StandardMacros: Enter runs Exit while Counter < N (Counter counts up first); Reset sets Counter to 0
+            count = self.plan.state_member(node, "DoNCounter", "int32", "0")
+            self.loop_vars[(node["id"], "Counter")] = count
+            if self.entered == "Reset":
+                self.say(f"{count} = 0;")
+                return None
+            self.say(f"if ({count} < {self.input(node, 'n')})")
+            self.say("{")
+            self.depth += 1
+            self.say(f"{count} = {count} + 1;")
+            self.flow(self.exec_target(node, "Exit"))
+            self.depth -= 1
+            self.say("}")
+            return None
         if name in ("ForEachLoop", "ForEachLoopWithBreak"):
-            if name == "ForEachLoopWithBreak":
-                raise Unsupported("ForEachLoopWithBreak (Break pin) is not translated yet", node)
             var = f"Index_{node['id'][:8]}"
             arr = self.input(node, "Array")
             self.loop_vars[(node["id"], "Array Index")] = var
@@ -1305,12 +1451,16 @@ class Fn:
                 self.block(b)
             return None
         if name == "DoOnce":
-            if pins.get("Reset") and pins["Reset"].get("links"):
-                raise Unsupported("DoOnce with a Reset input is not translated yet", node)
+            # StandardMacros: Reset opens it; the first Execute closes it first if Start Closed; Execute runs
+            # Completed once while open
             state = self.plan.state_member(node, "DoOnceDone", "bool", "false")
-            start_closed = (pins.get("Start Closed") or {}).get("default", "false").lower() == "true"
-            if start_closed:
-                raise Unsupported("DoOnce that starts closed", node)
+            if self.entered == "Reset":
+                self.say(f"{state} = false;")
+                return None
+            sc = pins.get("Start Closed") or {}
+            if sc.get("links") or (sc.get("default") or "false").lower() == "true":
+                init = self.plan.state_member(node, "DoOnceInit", "bool", "false")
+                self.say(f"if (!{init}) {{ {init} = true; if ({self.input(node, 'Start Closed')}) {{ {state} = true; }} }}")
             self.say(f"if (!{state})")
             self.say("{")
             self.depth += 1
@@ -1320,6 +1470,236 @@ class Fn:
             self.say("}")
             return None
         raise Unsupported(f"standard macro '{name}' is not translated yet", node)
+
+    def break_flag(self, node: dict) -> str:
+        """A loop macro's Break flag (a macro local, kept in the frame between the loop and its Break pin)."""
+        name = f"bBreak_{node['id'][:8]}"
+        if self.mode == "event":
+            self.plan.state_members[name] = ("bool", "false")
+        else:
+            self.locals.setdefault(name, ("bool", "false"))
+        return name
+
+    def multigate(self, node: dict):
+        """K2Node_MultiGate as the Blueprint compiler builds it (FKCHandler_MultiGate): a bit per output already run,
+        the first entry starts at Start Index, Loop clears the bits when all ran."""
+        self.types.includes.add("Kismet/KismetNodeHelperLibrary.h")
+        data = self.plan.state_member(node, "MultiGateData", "int32", "0")
+        if self.entered == "Reset":
+            self.say(f"{data} = 0;")
+            return None
+        first = self.plan.state_member(node, "MultiGateStarted", "bool", "false")
+        outs = [p["name"] for p in node["pins"] if p["dir"] == "out" and p["type"].get("category") == "exec"]
+        n = len(outs)
+        index, go = f"GateIndex_{node['id'][:8]}", f"bGateGo_{node['id'][:8]}"
+        start, rnd, loop = self.input(node, "StartIndex"), self.input(node, "IsRandom"), self.input(node, "Loop")
+        lib = "UKismetNodeHelperLibrary"
+        self.say("{")
+        self.depth += 1
+        self.say(f"int32 {index} = -1;")
+        self.say(f"bool {go} = true;")
+        self.say(f"if (!{first}) {{ {first} = true; {index} = ({start}) > -1 ? ({start}) : {lib}::GetUnmarkedBit({data}, {start}, {n}, {rnd}); }}")
+        self.say(f"else if ({lib}::HasUnmarkedBit({data}, {n})) {{ {index} = {lib}::GetUnmarkedBit({data}, {start}, {n}, {rnd}); }}")
+        self.say(f"else if ({loop}) {{ {data} = 0; {index} = {lib}::GetUnmarkedBit({data}, {start}, {n}, {rnd}); }}")
+        self.say(f"else {{ {go} = false; }}")
+        self.say(f"if ({go})")
+        self.say("{")
+        self.depth += 1
+        self.say(f"{lib}::MarkBit({data}, {index});")
+        first_branch = True
+        for i, pin in enumerate(outs):
+            target = self.exec_target(node, pin)
+            if not target:
+                continue
+            self.say(f"{'if' if first_branch else 'else if'} ({index} == {i})")
+            self.block(target)
+            first_branch = False
+        self.depth -= 1
+        self.say("}")
+        self.depth -= 1
+        self.say("}")
+        return None
+
+    # -- data and object nodes
+    def native_object(self, pin: dict) -> str:
+        """An object pin's C++ pointer type; a Blueprint class becomes its nearest native parent."""
+        path = pin["type"].get("object", "")
+        seen = set()
+        while path and not self.ex.is_self_class(path) and path not in seen:
+            seen.add(path)
+            t = self.ex.type_info(path)
+            if t.get("native"):
+                break
+            path = t.get("nativeParent") if self.ex.type_info(t.get("nativeParent", "")).get("native") else t.get("super", "")
+        return self.types._class(path, True) + "*" if path else "UObject*"      # header: event temporaries are members
+
+    def enum_object(self, pin: dict) -> str:
+        path = pin["type"].get("object", "")
+        if not path:
+            raise Unsupported("an enum pin without its enum", None)
+        self.plan.literals.uses_helpers = True
+        return f"DwoNative::FindEnum({cpp_string(path)})"
+
+    def delegate_value(self, node: dict, pin_name: str, cpp_type: str) -> str:
+        """A delegate input: a Create Event node or a custom event's delegate output, bound by function name the way
+        the Blueprint VM binds it (the function stays findable by that name, migrated or not)."""
+        obj, fn = self.delegate_source(node, pin_name)
+        return f"[&]() {{ {cpp_type} D; D.BindUFunction({obj}, FName({cpp_string(fn)})); return D; }}()"
+
+    def delegate_source(self, node: dict, pin_name: str) -> tuple[str, str]:
+        p = node["_pins"].get(pin_name) or {}
+        links = p.get("links") or []
+        if not links:
+            raise Unsupported(f"delegate pin {pin_name} is not connected", node)
+        src = self.node(links[0]["node"])
+        self.used_nodes.add(src["id"])
+        if src["class"] == "K2Node_CreateDelegate":
+            obj = self.input(src, "self") if "self" in src["_pins"] else "this"
+            fn = src.get("member") or ""
+            item = self.plan.funcs.get(fn) if obj == "this" else None
+            return obj, (item.cpp if item and item.migrated else fn)
+        if src["class"] == "K2Node_CustomEvent" and links[0]["pin"] == "OutputDelegate":
+            item = self.plan.funcs.get(src.get("member", ""))
+            return "this", (item.cpp if item and item.migrated else src.get("member", ""))
+        raise Unsupported(f"delegate from {src['class'].replace('K2Node_', '')}", node)
+
+    def delegate_property(self, node: dict) -> str:
+        member = node.get("member", "")
+        if self.ex.is_self_class(node.get("memberOwner", "")):
+            d = self.plan.dispatchers.get(member) if hasattr(self.plan, "dispatchers") else None
+            if d is not None and not d.migrated:
+                raise Unsupported(f"dispatcher {member} stays in Blueprint", node)
+            return d.cpp if d is not None else member
+        return member
+
+    def delegate_statement(self, node: dict):
+        """Bind / Unbind / Unbind all events on a dispatcher, through the delegate property (as the VM does, so a
+        Blueprint class's dispatcher works too)."""
+        self.plan.literals.uses_helpers = True
+        cls = node["class"]
+        target = self.input(node, "self") if "self" in node["_pins"] else "this"
+        prop = cpp_string(self.delegate_property(node))
+        if cls == "K2Node_ClearDelegate":
+            self.say(f"DwoNative::ClearByName({target}, {prop});")
+        else:
+            obj, fn = self.delegate_source(node, "Delegate")
+            helper = "AddDynamicByName" if cls == "K2Node_AddDelegate" else "RemoveDynamicByName"
+            self.say(f"DwoNative::{helper}({target}, {prop}, {obj}, {cpp_string(fn)});")
+        return self.exec_target(node, "then")
+
+    def spawn_actor(self, node: dict):
+        """SpawnActorFromClass as the compiler expands it: BeginDeferredActorSpawnFromClass, the exposed properties,
+        FinishSpawningActor."""
+        self.types.includes.add("Kismet/GameplayStatics.h")
+        pins = node["_pins"]
+        standard = {"execute", "then", "Class", "ReturnValue", "SpawnTransform", "CollisionHandlingOverride",
+                    "TransformScaleMethod", "Owner", "Instigator", "WorldContextObject"}
+        ret = pins["ReturnValue"]
+        t = self.native_object(ret)
+        temp = self.object_temp(node, ret, t)
+        xf, began = f"SpawnXf_{node['id'][:8]}", f"Begun_{node['id'][:8]}"
+        scale = self.input(node, "TransformScaleMethod") if "TransformScaleMethod" in pins else "ESpawnActorScaleMethod::MultiplyWithRoot"
+        self.say("{")
+        self.depth += 1
+        self.say(f"const FTransform {xf} = {self.input(node, 'SpawnTransform')};")
+        self.say(f"AActor* {began} = UGameplayStatics::BeginDeferredActorSpawnFromClass(this, {self.input(node, 'Class')}, {xf}, "
+                 f"{self.input(node, 'CollisionHandlingOverride')}, {self.input(node, 'Owner')}, {scale});")
+        if pins.get("Instigator", {}).get("links"):
+            self.say(f"if ({began}) {{ {began}->SetInstigator(Cast<APawn>({self.input(node, 'Instigator')})); }}")
+        for p in node["pins"]:
+            if p["dir"] != "in" or p["name"] in standard or p["type"].get("category") == "exec":
+                continue
+            if not p.get("links") and str(p.get("default", "")) == str(p.get("autoDefault", "")):
+                continue                    # the compiler skips exposed pins left at the class default
+            raise Unsupported(f"sets the exposed-on-spawn property {p['name']}", node)
+        self.say(f"{temp} = Cast<{t[:-1]}>(UGameplayStatics::FinishSpawningActor({began}, {xf}, {scale}));")
+        self.depth -= 1
+        self.say("}")
+        return self.exec_target(node, "then")
+
+    def create_object(self, node: dict):
+        pins = node["_pins"]
+        ret = pins["ReturnValue"]
+        t = self.native_object(ret)
+        temp = self.object_temp(node, ret, t)
+        if node["class"] == "K2Node_CreateWidget":
+            self.types.includes.add("Blueprint/WidgetBlueprintLibrary.h")
+            self.types.modules.add("UMG")
+            owner = self.input(node, "OwningPlayer") if "OwningPlayer" in pins else "nullptr"
+            self.say(f"{temp} = Cast<{t[:-1]}>(UWidgetBlueprintLibrary::Create(this, {self.input(node, 'Class')}, {owner}));")
+        else:
+            self.types.includes.add("Kismet/GameplayStatics.h")
+            outer = self.input(node, "Outer") if "Outer" in pins else self.input(node, "self") if "self" in pins else "this"
+            self.say(f"{temp} = Cast<{t[:-1]}>(UGameplayStatics::SpawnObject({self.input(node, 'Class')}, {outer}));")
+        return self.exec_target(node, "then")
+
+    def object_temp(self, node: dict, pin: dict, t: str) -> str:
+        name = self.temp_name(node, pin["name"])
+        if self.mode == "event":
+            self.members[name] = (f"TObjectPtr<{t[:-1]}>", True)
+        else:
+            self.locals[name] = (t, "nullptr")
+        return name
+
+    def set_fields(self, node: dict):
+        target = self.lvalue(node, "StructRef")
+        for p in node["pins"]:
+            if p["dir"] != "in" or p["name"] in ("execute", "StructRef") or p["type"].get("category") == "exec" or p.get("splitFrom"):
+                continue
+            self.say(f"({target}).{p['name']} = {self.input(node, p['name'])};")
+        return self.exec_target(node, "then")
+
+    def class_cast(self, node: dict, pure: bool):
+        target = self.types._class(node["member"], False)
+        cls = self.input(node, "Class")
+        as_pin = next(p for p in node["pins"] if p["dir"] == "out" and p["type"].get("category") == "class")
+        expr = f"[&]() -> TSubclassOf<{target}> {{ UClass* C = {cls}; return C && C->IsChildOf({target}::StaticClass()) ? C : nullptr; }}()"
+        if pure:
+            return expr
+        temp = self.declare_temp(node, as_pin)
+        ok = self.declare_temp(node, node["_pins"]["bSuccess"])
+        self.say(f"{temp} = {expr};")
+        self.say(f"{ok} = {temp} != nullptr;")
+        self.say(f"if ({ok})")
+        self.block(self.exec_target(node, "then"))
+        fail = self.exec_target(node, "CastFailed")
+        if fail:
+            self.say("else")
+            self.block(fail)
+        return None
+
+    def map_value(self, node: dict, pin_name: str) -> str:
+        f = node.get("member", "")
+        m = self.input(node, "TargetMap")
+        if f == "Map_Length":
+            return f"({m}).Num()"
+        if f == "Map_Contains":
+            return f"({m}).Contains({self.input(node, 'Key')})"
+        if f == "Map_Find":
+            if pin_name == "ReturnValue":
+                return f"({m}).Contains({self.input(node, 'Key')})"
+            t = self.types.of(node["_pins"]["Value"]["type"])
+            return f"[&]() -> {t} {{ const auto* V = ({m}).Find({self.input(node, 'Key')}); return V ? *V : {default_of(t)}; }}()"
+        if f in ("Map_Keys", "Map_Values"):
+            t = self.types.of(node["_pins"][pin_name]["type"])
+            fn = "GenerateKeyArray" if f == "Map_Keys" else "GenerateValueArray"
+            return f"[&]() {{ {t} A; ({m}).{fn}(A); return A; }}()"
+        raise Unsupported(f"map function {f} has no C++ translation yet", node)
+
+    def map_statement(self, node: dict):
+        f = node.get("member", "")
+        m = self.lvalue(node, "TargetMap")
+        ret = node["_pins"].get("ReturnValue")
+        if f == "Map_Add":
+            self.say(f"({m}).Add({self.input(node, 'Key')}, {self.input(node, 'Value')});")
+        elif f == "Map_Remove":
+            call = f"(({m}).Remove({self.input(node, 'Key')}) > 0)"
+            self.say(f"{self.declare_temp(node, ret)} = {call};" if ret and ret.get("links") else f"{call};")
+        elif f == "Map_Clear":
+            self.say(f"({m}).Empty();")
+        else:
+            raise Unsupported(f"map function {f} has no C++ translation yet", node)
+        return self.exec_target(node, "then")
 
     def translate(self, start: dict | None):
         self.flow(start)
@@ -1536,7 +1916,7 @@ class Plan:
         return self.literal_props[key]["cpp"]
 
     def state_member(self, node: dict, what: str, t: str, init: str) -> str:
-        name = f"b{what}_{node['id'][:8]}"
+        name = f"{'b' if t == 'bool' else ''}{what}_{node['id'][:8]}"
         self.state_members[name] = (t, init)
         return name
 
@@ -2359,6 +2739,67 @@ namespace DwoNative
 		UFunction* Function = nullptr;
 		TArray<uint8, TAlignedHeapAllocator<16>> Params;
 	};
+
+	/** An enum by path, for the Blueprint nodes that name its entries (Get Enumerator Name). */
+	inline UEnum* FindEnum(const TCHAR* Path)
+	{
+		UEnum* Enum = FindObject<UEnum>(nullptr, Path);
+		return Enum ? Enum : LoadObject<UEnum>(nullptr, Path);
+	}
+
+	/** The class default object Get Class Defaults reads (none for no class). */
+	inline const UObject* ClassDefault(const UClass* Class)
+	{
+		return Class ? Class->GetDefaultObject() : nullptr;
+	}
+
+	/** A property read by name, as Get Class Defaults reads it: through reflection, so C++ access and bitfields do
+	 *  not matter. No object or no such property: the type's default. */
+	template <typename T>
+	T GetProperty(const UObject* Object, const TCHAR* Name)
+	{
+		const FProperty* P = Object ? FindFProperty<FProperty>(Object->GetClass(), FName(Name)) : nullptr;
+		if (!P) { return T{}; }
+		const void* Ptr = P->ContainerPtrToValuePtr<void>(Object);
+		if constexpr (std::is_arithmetic_v<T>)
+		{
+			if (const FBoolProperty* B = CastField<FBoolProperty>(P)) { return static_cast<T>(B->GetPropertyValue(Ptr)); }
+			if (const FEnumProperty* E = CastField<FEnumProperty>(P)) { return static_cast<T>(E->GetUnderlyingProperty()->GetSignedIntPropertyValue(Ptr)); }
+			if (const FNumericProperty* N = CastField<FNumericProperty>(P))
+			{
+				return N->IsFloatingPoint() ? static_cast<T>(N->GetFloatingPointPropertyValue(Ptr)) : static_cast<T>(N->GetSignedIntPropertyValue(Ptr));
+			}
+		}
+		else if constexpr (std::is_pointer_v<T>)
+		{
+			if (const FObjectPropertyBase* O = CastField<FObjectPropertyBase>(P)) { return Cast<std::remove_pointer_t<T>>(O->GetObjectPropertyValue(Ptr)); }
+		}
+		T Value{};
+		if (ensureMsgf(P->GetElementSize() == sizeof(T), TEXT("DwoNative: property %s has another type"), Name)) { P->CopySingleValue(&Value, Ptr); }
+		return Value;
+	}
+
+	/** Removes a function from a multicast delegate found by name (Unbind Event). */
+	inline void RemoveDynamicByName(UObject* Source, const TCHAR* Delegate, UObject* Receiver, const TCHAR* Function)
+	{
+		if (!Source) { return; }
+		if (FMulticastDelegateProperty* P = FindFProperty<FMulticastDelegateProperty>(Source->GetClass(), FName(Delegate)))
+		{
+			FScriptDelegate D;
+			D.BindUFunction(Receiver, FName(Function));
+			P->RemoveDelegate(D, Source);
+		}
+	}
+
+	/** Removes every function from a multicast delegate found by name (Unbind All Events). */
+	inline void ClearByName(UObject* Source, const TCHAR* Delegate)
+	{
+		if (!Source) { return; }
+		if (FMulticastDelegateProperty* P = FindFProperty<FMulticastDelegateProperty>(Source->GetClass(), FName(Delegate)))
+		{
+			P->ClearDelegate(Source);
+		}
+	}
 
 	/** Adds a function to a multicast delegate found by name (a Blueprint class's event dispatcher), as a Blueprint
 	 *  bound event does when the component or widget is a Blueprint class. */

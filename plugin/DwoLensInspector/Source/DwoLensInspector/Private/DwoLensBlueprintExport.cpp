@@ -845,6 +845,13 @@ namespace DwoLensInspector::BpExport
 		{
 			for (TFieldIterator<FProperty> It(Function); It && It->HasAnyPropertyFlags(CPF_Parm); ++It) { Collector.AddProperty(*It); }
 		}
+		// a Blueprint class stands for its nearest native parent in C++: describe that parent too
+		for (const UStruct* Type : TArray<const UStruct*>(Collector.Types.Array()))
+		{
+			const UClass* Class = Cast<UClass>(Type);
+			while (Class && !Class->HasAnyClassFlags(CLASS_Native)) { Class = Class->GetSuperClass(); }
+			if (Class) { Collector.Types.Add(Class); }
+		}
 		FJsonRef Out = MakeShared<FJsonObject>();
 		FJsonRef Types = MakeShared<FJsonObject>();
 		for (const UStruct* Type : Collector.Types)

@@ -1,0 +1,4652 @@
+{
+	"schema": "lens.bp/1",
+	"name": "BP_LabData",
+	"asset": "/Game/DwoQA/BP_LabData.BP_LabData",
+	"package": "/Game/DwoQA/BP_LabData",
+	"assetClass": "Blueprint",
+	"blueprintType": "BPTYPE_Normal",
+	"status": "BS_UpToDate",
+	"engineVersion": "5.7.4-51494982+++UE5+Release-5.7",
+	"exportedAtUtc": "2026-11-25T16:08:33.582Z",
+	"source":
+	{
+		"file": "Content/DwoQA/BP_LabData.uasset",
+		"bytes": 205515,
+		"modifiedUtc": "2026-11-25T15:55:26.000Z"
+	},
+	"parent": "/Script/Engine.Actor",
+	"parentChain": [
+		"/Script/Engine.Actor"
+	],
+	"generatedClass": "/Game/DwoQA/BP_LabData.BP_LabData_C",
+	"interfaces": [],
+	"variables": [
+		{
+			"name": "Nums",
+			"type":
+			{
+				"text": "Array<int>",
+				"category": "int",
+				"container": "array"
+			},
+			"category": "디폴트"
+		},
+		{
+			"name": "Same",
+			"type":
+			{
+				"text": "bool",
+				"category": "bool"
+			},
+			"category": "디폴트",
+			"default": "False"
+		},
+		{
+			"name": "Mode",
+			"type":
+			{
+				"text": "EMovementMode",
+				"category": "byte",
+				"object": "/Script/Engine.EMovementMode"
+			},
+			"category": "디폴트",
+			"default": "MOVE_Walking"
+		},
+		{
+			"name": "IsFlying",
+			"type":
+			{
+				"text": "bool",
+				"category": "bool"
+			},
+			"category": "디폴트",
+			"default": "False"
+		},
+		{
+			"name": "NotFlying",
+			"type":
+			{
+				"text": "bool",
+				"category": "bool"
+			},
+			"category": "디폴트",
+			"default": "False"
+		},
+		{
+			"name": "ModeText",
+			"type":
+			{
+				"text": "string",
+				"category": "string"
+			},
+			"category": "디폴트"
+		},
+		{
+			"name": "ModeName",
+			"type":
+			{
+				"text": "name",
+				"category": "name"
+			},
+			"category": "디폴트",
+			"default": "None"
+		},
+		{
+			"name": "Vec",
+			"type":
+			{
+				"text": "Vector",
+				"category": "struct",
+				"object": "/Script/CoreUObject.Vector"
+			},
+			"category": "디폴트",
+			"default": "(X=0.000000,Y=0.000000,Z=0.000000)"
+		},
+		{
+			"name": "Cls",
+			"type":
+			{
+				"text": "Class<Actor>",
+				"category": "class",
+				"object": "/Script/Engine.Actor"
+			},
+			"category": "디폴트",
+			"default": "/Script/CoreUObject.Class'/Script/Engine.Character'"
+		},
+		{
+			"name": "IsPawnClass",
+			"type":
+			{
+				"text": "bool",
+				"category": "bool"
+			},
+			"category": "디폴트",
+			"default": "False"
+		},
+		{
+			"name": "JumpMax",
+			"type":
+			{
+				"text": "int",
+				"category": "int"
+			},
+			"category": "디폴트",
+			"default": "0"
+		},
+		{
+			"name": "Ages",
+			"type":
+			{
+				"text": "Map<string,int>",
+				"category": "string",
+				"container": "map",
+				"valueCategory": "int"
+			},
+			"category": "디폴트",
+			"default": "()"
+		},
+		{
+			"name": "FoundB",
+			"type":
+			{
+				"text": "int",
+				"category": "int"
+			},
+			"category": "디폴트",
+			"default": "0"
+		},
+		{
+			"name": "HasB",
+			"type":
+			{
+				"text": "bool",
+				"category": "bool"
+			},
+			"category": "디폴트",
+			"default": "False"
+		},
+		{
+			"name": "MapLen",
+			"type":
+			{
+				"text": "int",
+				"category": "int"
+			},
+			"category": "디폴트",
+			"default": "0"
+		}
+	],
+	"components": [
+		{
+			"name": "DefaultSceneRoot",
+			"class": "SceneComponent",
+			"classPath": "/Script/Engine.SceneComponent",
+			"root": true
+		}
+	],
+	"graphs": [
+		{
+			"name": "UserConstructionScript",
+			"kind": "function",
+			"nodes": [
+				{
+					"id": "23FD1D814F34F7E6242CCEA75D3217A4",
+					"class": "K2Node_FunctionEntry",
+					"title": "Construction Script",
+					"member": "UserConstructionScript",
+					"role": "other",
+					"kind": "entry",
+					"pos": [
+						0,
+						0
+					],
+					"functionFlags": [
+						"Event",
+						"BlueprintEvent"
+					],
+					"pins": [
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "EventGraph",
+			"kind": "event",
+			"nodes": [
+				{
+					"id": "9A255D7144485179E36E819C5F5D4509",
+					"class": "K2Node_Event",
+					"title": "BeginPlay 이벤트",
+					"member": "ReceiveBeginPlay",
+					"memberOwner": "/Script/Engine.Actor",
+					"override": true,
+					"role": "event",
+					"kind": "event",
+					"pos": [
+						0,
+						0
+					],
+					"comment": "지금 이 노드는 비활성 상태입니다. \n핀을 끌어서 다른 노드를 연결하면 활성화됩니다.",
+					"disabled": true,
+					"pins": [
+						{
+							"name": "OutputDelegate",
+							"dir": "out",
+							"type":
+							{
+								"text": "delegate",
+								"category": "delegate"
+							}
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						}
+					]
+				},
+				{
+					"id": "679F097B41EE5ED01DAB7E8715548D85",
+					"class": "K2Node_Event",
+					"title": "ActorBeginOverlap 이벤트",
+					"member": "ReceiveActorBeginOverlap",
+					"memberOwner": "/Script/Engine.Actor",
+					"override": true,
+					"role": "event",
+					"kind": "event",
+					"pos": [
+						0,
+						208
+					],
+					"comment": "지금 이 노드는 비활성 상태입니다. \n핀을 끌어서 다른 노드를 연결하면 활성화됩니다.",
+					"disabled": true,
+					"pins": [
+						{
+							"name": "OutputDelegate",
+							"dir": "out",
+							"type":
+							{
+								"text": "delegate",
+								"category": "delegate"
+							}
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "OtherActor",
+							"dir": "out",
+							"type":
+							{
+								"text": "Actor",
+								"category": "object",
+								"object": "/Script/Engine.Actor"
+							}
+						}
+					]
+				},
+				{
+					"id": "256292834D7DDA8A80129A9D7EDDD481",
+					"class": "K2Node_Event",
+					"title": "Tick 이벤트",
+					"member": "ReceiveTick",
+					"memberOwner": "/Script/Engine.Actor",
+					"override": true,
+					"role": "event",
+					"kind": "event",
+					"pos": [
+						0,
+						416
+					],
+					"comment": "지금 이 노드는 비활성 상태입니다. \n핀을 끌어서 다른 노드를 연결하면 활성화됩니다.",
+					"disabled": true,
+					"pins": [
+						{
+							"name": "OutputDelegate",
+							"dir": "out",
+							"type":
+							{
+								"text": "delegate",
+								"category": "delegate"
+							}
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "DeltaSeconds",
+							"dir": "out",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "float"
+							},
+							"default": "0.0",
+							"autoDefault": "0.0"
+						}
+					]
+				},
+				{
+					"id": "BC6EF8CA4D43DEFC9EDAE8887223F9B4",
+					"class": "K2Node_Event",
+					"title": "BeginPlay 이벤트",
+					"member": "ReceiveBeginPlay",
+					"memberOwner": "/Script/Engine.Actor",
+					"override": true,
+					"role": "event",
+					"kind": "event",
+					"pos": [
+						0,
+						0
+					],
+					"pins": [
+						{
+							"name": "OutputDelegate",
+							"dir": "out",
+							"type":
+							{
+								"text": "delegate",
+								"category": "delegate"
+							}
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "3E9ADC7B41B75CD4B19643BCA219697B",
+									"pin": "execute"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "21BCF9CF4B7ED4D23DCC589EC5BE0719",
+					"class": "K2Node_MakeArray",
+					"title": "배열 만들기",
+					"role": "other",
+					"kind": "node",
+					"pure": true,
+					"pos": [
+						360,
+						0
+					],
+					"pins": [
+						{
+							"name": "Array",
+							"dir": "out",
+							"type":
+							{
+								"text": "Array<int>",
+								"category": "int",
+								"container": "array"
+							},
+							"links": [
+								{
+									"node": "3E9ADC7B41B75CD4B19643BCA219697B",
+									"pin": "Nums"
+								}
+							]
+						},
+						{
+							"name": "[0]",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "3",
+							"autoDefault": "0"
+						},
+						{
+							"name": "[1]",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "1",
+							"autoDefault": "0"
+						},
+						{
+							"name": "[2]",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "2",
+							"autoDefault": "0"
+						}
+					]
+				},
+				{
+					"id": "3E9ADC7B41B75CD4B19643BCA219697B",
+					"class": "K2Node_VariableSet",
+					"title": "Set Nums",
+					"member": "Nums",
+					"memberOwner": "/Game/DwoQA/BP_LabData.SKEL_BP_LabData_C",
+					"memberCpp": "TArray<int32>",
+					"memberName": "Nums",
+					"role": "variable",
+					"kind": "set",
+					"pos": [
+						720,
+						0
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "BC6EF8CA4D43DEFC9EDAE8887223F9B4",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "269C15434FD36976977994B466F06704",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "Nums",
+							"dir": "in",
+							"type":
+							{
+								"text": "Array<int>",
+								"category": "int",
+								"container": "array"
+							},
+							"links": [
+								{
+									"node": "21BCF9CF4B7ED4D23DCC589EC5BE0719",
+									"pin": "Array"
+								}
+							]
+						},
+						{
+							"name": "Output_Get",
+							"dir": "out",
+							"type":
+							{
+								"text": "Array<int>",
+								"category": "int",
+								"container": "array"
+							}
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BP_LabData",
+								"category": "object",
+								"object": "/Game/DwoQA/BP_LabData.BP_LabData_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "E7CCE86C4520EF90D7CEBCAE9DCC3552",
+					"class": "K2Node_VariableGet",
+					"title": "Get Nums",
+					"member": "Nums",
+					"memberOwner": "/Game/DwoQA/BP_LabData.SKEL_BP_LabData_C",
+					"memberCpp": "TArray<int32>",
+					"memberName": "Nums",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						1080,
+						0
+					],
+					"pins": [
+						{
+							"name": "Nums",
+							"dir": "out",
+							"type":
+							{
+								"text": "Array<int>",
+								"category": "int",
+								"container": "array"
+							},
+							"links": [
+								{
+									"node": "269C15434FD36976977994B466F06704",
+									"pin": "TargetArray"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BP_LabData",
+								"category": "object",
+								"object": "/Game/DwoQA/BP_LabData.BP_LabData_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "269C15434FD36976977994B466F06704",
+					"class": "K2Node_CallArrayFunction",
+					"title": "Insert",
+					"member": "Array_Insert",
+					"memberOwner": "/Script/Engine.KismetArrayLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pos": [
+						1440,
+						0
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "3E9ADC7B41B75CD4B19643BCA219697B",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "02EA4F3144D91E9E3A5288A287F96E59",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "KismetArrayLibrary",
+								"category": "object",
+								"object": "/Script/Engine.KismetArrayLibrary"
+							},
+							"defaultObject": "/Script/Engine.Default__KismetArrayLibrary",
+							"hidden": true
+						},
+						{
+							"name": "TargetArray",
+							"dir": "in",
+							"type":
+							{
+								"text": "Array<int>&",
+								"category": "int",
+								"container": "array",
+								"ref": true
+							},
+							"links": [
+								{
+									"node": "E7CCE86C4520EF90D7CEBCAE9DCC3552",
+									"pin": "Nums"
+								}
+							]
+						},
+						{
+							"name": "NewItem",
+							"dir": "in",
+							"type":
+							{
+								"text": "int&",
+								"category": "int",
+								"ref": true,
+								"const": true
+							},
+							"default": "9"
+						},
+						{
+							"name": "Index",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "1",
+							"autoDefault": "0"
+						}
+					]
+				},
+				{
+					"id": "890E47274EF99F4845E503BD0ED73C98",
+					"class": "K2Node_VariableGet",
+					"title": "Get Nums",
+					"member": "Nums",
+					"memberOwner": "/Game/DwoQA/BP_LabData.SKEL_BP_LabData_C",
+					"memberCpp": "TArray<int32>",
+					"memberName": "Nums",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						1800,
+						0
+					],
+					"pins": [
+						{
+							"name": "Nums",
+							"dir": "out",
+							"type":
+							{
+								"text": "Array<int>",
+								"category": "int",
+								"container": "array"
+							},
+							"links": [
+								{
+									"node": "02EA4F3144D91E9E3A5288A287F96E59",
+									"pin": "TargetArray"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BP_LabData",
+								"category": "object",
+								"object": "/Game/DwoQA/BP_LabData.BP_LabData_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "02EA4F3144D91E9E3A5288A287F96E59",
+					"class": "K2Node_CallArrayFunction",
+					"title": "Set Array Elem",
+					"member": "Array_Set",
+					"memberOwner": "/Script/Engine.KismetArrayLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pos": [
+						0,
+						260
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "269C15434FD36976977994B466F06704",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "AB4457264C0E4032AB62C690F290D75F",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "KismetArrayLibrary",
+								"category": "object",
+								"object": "/Script/Engine.KismetArrayLibrary"
+							},
+							"defaultObject": "/Script/Engine.Default__KismetArrayLibrary",
+							"hidden": true
+						},
+						{
+							"name": "TargetArray",
+							"dir": "in",
+							"type":
+							{
+								"text": "Array<int>&",
+								"category": "int",
+								"container": "array",
+								"ref": true
+							},
+							"links": [
+								{
+									"node": "890E47274EF99F4845E503BD0ED73C98",
+									"pin": "Nums"
+								}
+							]
+						},
+						{
+							"name": "Index",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0"
+						},
+						{
+							"name": "Item",
+							"dir": "in",
+							"type":
+							{
+								"text": "int&",
+								"category": "int",
+								"ref": true,
+								"const": true
+							},
+							"default": "4"
+						},
+						{
+							"name": "bSizeToFit",
+							"dir": "in",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false"
+						}
+					]
+				},
+				{
+					"id": "4CDBF5B546E66D6D70DF909E5FBE8824",
+					"class": "K2Node_VariableGet",
+					"title": "Get Nums",
+					"member": "Nums",
+					"memberOwner": "/Game/DwoQA/BP_LabData.SKEL_BP_LabData_C",
+					"memberCpp": "TArray<int32>",
+					"memberName": "Nums",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						360,
+						260
+					],
+					"pins": [
+						{
+							"name": "Nums",
+							"dir": "out",
+							"type":
+							{
+								"text": "Array<int>",
+								"category": "int",
+								"container": "array"
+							},
+							"links": [
+								{
+									"node": "AB4457264C0E4032AB62C690F290D75F",
+									"pin": "TargetArray"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BP_LabData",
+								"category": "object",
+								"object": "/Game/DwoQA/BP_LabData.BP_LabData_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "AB4457264C0E4032AB62C690F290D75F",
+					"class": "K2Node_CallArrayFunction",
+					"title": "Swap Array Elements",
+					"member": "Array_Swap",
+					"memberOwner": "/Script/Engine.KismetArrayLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pos": [
+						720,
+						260
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "02EA4F3144D91E9E3A5288A287F96E59",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "33C315DD41255309BC3576A5805BE53B",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "KismetArrayLibrary",
+								"category": "object",
+								"object": "/Script/Engine.KismetArrayLibrary"
+							},
+							"defaultObject": "/Script/Engine.Default__KismetArrayLibrary",
+							"hidden": true
+						},
+						{
+							"name": "TargetArray",
+							"dir": "in",
+							"type":
+							{
+								"text": "Array<int>&",
+								"category": "int",
+								"container": "array",
+								"ref": true
+							},
+							"links": [
+								{
+									"node": "4CDBF5B546E66D6D70DF909E5FBE8824",
+									"pin": "Nums"
+								}
+							]
+						},
+						{
+							"name": "FirstIndex",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0"
+						},
+						{
+							"name": "SecondIndex",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "2",
+							"autoDefault": "0"
+						}
+					]
+				},
+				{
+					"id": "3FF32A2245197B1522A9E6A0130E7322",
+					"class": "K2Node_VariableGet",
+					"title": "Get Nums",
+					"member": "Nums",
+					"memberOwner": "/Game/DwoQA/BP_LabData.SKEL_BP_LabData_C",
+					"memberCpp": "TArray<int32>",
+					"memberName": "Nums",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						1080,
+						260
+					],
+					"pins": [
+						{
+							"name": "Nums",
+							"dir": "out",
+							"type":
+							{
+								"text": "Array<int>",
+								"category": "int",
+								"container": "array"
+							},
+							"links": [
+								{
+									"node": "33C315DD41255309BC3576A5805BE53B",
+									"pin": "TargetArray"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BP_LabData",
+								"category": "object",
+								"object": "/Game/DwoQA/BP_LabData.BP_LabData_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "2D5E53584C4DA1CE868E38B7CEC52D27",
+					"class": "K2Node_MakeArray",
+					"title": "배열 만들기",
+					"role": "other",
+					"kind": "node",
+					"pure": true,
+					"pos": [
+						1440,
+						260
+					],
+					"pins": [
+						{
+							"name": "Array",
+							"dir": "out",
+							"type":
+							{
+								"text": "Array<int>&",
+								"category": "int",
+								"container": "array",
+								"ref": true,
+								"const": true
+							},
+							"links": [
+								{
+									"node": "33C315DD41255309BC3576A5805BE53B",
+									"pin": "SourceArray"
+								}
+							]
+						},
+						{
+							"name": "[0]",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "8",
+							"autoDefault": "0"
+						},
+						{
+							"name": "[1]",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "5",
+							"autoDefault": "0"
+						}
+					]
+				},
+				{
+					"id": "33C315DD41255309BC3576A5805BE53B",
+					"class": "K2Node_CallArrayFunction",
+					"title": "Append Array",
+					"member": "Array_Append",
+					"memberOwner": "/Script/Engine.KismetArrayLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pos": [
+						1800,
+						260
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "AB4457264C0E4032AB62C690F290D75F",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "B483379D4ADDEA9A6D05598B6406D0B8",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "KismetArrayLibrary",
+								"category": "object",
+								"object": "/Script/Engine.KismetArrayLibrary"
+							},
+							"defaultObject": "/Script/Engine.Default__KismetArrayLibrary",
+							"hidden": true
+						},
+						{
+							"name": "TargetArray",
+							"dir": "in",
+							"type":
+							{
+								"text": "Array<int>&",
+								"category": "int",
+								"container": "array",
+								"ref": true
+							},
+							"links": [
+								{
+									"node": "3FF32A2245197B1522A9E6A0130E7322",
+									"pin": "Nums"
+								}
+							]
+						},
+						{
+							"name": "SourceArray",
+							"dir": "in",
+							"type":
+							{
+								"text": "Array<int>&",
+								"category": "int",
+								"container": "array",
+								"ref": true,
+								"const": true
+							},
+							"links": [
+								{
+									"node": "2D5E53584C4DA1CE868E38B7CEC52D27",
+									"pin": "Array"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "635A9E764B8B739DA3154E98A06C00EA",
+					"class": "K2Node_VariableGet",
+					"title": "Get Nums",
+					"member": "Nums",
+					"memberOwner": "/Game/DwoQA/BP_LabData.SKEL_BP_LabData_C",
+					"memberCpp": "TArray<int32>",
+					"memberName": "Nums",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						0,
+						520
+					],
+					"pins": [
+						{
+							"name": "Nums",
+							"dir": "out",
+							"type":
+							{
+								"text": "Array<int>",
+								"category": "int",
+								"container": "array"
+							},
+							"links": [
+								{
+									"node": "B483379D4ADDEA9A6D05598B6406D0B8",
+									"pin": "TargetArray"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BP_LabData",
+								"category": "object",
+								"object": "/Game/DwoQA/BP_LabData.BP_LabData_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "B483379D4ADDEA9A6D05598B6406D0B8",
+					"class": "K2Node_CallArrayFunction",
+					"title": "Reverse",
+					"member": "Array_Reverse",
+					"memberOwner": "/Script/Engine.KismetArrayLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pos": [
+						360,
+						520
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "33C315DD41255309BC3576A5805BE53B",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "2394DA2D417959D407C1A0AC37CB7635",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "KismetArrayLibrary",
+								"category": "object",
+								"object": "/Script/Engine.KismetArrayLibrary"
+							},
+							"defaultObject": "/Script/Engine.Default__KismetArrayLibrary",
+							"hidden": true
+						},
+						{
+							"name": "TargetArray",
+							"dir": "in",
+							"type":
+							{
+								"text": "Array<int>&",
+								"category": "int",
+								"container": "array",
+								"ref": true
+							},
+							"links": [
+								{
+									"node": "635A9E764B8B739DA3154E98A06C00EA",
+									"pin": "Nums"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "551AB7D44772899A21FDD5A18AFEB3D9",
+					"class": "K2Node_VariableGet",
+					"title": "Get Nums",
+					"member": "Nums",
+					"memberOwner": "/Game/DwoQA/BP_LabData.SKEL_BP_LabData_C",
+					"memberCpp": "TArray<int32>",
+					"memberName": "Nums",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						720,
+						520
+					],
+					"pins": [
+						{
+							"name": "Nums",
+							"dir": "out",
+							"type":
+							{
+								"text": "Array<int>",
+								"category": "int",
+								"container": "array"
+							},
+							"links": [
+								{
+									"node": "2394DA2D417959D407C1A0AC37CB7635",
+									"pin": "TargetArray"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BP_LabData",
+								"category": "object",
+								"object": "/Game/DwoQA/BP_LabData.BP_LabData_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "2394DA2D417959D407C1A0AC37CB7635",
+					"class": "K2Node_CallArrayFunction",
+					"title": "Resize",
+					"member": "Array_Resize",
+					"memberOwner": "/Script/Engine.KismetArrayLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pos": [
+						1080,
+						520
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "B483379D4ADDEA9A6D05598B6406D0B8",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "732A47E34CEA80513140D592E3A2EA31",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "KismetArrayLibrary",
+								"category": "object",
+								"object": "/Script/Engine.KismetArrayLibrary"
+							},
+							"defaultObject": "/Script/Engine.Default__KismetArrayLibrary",
+							"hidden": true
+						},
+						{
+							"name": "TargetArray",
+							"dir": "in",
+							"type":
+							{
+								"text": "Array<int>&",
+								"category": "int",
+								"container": "array",
+								"ref": true
+							},
+							"links": [
+								{
+									"node": "551AB7D44772899A21FDD5A18AFEB3D9",
+									"pin": "Nums"
+								}
+							]
+						},
+						{
+							"name": "Size",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "8",
+							"autoDefault": "0"
+						}
+					]
+				},
+				{
+					"id": "2713F4BB46F02B9906CC51A4D0FBF3EE",
+					"class": "K2Node_VariableGet",
+					"title": "Get Nums",
+					"member": "Nums",
+					"memberOwner": "/Game/DwoQA/BP_LabData.SKEL_BP_LabData_C",
+					"memberCpp": "TArray<int32>",
+					"memberName": "Nums",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						1440,
+						520
+					],
+					"pins": [
+						{
+							"name": "Nums",
+							"dir": "out",
+							"type":
+							{
+								"text": "Array<int>",
+								"category": "int",
+								"container": "array"
+							},
+							"links": [
+								{
+									"node": "B92456104D9DF5E3E010D4A6187C66FC",
+									"pin": "ArrayA"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BP_LabData",
+								"category": "object",
+								"object": "/Game/DwoQA/BP_LabData.BP_LabData_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "9F29025646ACF6463BCD878F87213E11",
+					"class": "K2Node_VariableGet",
+					"title": "Get Nums",
+					"member": "Nums",
+					"memberOwner": "/Game/DwoQA/BP_LabData.SKEL_BP_LabData_C",
+					"memberCpp": "TArray<int32>",
+					"memberName": "Nums",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						1800,
+						520
+					],
+					"pins": [
+						{
+							"name": "Nums",
+							"dir": "out",
+							"type":
+							{
+								"text": "Array<int>",
+								"category": "int",
+								"container": "array"
+							},
+							"links": [
+								{
+									"node": "B92456104D9DF5E3E010D4A6187C66FC",
+									"pin": "ArrayB"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BP_LabData",
+								"category": "object",
+								"object": "/Game/DwoQA/BP_LabData.BP_LabData_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "B92456104D9DF5E3E010D4A6187C66FC",
+					"class": "K2Node_CallArrayFunction",
+					"title": "Identical",
+					"member": "Array_Identical",
+					"memberOwner": "/Script/Engine.KismetArrayLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						0,
+						780
+					],
+					"pins": [
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "KismetArrayLibrary",
+								"category": "object",
+								"object": "/Script/Engine.KismetArrayLibrary"
+							},
+							"defaultObject": "/Script/Engine.Default__KismetArrayLibrary",
+							"hidden": true
+						},
+						{
+							"name": "ArrayA",
+							"dir": "in",
+							"type":
+							{
+								"text": "Array<int>&",
+								"category": "int",
+								"container": "array",
+								"ref": true,
+								"const": true
+							},
+							"links": [
+								{
+									"node": "2713F4BB46F02B9906CC51A4D0FBF3EE",
+									"pin": "Nums"
+								}
+							]
+						},
+						{
+							"name": "ArrayB",
+							"dir": "in",
+							"type":
+							{
+								"text": "Array<int>&",
+								"category": "int",
+								"container": "array",
+								"ref": true,
+								"const": true
+							},
+							"links": [
+								{
+									"node": "9F29025646ACF6463BCD878F87213E11",
+									"pin": "Nums"
+								}
+							]
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false",
+							"links": [
+								{
+									"node": "732A47E34CEA80513140D592E3A2EA31",
+									"pin": "Same"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "732A47E34CEA80513140D592E3A2EA31",
+					"class": "K2Node_VariableSet",
+					"title": "Set Same",
+					"member": "Same",
+					"memberOwner": "/Game/DwoQA/BP_LabData.SKEL_BP_LabData_C",
+					"memberCpp": "bool",
+					"memberName": "Same",
+					"role": "variable",
+					"kind": "set",
+					"pos": [
+						360,
+						780
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "2394DA2D417959D407C1A0AC37CB7635",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "FB7B3FAD44F1B6F8E5B8579912FF7329",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "Same",
+							"dir": "in",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false",
+							"links": [
+								{
+									"node": "B92456104D9DF5E3E010D4A6187C66FC",
+									"pin": "ReturnValue"
+								}
+							]
+						},
+						{
+							"name": "Output_Get",
+							"dir": "out",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false"
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BP_LabData",
+								"category": "object",
+								"object": "/Game/DwoQA/BP_LabData.BP_LabData_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "28BBE3934810C6CB66FA6FA1FAFE2340",
+					"class": "K2Node_VariableGet",
+					"title": "Get Mode",
+					"member": "Mode",
+					"memberOwner": "/Game/DwoQA/BP_LabData.SKEL_BP_LabData_C",
+					"memberCpp": "TEnumAsByte<EMovementMode>",
+					"memberName": "Mode",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						720,
+						780
+					],
+					"pins": [
+						{
+							"name": "Mode",
+							"dir": "out",
+							"type":
+							{
+								"text": "EMovementMode",
+								"category": "byte",
+								"object": "/Script/Engine.EMovementMode"
+							},
+							"default": "MOVE_None",
+							"links": [
+								{
+									"node": "D1EFD7394716EE33A9507B840D2FC131",
+									"pin": "A"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BP_LabData",
+								"category": "object",
+								"object": "/Game/DwoQA/BP_LabData.BP_LabData_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "D1EFD7394716EE33A9507B840D2FC131",
+					"class": "K2Node_EnumEquality",
+					"title": "Equal (Enum)",
+					"role": "other",
+					"kind": "node",
+					"pure": true,
+					"pos": [
+						1080,
+						780
+					],
+					"pins": [
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"links": [
+								{
+									"node": "FB7B3FAD44F1B6F8E5B8579912FF7329",
+									"pin": "IsFlying"
+								}
+							]
+						},
+						{
+							"name": "A",
+							"dir": "in",
+							"type":
+							{
+								"text": "EMovementMode",
+								"category": "byte",
+								"object": "/Script/Engine.EMovementMode"
+							},
+							"links": [
+								{
+									"node": "28BBE3934810C6CB66FA6FA1FAFE2340",
+									"pin": "Mode"
+								}
+							]
+						},
+						{
+							"name": "B",
+							"dir": "in",
+							"type":
+							{
+								"text": "EMovementMode",
+								"category": "byte",
+								"object": "/Script/Engine.EMovementMode"
+							},
+							"default": "MOVE_Walking"
+						}
+					]
+				},
+				{
+					"id": "FB7B3FAD44F1B6F8E5B8579912FF7329",
+					"class": "K2Node_VariableSet",
+					"title": "Set IsFlying",
+					"member": "IsFlying",
+					"memberOwner": "/Game/DwoQA/BP_LabData.SKEL_BP_LabData_C",
+					"memberCpp": "bool",
+					"memberName": "IsFlying",
+					"role": "variable",
+					"kind": "set",
+					"pos": [
+						1440,
+						780
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "732A47E34CEA80513140D592E3A2EA31",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "61EECD9A451C31D884648BAA29D41D6E",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "IsFlying",
+							"dir": "in",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false",
+							"links": [
+								{
+									"node": "D1EFD7394716EE33A9507B840D2FC131",
+									"pin": "ReturnValue"
+								}
+							]
+						},
+						{
+							"name": "Output_Get",
+							"dir": "out",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false"
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BP_LabData",
+								"category": "object",
+								"object": "/Game/DwoQA/BP_LabData.BP_LabData_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "DBD3166945266E94833B83875540DCA6",
+					"class": "K2Node_VariableGet",
+					"title": "Get Mode",
+					"member": "Mode",
+					"memberOwner": "/Game/DwoQA/BP_LabData.SKEL_BP_LabData_C",
+					"memberCpp": "TEnumAsByte<EMovementMode>",
+					"memberName": "Mode",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						1800,
+						780
+					],
+					"pins": [
+						{
+							"name": "Mode",
+							"dir": "out",
+							"type":
+							{
+								"text": "EMovementMode",
+								"category": "byte",
+								"object": "/Script/Engine.EMovementMode"
+							},
+							"default": "MOVE_None",
+							"links": [
+								{
+									"node": "B1D505AD454D8D7D41DEFE9B35F06FC3",
+									"pin": "A"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BP_LabData",
+								"category": "object",
+								"object": "/Game/DwoQA/BP_LabData.BP_LabData_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "B1D505AD454D8D7D41DEFE9B35F06FC3",
+					"class": "K2Node_EnumInequality",
+					"title": "같지 않음(열거형)",
+					"role": "other",
+					"kind": "node",
+					"pure": true,
+					"pos": [
+						0,
+						1040
+					],
+					"pins": [
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"links": [
+								{
+									"node": "61EECD9A451C31D884648BAA29D41D6E",
+									"pin": "NotFlying"
+								}
+							]
+						},
+						{
+							"name": "A",
+							"dir": "in",
+							"type":
+							{
+								"text": "EMovementMode",
+								"category": "byte",
+								"object": "/Script/Engine.EMovementMode"
+							},
+							"links": [
+								{
+									"node": "DBD3166945266E94833B83875540DCA6",
+									"pin": "Mode"
+								}
+							]
+						},
+						{
+							"name": "B",
+							"dir": "in",
+							"type":
+							{
+								"text": "EMovementMode",
+								"category": "byte",
+								"object": "/Script/Engine.EMovementMode"
+							},
+							"default": "MOVE_Flying"
+						}
+					]
+				},
+				{
+					"id": "61EECD9A451C31D884648BAA29D41D6E",
+					"class": "K2Node_VariableSet",
+					"title": "Set NotFlying",
+					"member": "NotFlying",
+					"memberOwner": "/Game/DwoQA/BP_LabData.SKEL_BP_LabData_C",
+					"memberCpp": "bool",
+					"memberName": "NotFlying",
+					"role": "variable",
+					"kind": "set",
+					"pos": [
+						360,
+						1040
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "FB7B3FAD44F1B6F8E5B8579912FF7329",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "11F3463A41B5C9BAE7D9C597F75B406E",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "NotFlying",
+							"dir": "in",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false",
+							"links": [
+								{
+									"node": "B1D505AD454D8D7D41DEFE9B35F06FC3",
+									"pin": "ReturnValue"
+								}
+							]
+						},
+						{
+							"name": "Output_Get",
+							"dir": "out",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false"
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BP_LabData",
+								"category": "object",
+								"object": "/Game/DwoQA/BP_LabData.BP_LabData_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "E302325F448E9FDEAD8EF1A36473BA8A",
+					"class": "K2Node_VariableGet",
+					"title": "Get Mode",
+					"member": "Mode",
+					"memberOwner": "/Game/DwoQA/BP_LabData.SKEL_BP_LabData_C",
+					"memberCpp": "TEnumAsByte<EMovementMode>",
+					"memberName": "Mode",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						720,
+						1040
+					],
+					"pins": [
+						{
+							"name": "Mode",
+							"dir": "out",
+							"type":
+							{
+								"text": "EMovementMode",
+								"category": "byte",
+								"object": "/Script/Engine.EMovementMode"
+							},
+							"default": "MOVE_None",
+							"links": [
+								{
+									"node": "2FED19864C4B24411C074E93D6527ADF",
+									"pin": "Enumerator"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BP_LabData",
+								"category": "object",
+								"object": "/Game/DwoQA/BP_LabData.BP_LabData_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "2FED19864C4B24411C074E93D6527ADF",
+					"class": "K2Node_GetEnumeratorNameAsString",
+					"title": "열거형을 스트링으로",
+					"role": "other",
+					"kind": "node",
+					"pure": true,
+					"pos": [
+						1080,
+						1040
+					],
+					"pins": [
+						{
+							"name": "Enumerator",
+							"dir": "in",
+							"type":
+							{
+								"text": "EMovementMode",
+								"category": "byte",
+								"object": "/Script/Engine.EMovementMode"
+							},
+							"links": [
+								{
+									"node": "E302325F448E9FDEAD8EF1A36473BA8A",
+									"pin": "Mode"
+								}
+							]
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "string",
+								"category": "string"
+							},
+							"links": [
+								{
+									"node": "11F3463A41B5C9BAE7D9C597F75B406E",
+									"pin": "ModeText"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "11F3463A41B5C9BAE7D9C597F75B406E",
+					"class": "K2Node_VariableSet",
+					"title": "Set ModeText",
+					"member": "ModeText",
+					"memberOwner": "/Game/DwoQA/BP_LabData.SKEL_BP_LabData_C",
+					"memberCpp": "FString",
+					"memberName": "ModeText",
+					"role": "variable",
+					"kind": "set",
+					"pos": [
+						1440,
+						1040
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "61EECD9A451C31D884648BAA29D41D6E",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "EC23D6044F432BBF8B90EB9CB42AB565",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "ModeText",
+							"dir": "in",
+							"type":
+							{
+								"text": "string",
+								"category": "string"
+							},
+							"links": [
+								{
+									"node": "2FED19864C4B24411C074E93D6527ADF",
+									"pin": "ReturnValue"
+								}
+							]
+						},
+						{
+							"name": "Output_Get",
+							"dir": "out",
+							"type":
+							{
+								"text": "string",
+								"category": "string"
+							}
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BP_LabData",
+								"category": "object",
+								"object": "/Game/DwoQA/BP_LabData.BP_LabData_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "D3EEC7F64EEF0FA83D52209BF9292A7F",
+					"class": "K2Node_VariableGet",
+					"title": "Get Mode",
+					"member": "Mode",
+					"memberOwner": "/Game/DwoQA/BP_LabData.SKEL_BP_LabData_C",
+					"memberCpp": "TEnumAsByte<EMovementMode>",
+					"memberName": "Mode",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						1800,
+						1040
+					],
+					"pins": [
+						{
+							"name": "Mode",
+							"dir": "out",
+							"type":
+							{
+								"text": "EMovementMode",
+								"category": "byte",
+								"object": "/Script/Engine.EMovementMode"
+							},
+							"default": "MOVE_None",
+							"links": [
+								{
+									"node": "B8344E0645077219DD3918A64EFED7DF",
+									"pin": "Enumerator"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BP_LabData",
+								"category": "object",
+								"object": "/Game/DwoQA/BP_LabData.BP_LabData_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "B8344E0645077219DD3918A64EFED7DF",
+					"class": "K2Node_GetEnumeratorName",
+					"title": "열거형을 이름으로",
+					"role": "other",
+					"kind": "node",
+					"pure": true,
+					"pos": [
+						0,
+						1300
+					],
+					"pins": [
+						{
+							"name": "Enumerator",
+							"dir": "in",
+							"type":
+							{
+								"text": "EMovementMode",
+								"category": "byte",
+								"object": "/Script/Engine.EMovementMode"
+							},
+							"links": [
+								{
+									"node": "D3EEC7F64EEF0FA83D52209BF9292A7F",
+									"pin": "Mode"
+								}
+							]
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "name",
+								"category": "name"
+							},
+							"links": [
+								{
+									"node": "EC23D6044F432BBF8B90EB9CB42AB565",
+									"pin": "ModeName"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "EC23D6044F432BBF8B90EB9CB42AB565",
+					"class": "K2Node_VariableSet",
+					"title": "Set ModeName",
+					"member": "ModeName",
+					"memberOwner": "/Game/DwoQA/BP_LabData.SKEL_BP_LabData_C",
+					"memberCpp": "FName",
+					"memberName": "ModeName",
+					"role": "variable",
+					"kind": "set",
+					"pos": [
+						360,
+						1300
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "11F3463A41B5C9BAE7D9C597F75B406E",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "866B91DD414CCBF41E1C44A7B1264C2B",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "ModeName",
+							"dir": "in",
+							"type":
+							{
+								"text": "name",
+								"category": "name"
+							},
+							"default": "None",
+							"autoDefault": "None",
+							"links": [
+								{
+									"node": "B8344E0645077219DD3918A64EFED7DF",
+									"pin": "ReturnValue"
+								}
+							]
+						},
+						{
+							"name": "Output_Get",
+							"dir": "out",
+							"type":
+							{
+								"text": "name",
+								"category": "name"
+							},
+							"default": "None",
+							"autoDefault": "None"
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BP_LabData",
+								"category": "object",
+								"object": "/Game/DwoQA/BP_LabData.BP_LabData_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "5491C9FB4FBF604BC812F8AAED9A4D01",
+					"class": "K2Node_VariableGet",
+					"title": "Get Vec",
+					"member": "Vec",
+					"memberOwner": "/Game/DwoQA/BP_LabData.SKEL_BP_LabData_C",
+					"memberCpp": "FVector",
+					"memberName": "Vec",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						720,
+						1300
+					],
+					"pins": [
+						{
+							"name": "Vec",
+							"dir": "out",
+							"type":
+							{
+								"text": "Vector",
+								"category": "struct",
+								"object": "/Script/CoreUObject.Vector"
+							},
+							"default": "0, 0, 0",
+							"autoDefault": "0, 0, 0",
+							"links": [
+								{
+									"node": "866B91DD414CCBF41E1C44A7B1264C2B",
+									"pin": "StructRef"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BP_LabData",
+								"category": "object",
+								"object": "/Game/DwoQA/BP_LabData.BP_LabData_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "866B91DD414CCBF41E1C44A7B1264C2B",
+					"class": "K2Node_SetFieldsInStruct",
+					"title": "Set members in Vector",
+					"member": "None",
+					"memberOwner": "",
+					"role": "variable",
+					"kind": "get",
+					"pos": [
+						1080,
+						1300
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "EC23D6044F432BBF8B90EB9CB42AB565",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "0EBEAA234AAF469F85B1799BEA9539E3",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "StructRef",
+							"dir": "in",
+							"type":
+							{
+								"text": "Vector&",
+								"category": "struct",
+								"object": "/Script/CoreUObject.Vector",
+								"ref": true
+							},
+							"links": [
+								{
+									"node": "5491C9FB4FBF604BC812F8AAED9A4D01",
+									"pin": "Vec"
+								}
+							]
+						},
+						{
+							"name": "StructOut",
+							"dir": "out",
+							"type":
+							{
+								"text": "Vector&",
+								"category": "struct",
+								"object": "/Script/CoreUObject.Vector",
+								"ref": true
+							}
+						},
+						{
+							"name": "X",
+							"dir": "in",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "double"
+							},
+							"default": "1.5",
+							"autoDefault": "0.000000"
+						},
+						{
+							"name": "Z",
+							"dir": "in",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "double"
+							},
+							"default": "-2.25",
+							"autoDefault": "0.000000"
+						}
+					]
+				},
+				{
+					"id": "1179597546D11CFA2572809F3019964C",
+					"class": "K2Node_VariableGet",
+					"title": "Get Cls",
+					"member": "Cls",
+					"memberOwner": "/Game/DwoQA/BP_LabData.SKEL_BP_LabData_C",
+					"memberCpp": "UClass*",
+					"memberName": "Cls",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						1440,
+						1300
+					],
+					"pins": [
+						{
+							"name": "Cls",
+							"dir": "out",
+							"type":
+							{
+								"text": "Class<Actor>",
+								"category": "class",
+								"object": "/Script/Engine.Actor"
+							},
+							"links": [
+								{
+									"node": "0EBEAA234AAF469F85B1799BEA9539E3",
+									"pin": "Class"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BP_LabData",
+								"category": "object",
+								"object": "/Game/DwoQA/BP_LabData.BP_LabData_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "0EBEAA234AAF469F85B1799BEA9539E3",
+					"class": "K2Node_ClassDynamicCast",
+					"title": "Cast To Pawn Class",
+					"member": "/Script/Engine.Pawn",
+					"role": "cast",
+					"kind": "cast",
+					"pos": [
+						1800,
+						1300
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "866B91DD414CCBF41E1C44A7B1264C2B",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "0C16222A4A1FF2F3BD1B559F806E4135",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "CastFailed",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "Class",
+							"dir": "in",
+							"type":
+							{
+								"text": "Class<Object>",
+								"category": "class",
+								"object": "/Script/CoreUObject.Object"
+							},
+							"links": [
+								{
+									"node": "1179597546D11CFA2572809F3019964C",
+									"pin": "Cls"
+								}
+							]
+						},
+						{
+							"name": "AsPawn",
+							"dir": "out",
+							"type":
+							{
+								"text": "Class<Pawn>",
+								"category": "class",
+								"object": "/Script/Engine.Pawn"
+							}
+						},
+						{
+							"name": "bSuccess",
+							"dir": "out",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"hidden": true,
+							"links": [
+								{
+									"node": "0C16222A4A1FF2F3BD1B559F806E4135",
+									"pin": "IsPawnClass"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "0C16222A4A1FF2F3BD1B559F806E4135",
+					"class": "K2Node_VariableSet",
+					"title": "Set IsPawnClass",
+					"member": "IsPawnClass",
+					"memberOwner": "/Game/DwoQA/BP_LabData.SKEL_BP_LabData_C",
+					"memberCpp": "bool",
+					"memberName": "IsPawnClass",
+					"role": "variable",
+					"kind": "set",
+					"pos": [
+						0,
+						1560
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "0EBEAA234AAF469F85B1799BEA9539E3",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "A37A211E4A3FC2D5A02C2A8B22C8E9BC",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "IsPawnClass",
+							"dir": "in",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false",
+							"links": [
+								{
+									"node": "0EBEAA234AAF469F85B1799BEA9539E3",
+									"pin": "bSuccess"
+								}
+							]
+						},
+						{
+							"name": "Output_Get",
+							"dir": "out",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false"
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BP_LabData",
+								"category": "object",
+								"object": "/Game/DwoQA/BP_LabData.BP_LabData_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "E298B16849C43F6BCE110F87E887874D",
+					"class": "K2Node_GetClassDefaults",
+					"title": "클래스 디폴트 가져오기",
+					"role": "other",
+					"kind": "node",
+					"pure": true,
+					"pos": [
+						360,
+						1560
+					],
+					"pins": [
+						{
+							"name": "Class",
+							"dir": "in",
+							"type":
+							{
+								"text": "Class<Object>",
+								"category": "class",
+								"object": "/Script/CoreUObject.Object"
+							},
+							"defaultObject": "/Script/Engine.Character"
+						},
+						{
+							"name": "CrouchedEyeHeight",
+							"label": "Crouched Eye Height",
+							"dir": "out",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "float"
+							}
+						},
+						{
+							"name": "bIsCrouched",
+							"label": "Is Crouched",
+							"dir": "out",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							}
+						},
+						{
+							"name": "bPressedJump",
+							"label": "Pressed Jump",
+							"dir": "out",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							}
+						},
+						{
+							"name": "bWasJumping",
+							"label": "Was Jumping",
+							"dir": "out",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							}
+						},
+						{
+							"name": "JumpKeyHoldTime",
+							"label": "Jump Key Hold Time",
+							"dir": "out",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "float"
+							}
+						},
+						{
+							"name": "JumpForceTimeRemaining",
+							"label": "Jump Force Time Remaining",
+							"dir": "out",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "float"
+							}
+						},
+						{
+							"name": "ProxyJumpForceStartedTime",
+							"label": "Proxy Jump Force Started Time",
+							"dir": "out",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "float"
+							}
+						},
+						{
+							"name": "JumpMaxHoldTime",
+							"label": "Jump Max Hold Time",
+							"dir": "out",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "float"
+							}
+						},
+						{
+							"name": "JumpMaxCount",
+							"label": "Jump Max Count",
+							"dir": "out",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"links": [
+								{
+									"node": "A37A211E4A3FC2D5A02C2A8B22C8E9BC",
+									"pin": "JumpMax"
+								}
+							]
+						},
+						{
+							"name": "JumpCurrentCount",
+							"label": "Jump Current Count",
+							"dir": "out",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							}
+						},
+						{
+							"name": "JumpCurrentCountPreJump",
+							"label": "Jump Current Count Pre Jump",
+							"dir": "out",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							}
+						}
+					]
+				},
+				{
+					"id": "A37A211E4A3FC2D5A02C2A8B22C8E9BC",
+					"class": "K2Node_VariableSet",
+					"title": "Set JumpMax",
+					"member": "JumpMax",
+					"memberOwner": "/Game/DwoQA/BP_LabData.SKEL_BP_LabData_C",
+					"memberCpp": "int32",
+					"memberName": "JumpMax",
+					"role": "variable",
+					"kind": "set",
+					"pos": [
+						720,
+						1560
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "0C16222A4A1FF2F3BD1B559F806E4135",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "07F4B99A4DA6D96D2E0F2D9AE2458B71",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "JumpMax",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "E298B16849C43F6BCE110F87E887874D",
+									"pin": "JumpMaxCount"
+								}
+							]
+						},
+						{
+							"name": "Output_Get",
+							"dir": "out",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0"
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BP_LabData",
+								"category": "object",
+								"object": "/Game/DwoQA/BP_LabData.BP_LabData_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "DB3248AD406E88538B5B1AAB29ED1469",
+					"class": "K2Node_MakeMap",
+					"title": "맵 만들기",
+					"role": "other",
+					"kind": "node",
+					"pure": true,
+					"pos": [
+						1080,
+						1560
+					],
+					"pins": [
+						{
+							"name": "Map",
+							"dir": "out",
+							"type":
+							{
+								"text": "Map<string,int>",
+								"category": "string",
+								"container": "map",
+								"valueCategory": "int"
+							},
+							"links": [
+								{
+									"node": "07F4B99A4DA6D96D2E0F2D9AE2458B71",
+									"pin": "Ages"
+								}
+							]
+						},
+						{
+							"name": "Key 0",
+							"dir": "in",
+							"type":
+							{
+								"text": "string",
+								"category": "string"
+							},
+							"default": "a"
+						},
+						{
+							"name": "Value 0",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "1",
+							"autoDefault": "0"
+						},
+						{
+							"name": "Key 1",
+							"dir": "in",
+							"type":
+							{
+								"text": "string",
+								"category": "string"
+							},
+							"default": "b"
+						},
+						{
+							"name": "Value 1",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "2",
+							"autoDefault": "0"
+						}
+					]
+				},
+				{
+					"id": "07F4B99A4DA6D96D2E0F2D9AE2458B71",
+					"class": "K2Node_VariableSet",
+					"title": "Set Ages",
+					"member": "Ages",
+					"memberOwner": "/Game/DwoQA/BP_LabData.SKEL_BP_LabData_C",
+					"memberCpp": "TMap<FString,int32>",
+					"memberName": "Ages",
+					"role": "variable",
+					"kind": "set",
+					"pos": [
+						1440,
+						1560
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "A37A211E4A3FC2D5A02C2A8B22C8E9BC",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "DEFF618F45D11CDF9D1B9F921EE0BB9F",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "Ages",
+							"dir": "in",
+							"type":
+							{
+								"text": "Map<string,int>",
+								"category": "string",
+								"container": "map",
+								"valueCategory": "int"
+							},
+							"links": [
+								{
+									"node": "DB3248AD406E88538B5B1AAB29ED1469",
+									"pin": "Map"
+								}
+							]
+						},
+						{
+							"name": "Output_Get",
+							"dir": "out",
+							"type":
+							{
+								"text": "Map<string,int>",
+								"category": "string",
+								"container": "map",
+								"valueCategory": "int"
+							}
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BP_LabData",
+								"category": "object",
+								"object": "/Game/DwoQA/BP_LabData.BP_LabData_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "A9D20F3144F0742A8649BA80D7A61EDD",
+					"class": "K2Node_VariableGet",
+					"title": "Get Ages",
+					"member": "Ages",
+					"memberOwner": "/Game/DwoQA/BP_LabData.SKEL_BP_LabData_C",
+					"memberCpp": "TMap<FString,int32>",
+					"memberName": "Ages",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						1800,
+						1560
+					],
+					"pins": [
+						{
+							"name": "Ages",
+							"dir": "out",
+							"type":
+							{
+								"text": "Map<string,int>",
+								"category": "string",
+								"container": "map",
+								"valueCategory": "int"
+							},
+							"links": [
+								{
+									"node": "DEFF618F45D11CDF9D1B9F921EE0BB9F",
+									"pin": "TargetMap"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BP_LabData",
+								"category": "object",
+								"object": "/Game/DwoQA/BP_LabData.BP_LabData_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "DEFF618F45D11CDF9D1B9F921EE0BB9F",
+					"class": "K2Node_CallFunction",
+					"title": "Add",
+					"member": "Map_Add",
+					"memberOwner": "/Script/Engine.BlueprintMapLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pos": [
+						0,
+						1820
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "07F4B99A4DA6D96D2E0F2D9AE2458B71",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "DF0708204817CFF2FFAE89A75FC763BB",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BlueprintMapLibrary",
+								"category": "object",
+								"object": "/Script/Engine.BlueprintMapLibrary"
+							},
+							"defaultObject": "/Script/Engine.Default__BlueprintMapLibrary",
+							"hidden": true
+						},
+						{
+							"name": "TargetMap",
+							"dir": "in",
+							"type":
+							{
+								"text": "Map<string,int>&",
+								"category": "string",
+								"container": "map",
+								"valueCategory": "int",
+								"ref": true,
+								"const": true
+							},
+							"links": [
+								{
+									"node": "A9D20F3144F0742A8649BA80D7A61EDD",
+									"pin": "Ages"
+								}
+							]
+						},
+						{
+							"name": "Key",
+							"dir": "in",
+							"type":
+							{
+								"text": "string&",
+								"category": "string",
+								"ref": true,
+								"const": true
+							},
+							"default": "c"
+						},
+						{
+							"name": "Value",
+							"dir": "in",
+							"type":
+							{
+								"text": "int&",
+								"category": "int",
+								"ref": true,
+								"const": true
+							},
+							"default": "3"
+						}
+					]
+				},
+				{
+					"id": "082D774E40690D7C95CF79AEBD462C28",
+					"class": "K2Node_VariableGet",
+					"title": "Get Ages",
+					"member": "Ages",
+					"memberOwner": "/Game/DwoQA/BP_LabData.SKEL_BP_LabData_C",
+					"memberCpp": "TMap<FString,int32>",
+					"memberName": "Ages",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						360,
+						1820
+					],
+					"pins": [
+						{
+							"name": "Ages",
+							"dir": "out",
+							"type":
+							{
+								"text": "Map<string,int>",
+								"category": "string",
+								"container": "map",
+								"valueCategory": "int"
+							},
+							"links": [
+								{
+									"node": "CECEE27547EC845D26A0689F2ECD79BD",
+									"pin": "TargetMap"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BP_LabData",
+								"category": "object",
+								"object": "/Game/DwoQA/BP_LabData.BP_LabData_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "CECEE27547EC845D26A0689F2ECD79BD",
+					"class": "K2Node_CallFunction",
+					"title": "Find",
+					"member": "Map_Find",
+					"memberOwner": "/Script/Engine.BlueprintMapLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						720,
+						1820
+					],
+					"pins": [
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BlueprintMapLibrary",
+								"category": "object",
+								"object": "/Script/Engine.BlueprintMapLibrary"
+							},
+							"defaultObject": "/Script/Engine.Default__BlueprintMapLibrary",
+							"hidden": true
+						},
+						{
+							"name": "TargetMap",
+							"dir": "in",
+							"type":
+							{
+								"text": "Map<string,int>&",
+								"category": "string",
+								"container": "map",
+								"valueCategory": "int",
+								"ref": true,
+								"const": true
+							},
+							"links": [
+								{
+									"node": "082D774E40690D7C95CF79AEBD462C28",
+									"pin": "Ages"
+								}
+							]
+						},
+						{
+							"name": "Key",
+							"dir": "in",
+							"type":
+							{
+								"text": "string&",
+								"category": "string",
+								"ref": true,
+								"const": true
+							},
+							"default": "b"
+						},
+						{
+							"name": "Value",
+							"dir": "out",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"links": [
+								{
+									"node": "DF0708204817CFF2FFAE89A75FC763BB",
+									"pin": "FoundB"
+								}
+							]
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false",
+							"links": [
+								{
+									"node": "77A72D5D42448E270200B886FD5C4965",
+									"pin": "HasB"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "DF0708204817CFF2FFAE89A75FC763BB",
+					"class": "K2Node_VariableSet",
+					"title": "Set FoundB",
+					"member": "FoundB",
+					"memberOwner": "/Game/DwoQA/BP_LabData.SKEL_BP_LabData_C",
+					"memberCpp": "int32",
+					"memberName": "FoundB",
+					"role": "variable",
+					"kind": "set",
+					"pos": [
+						1080,
+						1820
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "DEFF618F45D11CDF9D1B9F921EE0BB9F",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "77A72D5D42448E270200B886FD5C4965",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "FoundB",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "CECEE27547EC845D26A0689F2ECD79BD",
+									"pin": "Value"
+								}
+							]
+						},
+						{
+							"name": "Output_Get",
+							"dir": "out",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0"
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BP_LabData",
+								"category": "object",
+								"object": "/Game/DwoQA/BP_LabData.BP_LabData_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "77A72D5D42448E270200B886FD5C4965",
+					"class": "K2Node_VariableSet",
+					"title": "Set HasB",
+					"member": "HasB",
+					"memberOwner": "/Game/DwoQA/BP_LabData.SKEL_BP_LabData_C",
+					"memberCpp": "bool",
+					"memberName": "HasB",
+					"role": "variable",
+					"kind": "set",
+					"pos": [
+						1440,
+						1820
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "DF0708204817CFF2FFAE89A75FC763BB",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "34CDCA8D4CB8687383FE1B886F26D144",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "HasB",
+							"dir": "in",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false",
+							"links": [
+								{
+									"node": "CECEE27547EC845D26A0689F2ECD79BD",
+									"pin": "ReturnValue"
+								}
+							]
+						},
+						{
+							"name": "Output_Get",
+							"dir": "out",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false"
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BP_LabData",
+								"category": "object",
+								"object": "/Game/DwoQA/BP_LabData.BP_LabData_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "3E054CF94B5BDCBE552CAD9B0D774F42",
+					"class": "K2Node_VariableGet",
+					"title": "Get Ages",
+					"member": "Ages",
+					"memberOwner": "/Game/DwoQA/BP_LabData.SKEL_BP_LabData_C",
+					"memberCpp": "TMap<FString,int32>",
+					"memberName": "Ages",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						1800,
+						1820
+					],
+					"pins": [
+						{
+							"name": "Ages",
+							"dir": "out",
+							"type":
+							{
+								"text": "Map<string,int>",
+								"category": "string",
+								"container": "map",
+								"valueCategory": "int"
+							},
+							"links": [
+								{
+									"node": "45DD1D684C13EBA99F1F6690DE16431F",
+									"pin": "TargetMap"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BP_LabData",
+								"category": "object",
+								"object": "/Game/DwoQA/BP_LabData.BP_LabData_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "45DD1D684C13EBA99F1F6690DE16431F",
+					"class": "K2Node_CallFunction",
+					"title": "Length",
+					"member": "Map_Length",
+					"memberOwner": "/Script/Engine.BlueprintMapLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						0,
+						2080
+					],
+					"pins": [
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BlueprintMapLibrary",
+								"category": "object",
+								"object": "/Script/Engine.BlueprintMapLibrary"
+							},
+							"defaultObject": "/Script/Engine.Default__BlueprintMapLibrary",
+							"hidden": true
+						},
+						{
+							"name": "TargetMap",
+							"dir": "in",
+							"type":
+							{
+								"text": "Map<string,int>&",
+								"category": "string",
+								"container": "map",
+								"valueCategory": "int",
+								"ref": true,
+								"const": true
+							},
+							"links": [
+								{
+									"node": "3E054CF94B5BDCBE552CAD9B0D774F42",
+									"pin": "Ages"
+								}
+							]
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "34CDCA8D4CB8687383FE1B886F26D144",
+									"pin": "MapLen"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "34CDCA8D4CB8687383FE1B886F26D144",
+					"class": "K2Node_VariableSet",
+					"title": "Set MapLen",
+					"member": "MapLen",
+					"memberOwner": "/Game/DwoQA/BP_LabData.SKEL_BP_LabData_C",
+					"memberCpp": "int32",
+					"memberName": "MapLen",
+					"role": "variable",
+					"kind": "set",
+					"pos": [
+						360,
+						2080
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "77A72D5D42448E270200B886FD5C4965",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "MapLen",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "45DD1D684C13EBA99F1F6690DE16431F",
+									"pin": "ReturnValue"
+								}
+							]
+						},
+						{
+							"name": "Output_Get",
+							"dir": "out",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0"
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BP_LabData",
+								"category": "object",
+								"object": "/Game/DwoQA/BP_LabData.BP_LabData_C"
+							},
+							"hidden": true
+						}
+					]
+				}
+			]
+		}
+	],
+	"native":
+	{
+		"types":
+		{
+			"/Script/Engine.Actor":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "AActor",
+				"include": "GameFramework/Actor.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.Actor",
+				"super": "/Script/CoreUObject.Object",
+				"actor": true
+			},
+			"/Script/CoreUObject.Object":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UObject",
+				"include": "UObject/Object.h",
+				"module": "CoreUObject",
+				"nativeParent": "/Script/CoreUObject.Object",
+				"abstract": true
+			},
+			"/Script/CoreUObject.Vector":
+			{
+				"kind": "struct",
+				"native": true,
+				"cpp": "FVector",
+				"include": "UObject/NoExportTypes.h",
+				"module": "CoreUObject"
+			},
+			"/Script/Engine.SceneComponent":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "USceneComponent",
+				"include": "Components/SceneComponent.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.SceneComponent",
+				"super": "/Script/Engine.ActorComponent",
+				"component": true
+			},
+			"/Game/DwoQA/BP_LabData.BP_LabData_C":
+			{
+				"kind": "class",
+				"native": false,
+				"cpp": "ABP_LabData_C",
+				"nativeParent": "/Script/Engine.Actor",
+				"super": "/Script/Engine.Actor",
+				"actor": true
+			},
+			"/Script/Engine.KismetArrayLibrary":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UKismetArrayLibrary",
+				"include": "Kismet/KismetArrayLibrary.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.KismetArrayLibrary",
+				"super": "/Script/Engine.BlueprintFunctionLibrary"
+			},
+			"/Script/Engine.Pawn":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "APawn",
+				"include": "GameFramework/Pawn.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.Pawn",
+				"super": "/Script/Engine.Actor",
+				"actor": true
+			},
+			"/Script/Engine.Character":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "ACharacter",
+				"include": "GameFramework/Character.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.Character",
+				"super": "/Script/Engine.Pawn",
+				"actor": true
+			},
+			"/Script/Engine.BlueprintMapLibrary":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UBlueprintMapLibrary",
+				"include": "Kismet/BlueprintMapLibrary.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.BlueprintMapLibrary",
+				"super": "/Script/Engine.BlueprintFunctionLibrary"
+			}
+		},
+		"enums":
+		{
+			"/Script/Engine.EMovementMode":
+			{
+				"native": true,
+				"cpp": "EMovementMode",
+				"form": "regular",
+				"include": "Engine/EngineTypes.h",
+				"values":
+				{
+					"MOVE_None": "MOVE_None",
+					"MOVE_Walking": "MOVE_Walking",
+					"MOVE_NavWalking": "MOVE_NavWalking",
+					"MOVE_Falling": "MOVE_Falling",
+					"MOVE_Swimming": "MOVE_Swimming",
+					"MOVE_Flying": "MOVE_Flying",
+					"MOVE_Custom": "MOVE_Custom"
+				}
+			}
+		},
+		"functions":
+		{
+			"/Script/Engine.Actor:UserConstructionScript":
+			{
+				"name": "UserConstructionScript",
+				"owner": "/Script/Engine.Actor",
+				"flags": [
+					"Event",
+					"BlueprintEvent"
+				],
+				"native": true,
+				"access": "public",
+				"internalOnly": true,
+				"params": []
+			},
+			"/Script/Engine.Actor:ReceiveBeginPlay":
+			{
+				"name": "ReceiveBeginPlay",
+				"owner": "/Script/Engine.Actor",
+				"flags": [
+					"Event",
+					"BlueprintEvent",
+					"Protected"
+				],
+				"native": true,
+				"access": "protected",
+				"params": []
+			},
+			"/Script/Engine.Actor:ReceiveActorBeginOverlap":
+			{
+				"name": "ReceiveActorBeginOverlap",
+				"owner": "/Script/Engine.Actor",
+				"flags": [
+					"Event",
+					"BlueprintEvent"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "OtherActor",
+						"cpp": "AActor*"
+					}
+				]
+			},
+			"/Script/Engine.Actor:ReceiveTick":
+			{
+				"name": "ReceiveTick",
+				"owner": "/Script/Engine.Actor",
+				"flags": [
+					"Event",
+					"BlueprintEvent"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "DeltaSeconds",
+						"cpp": "float"
+					}
+				]
+			},
+			"/Script/Engine.KismetArrayLibrary:Array_Insert":
+			{
+				"name": "Array_Insert",
+				"owner": "/Script/Engine.KismetArrayLibrary",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Static"
+				],
+				"native": true,
+				"access": "public",
+				"customThunk": true,
+				"params": [
+					{
+						"name": "TargetArray",
+						"cpp": "TArray<int32>",
+						"ref": true
+					},
+					{
+						"name": "NewItem",
+						"cpp": "int32",
+						"ref": true,
+						"const": true
+					},
+					{
+						"name": "Index",
+						"cpp": "int32"
+					}
+				]
+			},
+			"/Script/Engine.KismetArrayLibrary:Array_Set":
+			{
+				"name": "Array_Set",
+				"owner": "/Script/Engine.KismetArrayLibrary",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Static"
+				],
+				"native": true,
+				"access": "public",
+				"customThunk": true,
+				"params": [
+					{
+						"name": "TargetArray",
+						"cpp": "TArray<int32>",
+						"ref": true
+					},
+					{
+						"name": "Index",
+						"cpp": "int32"
+					},
+					{
+						"name": "Item",
+						"cpp": "int32",
+						"ref": true,
+						"const": true
+					},
+					{
+						"name": "bSizeToFit",
+						"cpp": "bool"
+					}
+				]
+			},
+			"/Script/Engine.KismetArrayLibrary:Array_Swap":
+			{
+				"name": "Array_Swap",
+				"owner": "/Script/Engine.KismetArrayLibrary",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Static"
+				],
+				"native": true,
+				"access": "public",
+				"customThunk": true,
+				"params": [
+					{
+						"name": "TargetArray",
+						"cpp": "TArray<int32>",
+						"ref": true
+					},
+					{
+						"name": "FirstIndex",
+						"cpp": "int32"
+					},
+					{
+						"name": "SecondIndex",
+						"cpp": "int32"
+					}
+				]
+			},
+			"/Script/Engine.KismetArrayLibrary:Array_Append":
+			{
+				"name": "Array_Append",
+				"owner": "/Script/Engine.KismetArrayLibrary",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Static"
+				],
+				"native": true,
+				"access": "public",
+				"customThunk": true,
+				"params": [
+					{
+						"name": "TargetArray",
+						"cpp": "TArray<int32>",
+						"ref": true
+					},
+					{
+						"name": "SourceArray",
+						"cpp": "TArray<int32>",
+						"ref": true,
+						"const": true
+					}
+				]
+			},
+			"/Script/Engine.KismetArrayLibrary:Array_Reverse":
+			{
+				"name": "Array_Reverse",
+				"owner": "/Script/Engine.KismetArrayLibrary",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Static"
+				],
+				"native": true,
+				"access": "public",
+				"customThunk": true,
+				"params": [
+					{
+						"name": "TargetArray",
+						"cpp": "TArray<int32>",
+						"ref": true
+					}
+				]
+			},
+			"/Script/Engine.KismetArrayLibrary:Array_Resize":
+			{
+				"name": "Array_Resize",
+				"owner": "/Script/Engine.KismetArrayLibrary",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Static"
+				],
+				"native": true,
+				"access": "public",
+				"customThunk": true,
+				"params": [
+					{
+						"name": "TargetArray",
+						"cpp": "TArray<int32>",
+						"ref": true
+					},
+					{
+						"name": "Size",
+						"cpp": "int32"
+					}
+				]
+			},
+			"/Script/Engine.KismetArrayLibrary:Array_Identical":
+			{
+				"name": "Array_Identical",
+				"owner": "/Script/Engine.KismetArrayLibrary",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Pure",
+					"Static"
+				],
+				"native": true,
+				"access": "public",
+				"customThunk": true,
+				"params": [
+					{
+						"name": "ArrayA",
+						"cpp": "TArray<int32>",
+						"ref": true,
+						"const": true
+					},
+					{
+						"name": "ArrayB",
+						"cpp": "TArray<int32>",
+						"ref": true,
+						"const": true
+					},
+					{
+						"name": "ReturnValue",
+						"cpp": "bool",
+						"return": true
+					}
+				]
+			},
+			"/Script/Engine.BlueprintMapLibrary:Map_Add":
+			{
+				"name": "Map_Add",
+				"owner": "/Script/Engine.BlueprintMapLibrary",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Static"
+				],
+				"native": true,
+				"access": "public",
+				"customThunk": true,
+				"params": [
+					{
+						"name": "TargetMap",
+						"cpp": "TMap<int32,int32>",
+						"ref": true,
+						"const": true
+					},
+					{
+						"name": "Key",
+						"cpp": "int32",
+						"ref": true,
+						"const": true
+					},
+					{
+						"name": "Value",
+						"cpp": "int32",
+						"ref": true,
+						"const": true
+					}
+				]
+			},
+			"/Script/Engine.BlueprintMapLibrary:Map_Find":
+			{
+				"name": "Map_Find",
+				"owner": "/Script/Engine.BlueprintMapLibrary",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Pure",
+					"Static"
+				],
+				"native": true,
+				"access": "public",
+				"customThunk": true,
+				"params": [
+					{
+						"name": "TargetMap",
+						"cpp": "TMap<int32,int32>",
+						"ref": true,
+						"const": true
+					},
+					{
+						"name": "Key",
+						"cpp": "int32",
+						"ref": true,
+						"const": true
+					},
+					{
+						"name": "Value",
+						"cpp": "int32",
+						"out": true
+					},
+					{
+						"name": "ReturnValue",
+						"cpp": "bool",
+						"return": true
+					}
+				]
+			},
+			"/Script/Engine.BlueprintMapLibrary:Map_Length":
+			{
+				"name": "Map_Length",
+				"owner": "/Script/Engine.BlueprintMapLibrary",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Pure",
+					"Static"
+				],
+				"native": true,
+				"access": "public",
+				"customThunk": true,
+				"params": [
+					{
+						"name": "TargetMap",
+						"cpp": "TMap<int32,int32>",
+						"ref": true,
+						"const": true
+					},
+					{
+						"name": "ReturnValue",
+						"cpp": "int32",
+						"return": true
+					}
+				]
+			}
+		},
+		"parentMembers": [
+			"PrimaryActorTick",
+			"bNetTemporary",
+			"bOnlyRelevantToOwner",
+			"bAlwaysRelevant",
+			"bReplicateMovement",
+			"bCallPreReplication",
+			"bCallPreReplicationForReplay",
+			"bHidden",
+			"bTearOff",
+			"bForceNetAddressable",
+			"LevelInstanceType",
+			"LevelInstanceFlags",
+			"bIsMainWorldOnly",
+			"bIgnoreInPIE",
+			"bExchangedRoles",
+			"bNetLoadOnClient",
+			"bNetUseOwnerRelevancy",
+			"bRelevantForNetworkReplays",
+			"bRelevantForLevelBounds",
+			"bReplayRewindable",
+			"bAllowTickBeforeBeginPlay",
+			"bAutoDestroyWhenFinished",
+			"bCanBeDamaged",
+			"bBlockInput",
+			"bCollideWhenPlacing",
+			"bFindCameraComponentWhenViewTarget",
+			"bGenerateOverlapEventsDuringLevelStreaming",
+			"bIgnoresOriginShifting",
+			"bEnableAutoLODGeneration",
+			"bIsEditorOnlyActor",
+			"bReplicates",
+			"bCanBeInCluster",
+			"bMigratingAsset",
+			"bAllowReceiveTickEventOnDedicatedServer",
+			"bReplicateUsingRegisteredSubObjectList",
+			"bActorEnableCollision",
+			"bActorIsBeingDestroyed",
+			"bAsyncPhysicsTickEnabled",
+			"UpdateOverlapsMethodDuringLevelStreaming",
+			"DefaultUpdateOverlapsMethodDuringLevelStreaming",
+			"RemoteRole",
+			"InitialLifeSpan",
+			"CustomTimeDilation",
+			"RayTracingGroupId",
+			"GridPlacement",
+			"RuntimeGrid",
+			"AttachmentReplication",
+			"ReplicatedMovement",
+			"Owner",
+			"NetDriverName",
+			"Role",
+			"NetDormancy",
+			"SpawnCollisionHandlingMethod",
+			"AutoReceiveInput",
+			"InputPriority",
+			"InputComponent",
+			"NetTag",
+			"NetCullDistanceSquared",
+			"NetUpdateFrequency",
+			"MinNetUpdateFrequency",
+			"NetPriority",
+			"PhysicsReplicationMode",
+			"Instigator",
+			"Children",
+			"RootComponent",
+			"PivotOffset",
+			"HLODLayer",
+			"ObjectsDetachedFromExternalPackage",
+			"Layers",
+			"ParentComponentActor",
+			"ParentComponent",
+			"ActorGuid",
+			"ActorInstanceGuid",
+			"ContentBundleGuid",
+			"DataLayers",
+			"DataLayerAssets",
+			"ExternalDataLayerAsset",
+			"GroupActor",
+			"SpriteScale",
+			"HiddenEditorViews",
+			"ActorLabel",
+			"FolderPath",
+			"FolderGuid",
+			"bHiddenEd",
+			"bIsEditorPreviewActor",
+			"bHiddenEdLayer",
+			"bHiddenEdLevel",
+			"bLockLocation",
+			"bActorLabelEditable",
+			"bEditable",
+			"bListedInSceneOutliner",
+			"bOptimizeBPComponentData",
+			"bCanPlayFromHere",
+			"bIsSpatiallyLoaded",
+			"bHiddenEdTemporary",
+			"bForceExternalActorLevelReferenceForPIE",
+			"Tags",
+			"OnTakeAnyDamage",
+			"OnTakePointDamage",
+			"OnTakeRadialDamage",
+			"OnActorBeginOverlap",
+			"OnActorEndOverlap",
+			"OnBeginCursorOver",
+			"OnEndCursorOver",
+			"OnClicked",
+			"OnReleased",
+			"OnInputTouchBegin",
+			"OnInputTouchEnd",
+			"OnInputTouchEnter",
+			"OnInputTouchLeave",
+			"OnActorHit",
+			"OnDestroyed",
+			"OnEndPlay",
+			"InstanceComponents",
+			"BlueprintCreatedComponents",
+			"WasRecentlyRendered",
+			"UserConstructionScript",
+			"UnregisterAsFocalPointInPhysicsReplicationLOD",
+			"TearOff",
+			"SetTickGroup",
+			"SetTickableWhenPaused",
+			"SetReplicates",
+			"SetReplicateMovement",
+			"SetRayTracingGroupId",
+			"SetPhysicsReplicationMode",
+			"SetOwner",
+			"SetNetUpdateFrequency",
+			"SetNetDormancy",
+			"SetNetCullDistanceSquared",
+			"SetMinNetUpdateFrequency",
+			"SetLifeSpan",
+			"SetIsTemporarilyHiddenInEditor",
+			"SetFolderPath",
+			"SetAutoDestroyWhenFinished",
+			"SetActorTickInterval",
+			"SetActorTickEnabled",
+			"SetActorScale3D",
+			"SetActorRelativeScale3D",
+			"SetActorLabel",
+			"SetActorHiddenInGame",
+			"SetActorEnableCollision",
+			"RemoveTickPrerequisiteComponent",
+			"RemoveTickPrerequisiteActor",
+			"RegisterAsFocalPointInPhysicsReplicationLOD",
+			"ReceiveTick",
+			"ReceiveRadialDamage",
+			"ReceivePointDamage",
+			"ReceiveHit",
+			"ReceiveEndPlay",
+			"ReceiveDestroyed",
+			"ReceiveBeginPlay",
+			"ReceiveAsyncPhysicsTick",
+			"ReceiveAnyDamage",
+			"ReceiveActorOnReleased",
+			"ReceiveActorOnInputTouchLeave",
+			"ReceiveActorOnInputTouchEnter",
+			"ReceiveActorOnInputTouchEnd",
+			"ReceiveActorOnInputTouchBegin",
+			"ReceiveActorOnClicked",
+			"ReceiveActorEndOverlap",
+			"ReceiveActorEndCursorOver",
+			"ReceiveActorBeginOverlap",
+			"ReceiveActorBeginCursorOver",
+			"PrestreamTextures",
+			"OnRep_ReplicateMovement",
+			"OnRep_ReplicatedMovement",
+			"OnRep_Owner",
+			"OnRep_Instigator",
+			"OnRep_AttachmentReplication",
+			"MakeNoise",
+			"K2_TeleportTo",
+			"K2_SetActorTransform",
+			"K2_SetActorRotation",
+			"K2_SetActorRelativeTransform",
+			"K2_SetActorRelativeRotation",
+			"K2_SetActorRelativeLocation",
+			"K2_SetActorLocationAndRotation",
+			"K2_SetActorLocation",
+			"K2_OnReset",
+			"K2_OnEndViewTarget",
+			"K2_OnBecomeViewTarget",
+			"K2_GetRootComponent",
+			"K2_GetComponentsByClass",
+			"K2_GetActorRotation",
+			"K2_GetActorLocation",
+			"K2_DetachFromActor",
+			"K2_DestroyActor",
+			"K2_AttachToComponent",
+			"K2_AttachToActor",
+			"K2_AttachRootComponentToActor",
+			"K2_AttachRootComponentTo",
+			"K2_AddActorWorldTransformKeepScale",
+			"K2_AddActorWorldTransform",
+			"K2_AddActorWorldRotation",
+			"K2_AddActorWorldOffset",
+			"K2_AddActorLocalTransform",
+			"K2_AddActorLocalRotation",
+			"K2_AddActorLocalOffset",
+			"IsTemporarilyHiddenInEditor",
+			"IsSelectable",
+			"IsOverlappingActor",
+			"IsHiddenEdAtStartup",
+			"IsHiddenEd",
+			"IsEditable",
+			"IsChildActor",
+			"IsActorTickEnabled",
+			"IsActorBeingDestroyed",
+			"HasAuthority",
+			"GetVerticalDistanceTo",
+			"GetVelocity",
+			"GetTransform",
+			"GetTickableWhenPaused",
+			"GetSquaredHorizontalDistanceTo",
+			"GetSquaredDistanceTo",
+			"GetResimulationThreshold",
+			"GetRemoteRole",
+			"GetRayTracingGroupId",
+			"GetPhysicsReplicationMode",
+			"GetParentComponent",
+			"GetParentActor",
+			"GetOwner",
+			"GetOverlappingComponents",
+			"GetOverlappingActors",
+			"GetNetUpdateFrequency",
+			"GetNetCullDistanceSquared",
+			"GetMinNetUpdateFrequency",
+			"GetLocalRole",
+			"GetLifeSpan",
+			"GetLevelTransform",
+			"GetLevel",
+			"GetInstigatorController",
+			"GetInstigator",
+			"GetInputVectorAxisValue",
+			"GetInputAxisValue",
+			"GetInputAxisKeyValue",
+			"GetHorizontalDotProductTo",
+			"GetHorizontalDistanceTo",
+			"GetGameTimeSinceCreation",
+			"GetFolderPath",
+			"GetDotProductTo",
+			"GetDistanceTo",
+			"GetDefaultActorLabel",
+			"GetComponentsByTag",
+			"GetComponentsByInterface",
+			"GetComponentByClass",
+			"GetAttachParentSocketName",
+			"GetAttachParentActor",
+			"GetAttachedActors",
+			"GetAllChildActors",
+			"GetActorUpVector",
+			"GetActorTimeDilation",
+			"GetActorTickInterval",
+			"GetActorScale3D",
+			"GetActorRightVector",
+			"GetActorRelativeScale3D",
+			"GetActorLabel",
+			"GetActorForwardVector",
+			"GetActorEyesViewPoint",
+			"GetActorEnableCollision",
+			"GetActorBounds",
+			"ForceNetUpdate",
+			"FlushNetDormancy",
+			"FinishAddComponent",
+			"FindComponentByTag",
+			"EnableInput",
+			"DisableInput",
+			"DetachRootComponentFromParent",
+			"CreateInputComponent",
+			"CanTriggerResimulation",
+			"AddTickPrerequisiteComponent",
+			"AddTickPrerequisiteActor",
+			"AddComponentByClass",
+			"AddComponent",
+			"ActorHasTag",
+			"ExecuteUbergraph"
+		]
+	}
+}
