@@ -1309,6 +1309,19 @@ class NativeMigrationTests(TempDir):
         self.assertFalse(ev.migrated)
         self.assertIn("export again", ev.reason)
 
+    def test_replicated_custom_events_are_rpcs(self):
+        plan, s, files = self.generate("BP_LabNet")
+        self.assertEqual(s["coverage"]["migrated"], s["coverage"]["nodes"])
+        h, cpp = files["LabNetBase.h"], files["LabNetBase.cpp"]
+        self.assertIn('UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Default")\n\tvoid ServerAdd(int32 Amount);', h)
+        self.assertIn("UFUNCTION(BlueprintCallable, Client, Reliable,", h)
+        self.assertIn("void ClientNote(const FString& Text, const FVector& At);", h)      # RPC parameters by const ref
+        self.assertIn("UFUNCTION(BlueprintCallable, NetMulticast, Unreliable,", h)
+        self.assertIn("void ALabNetBase::ServerAdd_Implementation(int32 Amount)", cpp)
+        self.assertIn("\tServerAdd(5);", cpp)                       # callers go through the RPC, as the Blueprint did
+        # BeginPlay and Tick both run into MulticastPing: no label that nothing jumps to (C4102 is an error)
+        self.assertNotIn("L_052993C9:", cpp)
+
     def test_signature_helpers(self):
         import lens_native
         self.assertEqual(lens_native.enum_exec_value("TEnumAsByte<EMoveComponentAction::Type>", "Stop"), "EMoveComponentAction::Stop")

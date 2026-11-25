@@ -1737,6 +1737,10 @@ class Fn:
 
     def translate(self, start: dict | None):
         self.flow(start)
+        # a node several flows run into gets a label; one no goto in this function uses (the other flows are other
+        # events) would be an unreferenced label, an error with warnings as errors
+        used = {m for line in self.lines for m in re.findall(r"goto (L_\w+);", line)}
+        self.lines = [line for line in self.lines if not (re.fullmatch(r"L_\w+:", line.strip()) and line.strip()[:-1] not in used)]
         return self
 
 
@@ -2543,16 +2547,28 @@ class Plan:
             else:
                 raise Unsupported(f"event {n.get('member')} has no native signature in the export")
         elif cls == "K2Node_CustomEvent":
-            if set(n.get("memberFlags", [])) & {"Net", "Server", "Client", "Multicast"}:
-                raise Unsupported("replicated custom events are not translated yet")
+            flags = set(n.get("memberFlags", []))
+            net = None
+            if "Net" in flags:
+                # a replicated custom event is an RPC: Run on Server / Owning Client / Multicast, Reliable or not.
+                # UHT generates the call (it sends or runs it); the body is <Name>_Implementation.
+                where = "Server" if "Server" in flags else "Client" if "Client" in flags else "NetMulticast" if "Multicast" in flags else None
+                if not where:
+                    raise Unsupported("a replicated custom event without Server, Client or Multicast")
+                net = f"{where}, {'Reliable' if 'Reliable' in flags else 'Unreliable'}"
             args = []
             for p in n["pins"]:
                 if p["dir"] == "out" and p["type"].get("category") not in ("exec", "delegate"):
                     t = self.types.of(p["type"], header=True)
-                    args.append(f"{t} {ident(p['name'])}")
+                    scalar = t in ("bool", "int32", "int64", "double", "float", "uint8") or t.endswith("*") or t.startswith("TEnumAsByte<") \
+                        or p["type"].get("category") in ("byte", "enum")
+                    # RPC parameters other than scalars travel by const reference (UHT requires it)
+                    args.append(f"{t} {ident(p['name'])}" if not net or scalar else f"const {t}& {ident(p['name'])}")
                     params[(n["id"], p["name"])] = ident(p["name"])
             item.cpp = ident(n["member"])
             item.extra.update(signature=f"void {item.cpp}({', '.join(args)})", order="none", superCall="", custom=True)
+            if net:
+                item.extra["net"] = net
         elif cls == "K2Node_ComponentBoundEvent":
             comp = n.get("component", "")
             owner_item = self.components.get(comp) or self.widgets.get(comp)
@@ -3052,7 +3068,8 @@ def write(plan: Plan, out: Path) -> dict:
         H.append("")
     for e in events:
         if e.extra.get("custom"):
-            H.append('\tUFUNCTION(BlueprintCallable, Category = "Default")')
+            net = f", {e.extra['net']}" if e.extra.get("net") else ""
+            H.append(f'\tUFUNCTION(BlueprintCallable{net}, Category = "Default")')
             H.append(f"\t{e.extra['signature']};")
             H.append("")
     protected = [e for e in events if e.extra.get("override")]
@@ -3236,6 +3253,8 @@ def write(plan: Plan, out: Path) -> dict:
         sig = e.extra["signature"]
         m = re.match(r"(\w[\w:<>*&\s]*?)\s+(\w+)\((.*)\)$", sig)
         ret, name, args = m.group(1), m.group(2), m.group(3)
+        if e.extra.get("net"):
+            name += "_Implementation"            # an RPC: UHT's generated function sends or runs this
         C.append(f"{ret} {cls}::{name}({args})")
         C.append("{")
         if e.extra.get("order") == "after":

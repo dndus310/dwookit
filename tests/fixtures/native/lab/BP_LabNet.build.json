@@ -1,0 +1,60 @@
+{
+  "path": "/Game/DwoQA/BP_LabNet",
+  "parent": "/Script/Engine.Actor",
+  "variables": [
+    {"name": "Total", "type": {"category": "int"}},
+    {"name": "Pings", "type": {"category": "int"}},
+    {"name": "Note", "type": {"category": "string"}},
+    {"name": "Where", "type": {"category": "struct", "object": "/Script/CoreUObject.Vector"}}
+  ],
+  "nodes": [
+    {"id": "begin", "event": "/Script/Engine.Actor:ReceiveBeginPlay"},
+    {"id": "tick", "event": "/Script/Engine.Actor:ReceiveTick"},
+    {"id": "callAdd", "function": "/Game/DwoQA/BP_LabNet.BP_LabNet_C:ServerAdd", "late": true},
+    {"id": "callNote", "function": "/Game/DwoQA/BP_LabNet.BP_LabNet_C:ClientNote", "late": true},
+    {"id": "callPing", "function": "/Game/DwoQA/BP_LabNet.BP_LabNet_C:MulticastPing", "late": true},
+    {"id": "callAddTick", "function": "/Game/DwoQA/BP_LabNet.BP_LabNet_C:ServerAdd", "late": true},
+
+    {"id": "add", "custom": "ServerAdd", "net": ["Server", "Reliable"], "params": [{"name": "Amount", "type": {"category": "int"}}]},
+    {"id": "gT", "get": "Total"},
+    {"id": "sum", "function": "/Script/Engine.KismetMathLibrary:Add_IntInt"},
+    {"id": "setT", "set": "Total"},
+
+    {"id": "note", "custom": "ClientNote", "net": ["Client", "Reliable"], "params": [{"name": "Text", "type": {"category": "string"}}, {"name": "At", "type": {"category": "struct", "object": "/Script/CoreUObject.Vector"}}]},
+    {"id": "setN", "set": "Note"},
+    {"id": "setW", "set": "Where"},
+
+    {"id": "ping", "custom": "MulticastPing", "net": ["Multicast"]},
+    {"id": "gP", "get": "Pings"},
+    {"id": "incP", "function": "/Script/Engine.KismetMathLibrary:Add_IntInt"},
+    {"id": "setP", "set": "Pings"}
+  ],
+  "defaults": {
+    "callAdd.Amount": "5",
+    "callNote.Text": "hello",
+    "callNote.At": "1, 2, 3",
+    "callAddTick.Amount": "1",
+    "incP.B": "1"
+  },
+  "links": [
+    ["begin.then", "callAdd.execute"],
+    ["callAdd.then", "callNote.execute"],
+    ["callNote.then", "callPing.execute"],
+    ["tick.then", "callAddTick.execute"],
+    ["callAddTick.then", "callPing.execute"],
+
+    ["add.then", "setT.execute"],
+    ["gT.Total", "sum.A"],
+    ["add.Amount", "sum.B"],
+    ["sum.ReturnValue", "setT.Total"],
+
+    ["note.then", "setN.execute"],
+    ["note.Text", "setN.Note"],
+    ["setN.then", "setW.execute"],
+    ["note.At", "setW.Where"],
+
+    ["ping.then", "setP.execute"],
+    ["gP.Pings", "incP.A"],
+    ["incP.ReturnValue", "setP.Pings"]
+  ]
+}

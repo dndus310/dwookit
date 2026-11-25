@@ -1,0 +1,1908 @@
+{
+	"schema": "lens.bp/1",
+	"name": "BP_LabNet",
+	"asset": "/Game/DwoQA/BP_LabNet.BP_LabNet",
+	"package": "/Game/DwoQA/BP_LabNet",
+	"assetClass": "Blueprint",
+	"blueprintType": "BPTYPE_Normal",
+	"status": "BS_UpToDate",
+	"engineVersion": "5.7.4-51494982+++UE5+Release-5.7",
+	"exportedAtUtc": "2026-11-25T17:23:42.701Z",
+	"source":
+	{
+		"file": "Content/DwoQA/BP_LabNet.uasset",
+		"bytes": 72045,
+		"modifiedUtc": "2026-11-25T17:21:23.000Z"
+	},
+	"parent": "/Script/Engine.Actor",
+	"parentChain": [
+		"/Script/Engine.Actor"
+	],
+	"generatedClass": "/Game/DwoQA/BP_LabNet.BP_LabNet_C",
+	"interfaces": [],
+	"variables": [
+		{
+			"name": "Total",
+			"type":
+			{
+				"text": "int",
+				"category": "int"
+			},
+			"category": "디폴트",
+			"default": "0"
+		},
+		{
+			"name": "Pings",
+			"type":
+			{
+				"text": "int",
+				"category": "int"
+			},
+			"category": "디폴트",
+			"default": "0"
+		},
+		{
+			"name": "Note",
+			"type":
+			{
+				"text": "string",
+				"category": "string"
+			},
+			"category": "디폴트"
+		},
+		{
+			"name": "Where",
+			"type":
+			{
+				"text": "Vector",
+				"category": "struct",
+				"object": "/Script/CoreUObject.Vector"
+			},
+			"category": "디폴트",
+			"default": "(X=0.000000,Y=0.000000,Z=0.000000)"
+		}
+	],
+	"components": [
+		{
+			"name": "DefaultSceneRoot",
+			"class": "SceneComponent",
+			"classPath": "/Script/Engine.SceneComponent",
+			"root": true
+		}
+	],
+	"classDefaults": [
+		{
+			"name": "PrimaryActorTick",
+			"value": "(bCanEverTick=True)",
+			"owner": "Actor"
+		}
+	],
+	"graphs": [
+		{
+			"name": "UserConstructionScript",
+			"kind": "function",
+			"nodes": [
+				{
+					"id": "E87FCB4E4C8E4D627DD08F853390E280",
+					"class": "K2Node_FunctionEntry",
+					"title": "Construction Script",
+					"member": "UserConstructionScript",
+					"role": "other",
+					"kind": "entry",
+					"pos": [
+						0,
+						0
+					],
+					"functionFlags": [
+						"Event",
+						"BlueprintEvent"
+					],
+					"pins": [
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "EventGraph",
+			"kind": "event",
+			"nodes": [
+				{
+					"id": "CC655D3844894C822E302188EFD10364",
+					"class": "K2Node_Event",
+					"title": "BeginPlay 이벤트",
+					"member": "ReceiveBeginPlay",
+					"memberOwner": "/Script/Engine.Actor",
+					"override": true,
+					"role": "event",
+					"kind": "event",
+					"pos": [
+						0,
+						0
+					],
+					"comment": "지금 이 노드는 비활성 상태입니다. \n핀을 끌어서 다른 노드를 연결하면 활성화됩니다.",
+					"disabled": true,
+					"pins": [
+						{
+							"name": "OutputDelegate",
+							"dir": "out",
+							"type":
+							{
+								"text": "delegate",
+								"category": "delegate"
+							}
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						}
+					]
+				},
+				{
+					"id": "ED4DFA4D4ED888756953E8987EC317CB",
+					"class": "K2Node_Event",
+					"title": "ActorBeginOverlap 이벤트",
+					"member": "ReceiveActorBeginOverlap",
+					"memberOwner": "/Script/Engine.Actor",
+					"override": true,
+					"role": "event",
+					"kind": "event",
+					"pos": [
+						0,
+						208
+					],
+					"comment": "지금 이 노드는 비활성 상태입니다. \n핀을 끌어서 다른 노드를 연결하면 활성화됩니다.",
+					"disabled": true,
+					"pins": [
+						{
+							"name": "OutputDelegate",
+							"dir": "out",
+							"type":
+							{
+								"text": "delegate",
+								"category": "delegate"
+							}
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "OtherActor",
+							"dir": "out",
+							"type":
+							{
+								"text": "Actor",
+								"category": "object",
+								"object": "/Script/Engine.Actor"
+							}
+						}
+					]
+				},
+				{
+					"id": "C1F459C04D4EE2C837FBEC91879F73CA",
+					"class": "K2Node_Event",
+					"title": "Tick 이벤트",
+					"member": "ReceiveTick",
+					"memberOwner": "/Script/Engine.Actor",
+					"override": true,
+					"role": "event",
+					"kind": "event",
+					"pos": [
+						0,
+						416
+					],
+					"comment": "지금 이 노드는 비활성 상태입니다. \n핀을 끌어서 다른 노드를 연결하면 활성화됩니다.",
+					"disabled": true,
+					"pins": [
+						{
+							"name": "OutputDelegate",
+							"dir": "out",
+							"type":
+							{
+								"text": "delegate",
+								"category": "delegate"
+							}
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "DeltaSeconds",
+							"dir": "out",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "float"
+							},
+							"default": "0.0",
+							"autoDefault": "0.0"
+						}
+					]
+				},
+				{
+					"id": "0A614C684C2A00D83A6234A207765C6B",
+					"class": "K2Node_Event",
+					"title": "BeginPlay 이벤트",
+					"member": "ReceiveBeginPlay",
+					"memberOwner": "/Script/Engine.Actor",
+					"override": true,
+					"role": "event",
+					"kind": "event",
+					"pos": [
+						0,
+						0
+					],
+					"pins": [
+						{
+							"name": "OutputDelegate",
+							"dir": "out",
+							"type":
+							{
+								"text": "delegate",
+								"category": "delegate"
+							}
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "ABE3134F47012CA547A23292FC5E942A",
+									"pin": "execute"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "BBCD4CB445ECCD543DBF76BBBFEA59CA",
+					"class": "K2Node_Event",
+					"title": "Tick 이벤트",
+					"member": "ReceiveTick",
+					"memberOwner": "/Script/Engine.Actor",
+					"override": true,
+					"role": "event",
+					"kind": "event",
+					"pos": [
+						360,
+						0
+					],
+					"pins": [
+						{
+							"name": "OutputDelegate",
+							"dir": "out",
+							"type":
+							{
+								"text": "delegate",
+								"category": "delegate"
+							}
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "06908D604AD5805CC271D4A2BA5B040F",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "DeltaSeconds",
+							"dir": "out",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "float"
+							},
+							"default": "0.0",
+							"autoDefault": "0.0"
+						}
+					]
+				},
+				{
+					"id": "B7E33CF2492EA2A0F973EC83F9B7A056",
+					"class": "K2Node_CustomEvent",
+					"title": "ServerAddRELIABLE Replicated From Client\nExecutes On Server\nCustom Event",
+					"member": "ServerAdd",
+					"memberFlags": [
+						"BlueprintCallable",
+						"BlueprintEvent",
+						"Net",
+						"Reliable",
+						"Server"
+					],
+					"role": "event",
+					"kind": "customEvent",
+					"pos": [
+						720,
+						0
+					],
+					"pins": [
+						{
+							"name": "OutputDelegate",
+							"dir": "out",
+							"type":
+							{
+								"text": "delegate",
+								"category": "delegate"
+							}
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "13863EF34E46B55B44CB06A1B0A19C82",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "Amount",
+							"dir": "out",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"links": [
+								{
+									"node": "51D06ACC48B1DB0EF733308D89390C82",
+									"pin": "B"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "286047DF45A03297AC8B178AEF91E869",
+					"class": "K2Node_VariableGet",
+					"title": "Get Total",
+					"member": "Total",
+					"memberOwner": "/Game/DwoQA/BP_LabNet.SKEL_BP_LabNet_C",
+					"memberCpp": "int32",
+					"memberName": "Total",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						1080,
+						0
+					],
+					"pins": [
+						{
+							"name": "Total",
+							"dir": "out",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "51D06ACC48B1DB0EF733308D89390C82",
+									"pin": "A"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BP_LabNet",
+								"category": "object",
+								"object": "/Game/DwoQA/BP_LabNet.BP_LabNet_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "51D06ACC48B1DB0EF733308D89390C82",
+					"class": "K2Node_CallFunction",
+					"title": "int + int",
+					"member": "Add_IntInt",
+					"memberOwner": "/Script/Engine.KismetMathLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						1440,
+						0
+					],
+					"pins": [
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "KismetMathLibrary",
+								"category": "object",
+								"object": "/Script/Engine.KismetMathLibrary"
+							},
+							"defaultObject": "/Script/Engine.Default__KismetMathLibrary",
+							"hidden": true
+						},
+						{
+							"name": "A",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "286047DF45A03297AC8B178AEF91E869",
+									"pin": "Total"
+								}
+							]
+						},
+						{
+							"name": "B",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "1",
+							"autoDefault": "1",
+							"links": [
+								{
+									"node": "B7E33CF2492EA2A0F973EC83F9B7A056",
+									"pin": "Amount"
+								}
+							]
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "13863EF34E46B55B44CB06A1B0A19C82",
+									"pin": "Total"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "13863EF34E46B55B44CB06A1B0A19C82",
+					"class": "K2Node_VariableSet",
+					"title": "Set Total",
+					"member": "Total",
+					"memberOwner": "/Game/DwoQA/BP_LabNet.SKEL_BP_LabNet_C",
+					"memberCpp": "int32",
+					"memberName": "Total",
+					"role": "variable",
+					"kind": "set",
+					"pos": [
+						1800,
+						0
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "B7E33CF2492EA2A0F973EC83F9B7A056",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "Total",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "51D06ACC48B1DB0EF733308D89390C82",
+									"pin": "ReturnValue"
+								}
+							]
+						},
+						{
+							"name": "Output_Get",
+							"dir": "out",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0"
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BP_LabNet",
+								"category": "object",
+								"object": "/Game/DwoQA/BP_LabNet.BP_LabNet_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "67E7F0C14F8E17D1B01FEE92DD68D68D",
+					"class": "K2Node_CustomEvent",
+					"title": "ClientNoteRELIABLE Replicated From Server\nExecutes on Owning Client\nCustom Event",
+					"member": "ClientNote",
+					"memberFlags": [
+						"BlueprintCallable",
+						"BlueprintEvent",
+						"Net",
+						"Reliable",
+						"Client"
+					],
+					"role": "event",
+					"kind": "customEvent",
+					"pos": [
+						0,
+						260
+					],
+					"pins": [
+						{
+							"name": "OutputDelegate",
+							"dir": "out",
+							"type":
+							{
+								"text": "delegate",
+								"category": "delegate"
+							}
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "D93AF73A4F65CE90E889D9BCABEE86E1",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "Text",
+							"dir": "out",
+							"type":
+							{
+								"text": "string",
+								"category": "string"
+							},
+							"links": [
+								{
+									"node": "D93AF73A4F65CE90E889D9BCABEE86E1",
+									"pin": "Note"
+								}
+							]
+						},
+						{
+							"name": "At",
+							"dir": "out",
+							"type":
+							{
+								"text": "Vector",
+								"category": "struct",
+								"object": "/Script/CoreUObject.Vector"
+							},
+							"links": [
+								{
+									"node": "11C4345B475CDDBA3F3285B2CA330C8C",
+									"pin": "Where"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "D93AF73A4F65CE90E889D9BCABEE86E1",
+					"class": "K2Node_VariableSet",
+					"title": "Set Note",
+					"member": "Note",
+					"memberOwner": "/Game/DwoQA/BP_LabNet.SKEL_BP_LabNet_C",
+					"memberCpp": "FString",
+					"memberName": "Note",
+					"role": "variable",
+					"kind": "set",
+					"pos": [
+						360,
+						260
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "67E7F0C14F8E17D1B01FEE92DD68D68D",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "11C4345B475CDDBA3F3285B2CA330C8C",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "Note",
+							"dir": "in",
+							"type":
+							{
+								"text": "string",
+								"category": "string"
+							},
+							"links": [
+								{
+									"node": "67E7F0C14F8E17D1B01FEE92DD68D68D",
+									"pin": "Text"
+								}
+							]
+						},
+						{
+							"name": "Output_Get",
+							"dir": "out",
+							"type":
+							{
+								"text": "string",
+								"category": "string"
+							}
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BP_LabNet",
+								"category": "object",
+								"object": "/Game/DwoQA/BP_LabNet.BP_LabNet_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "11C4345B475CDDBA3F3285B2CA330C8C",
+					"class": "K2Node_VariableSet",
+					"title": "Set Where",
+					"member": "Where",
+					"memberOwner": "/Game/DwoQA/BP_LabNet.SKEL_BP_LabNet_C",
+					"memberCpp": "FVector",
+					"memberName": "Where",
+					"role": "variable",
+					"kind": "set",
+					"pos": [
+						720,
+						260
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "D93AF73A4F65CE90E889D9BCABEE86E1",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "Where",
+							"dir": "in",
+							"type":
+							{
+								"text": "Vector",
+								"category": "struct",
+								"object": "/Script/CoreUObject.Vector"
+							},
+							"default": "0, 0, 0",
+							"autoDefault": "0, 0, 0",
+							"links": [
+								{
+									"node": "67E7F0C14F8E17D1B01FEE92DD68D68D",
+									"pin": "At"
+								}
+							]
+						},
+						{
+							"name": "Output_Get",
+							"dir": "out",
+							"type":
+							{
+								"text": "Vector",
+								"category": "struct",
+								"object": "/Script/CoreUObject.Vector"
+							},
+							"default": "0, 0, 0",
+							"autoDefault": "0, 0, 0"
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BP_LabNet",
+								"category": "object",
+								"object": "/Game/DwoQA/BP_LabNet.BP_LabNet_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "873137E84F69FD16683096A72F3441AE",
+					"class": "K2Node_CustomEvent",
+					"title": "MulticastPingReplicated From Server\nExecutes On All\nCustom Event",
+					"member": "MulticastPing",
+					"memberFlags": [
+						"BlueprintCallable",
+						"BlueprintEvent",
+						"Net",
+						"Multicast"
+					],
+					"role": "event",
+					"kind": "customEvent",
+					"pos": [
+						1080,
+						260
+					],
+					"pins": [
+						{
+							"name": "OutputDelegate",
+							"dir": "out",
+							"type":
+							{
+								"text": "delegate",
+								"category": "delegate"
+							}
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "2E63752243F14A0EB7C7BD9EC5428A6B",
+									"pin": "execute"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "669D80394D3386CBD248F29459480D3F",
+					"class": "K2Node_VariableGet",
+					"title": "Get Pings",
+					"member": "Pings",
+					"memberOwner": "/Game/DwoQA/BP_LabNet.SKEL_BP_LabNet_C",
+					"memberCpp": "int32",
+					"memberName": "Pings",
+					"role": "variable",
+					"kind": "get",
+					"pure": true,
+					"pos": [
+						1440,
+						260
+					],
+					"pins": [
+						{
+							"name": "Pings",
+							"dir": "out",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "EE309B6A4D725CBAC13440BD7653DF96",
+									"pin": "A"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BP_LabNet",
+								"category": "object",
+								"object": "/Game/DwoQA/BP_LabNet.BP_LabNet_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "EE309B6A4D725CBAC13440BD7653DF96",
+					"class": "K2Node_CallFunction",
+					"title": "int + int",
+					"member": "Add_IntInt",
+					"memberOwner": "/Script/Engine.KismetMathLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						1800,
+						260
+					],
+					"pins": [
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "KismetMathLibrary",
+								"category": "object",
+								"object": "/Script/Engine.KismetMathLibrary"
+							},
+							"defaultObject": "/Script/Engine.Default__KismetMathLibrary",
+							"hidden": true
+						},
+						{
+							"name": "A",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "669D80394D3386CBD248F29459480D3F",
+									"pin": "Pings"
+								}
+							]
+						},
+						{
+							"name": "B",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "1",
+							"autoDefault": "1"
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "2E63752243F14A0EB7C7BD9EC5428A6B",
+									"pin": "Pings"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "2E63752243F14A0EB7C7BD9EC5428A6B",
+					"class": "K2Node_VariableSet",
+					"title": "Set Pings",
+					"member": "Pings",
+					"memberOwner": "/Game/DwoQA/BP_LabNet.SKEL_BP_LabNet_C",
+					"memberCpp": "int32",
+					"memberName": "Pings",
+					"role": "variable",
+					"kind": "set",
+					"pos": [
+						0,
+						520
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "873137E84F69FD16683096A72F3441AE",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "Pings",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0",
+							"links": [
+								{
+									"node": "EE309B6A4D725CBAC13440BD7653DF96",
+									"pin": "ReturnValue"
+								}
+							]
+						},
+						{
+							"name": "Output_Get",
+							"dir": "out",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "0",
+							"autoDefault": "0"
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "BP_LabNet",
+								"category": "object",
+								"object": "/Game/DwoQA/BP_LabNet.BP_LabNet_C"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "ABE3134F47012CA547A23292FC5E942A",
+					"class": "K2Node_CallFunction",
+					"title": "Server Add\n타깃은 BP Lab Net\nRELIABLE 서버에 리플리케이트됨 (소유 클라이언트인 경우)",
+					"member": "ServerAdd",
+					"memberOwner": "/Game/DwoQA/BP_LabNet.SKEL_BP_LabNet_C",
+					"memberFlags": [
+						"BlueprintCallable",
+						"BlueprintEvent",
+						"Net",
+						"Reliable",
+						"Server"
+					],
+					"role": "call",
+					"kind": "call",
+					"pos": [
+						360,
+						520
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "0A614C684C2A00D83A6234A207765C6B",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "AB73082248D12B82BDCD0A82D5DCF371",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "Self",
+								"category": "object",
+								"subCategory": "self"
+							}
+						},
+						{
+							"name": "Amount",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "5",
+							"autoDefault": "0"
+						}
+					]
+				},
+				{
+					"id": "AB73082248D12B82BDCD0A82D5DCF371",
+					"class": "K2Node_CallFunction",
+					"title": "Client Note\n타깃은 BP Lab Net\nRELIABLE 소유 클라이언트에 리플리케이트됨 (서버인 경우)",
+					"member": "ClientNote",
+					"memberOwner": "/Game/DwoQA/BP_LabNet.SKEL_BP_LabNet_C",
+					"memberFlags": [
+						"BlueprintCallable",
+						"BlueprintEvent",
+						"Net",
+						"Reliable",
+						"Client"
+					],
+					"role": "call",
+					"kind": "call",
+					"pos": [
+						720,
+						520
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "ABE3134F47012CA547A23292FC5E942A",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "052993C94A34D673FCD6688D6E85A4B9",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "Self",
+								"category": "object",
+								"subCategory": "self"
+							}
+						},
+						{
+							"name": "Text",
+							"dir": "in",
+							"type":
+							{
+								"text": "string",
+								"category": "string"
+							},
+							"default": "hello"
+						},
+						{
+							"name": "At",
+							"dir": "in",
+							"type":
+							{
+								"text": "Vector",
+								"category": "struct",
+								"object": "/Script/CoreUObject.Vector"
+							},
+							"default": "1, 2, 3",
+							"autoDefault": "0, 0, 0"
+						}
+					]
+				},
+				{
+					"id": "052993C94A34D673FCD6688D6E85A4B9",
+					"class": "K2Node_CallFunction",
+					"title": "Multicast Ping\n타깃은 BP Lab Net\n모두에 리플리케이트됨 (서버인 경우)",
+					"member": "MulticastPing",
+					"memberOwner": "/Game/DwoQA/BP_LabNet.SKEL_BP_LabNet_C",
+					"memberFlags": [
+						"BlueprintCallable",
+						"BlueprintEvent",
+						"Net",
+						"Multicast"
+					],
+					"role": "call",
+					"kind": "call",
+					"pos": [
+						1080,
+						520
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "AB73082248D12B82BDCD0A82D5DCF371",
+									"pin": "then"
+								},
+								{
+									"node": "06908D604AD5805CC271D4A2BA5B040F",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "Self",
+								"category": "object",
+								"subCategory": "self"
+							}
+						}
+					]
+				},
+				{
+					"id": "06908D604AD5805CC271D4A2BA5B040F",
+					"class": "K2Node_CallFunction",
+					"title": "Server Add\n타깃은 BP Lab Net\nRELIABLE 서버에 리플리케이트됨 (소유 클라이언트인 경우)",
+					"member": "ServerAdd",
+					"memberOwner": "/Game/DwoQA/BP_LabNet.SKEL_BP_LabNet_C",
+					"memberFlags": [
+						"BlueprintCallable",
+						"BlueprintEvent",
+						"Net",
+						"Reliable",
+						"Server"
+					],
+					"role": "call",
+					"kind": "call",
+					"pos": [
+						1440,
+						520
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "BBCD4CB445ECCD543DBF76BBBFEA59CA",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "052993C94A34D673FCD6688D6E85A4B9",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "Self",
+								"category": "object",
+								"subCategory": "self"
+							}
+						},
+						{
+							"name": "Amount",
+							"dir": "in",
+							"type":
+							{
+								"text": "int",
+								"category": "int"
+							},
+							"default": "1",
+							"autoDefault": "0"
+						}
+					]
+				}
+			]
+		}
+	],
+	"native":
+	{
+		"types":
+		{
+			"/Script/Engine.Actor":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "AActor",
+				"include": "GameFramework/Actor.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.Actor",
+				"super": "/Script/CoreUObject.Object",
+				"actor": true
+			},
+			"/Script/CoreUObject.Object":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UObject",
+				"include": "UObject/Object.h",
+				"module": "CoreUObject",
+				"nativeParent": "/Script/CoreUObject.Object",
+				"abstract": true
+			},
+			"/Script/CoreUObject.Vector":
+			{
+				"kind": "struct",
+				"native": true,
+				"cpp": "FVector",
+				"include": "UObject/NoExportTypes.h",
+				"module": "CoreUObject"
+			},
+			"/Script/Engine.SceneComponent":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "USceneComponent",
+				"include": "Components/SceneComponent.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.SceneComponent",
+				"super": "/Script/Engine.ActorComponent",
+				"component": true
+			},
+			"/Game/DwoQA/BP_LabNet.BP_LabNet_C":
+			{
+				"kind": "class",
+				"native": false,
+				"cpp": "ABP_LabNet_C",
+				"nativeParent": "/Script/Engine.Actor",
+				"super": "/Script/Engine.Actor",
+				"actor": true
+			},
+			"/Script/Engine.KismetMathLibrary":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UKismetMathLibrary",
+				"include": "Kismet/KismetMathLibrary.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.KismetMathLibrary",
+				"super": "/Script/Engine.BlueprintFunctionLibrary"
+			},
+			"/Game/DwoQA/BP_LabNet.SKEL_BP_LabNet_C":
+			{
+				"kind": "class",
+				"native": false,
+				"cpp": "ASKEL_BP_LabNet_C",
+				"nativeParent": "/Script/Engine.Actor",
+				"super": "/Script/Engine.Actor",
+				"actor": true
+			}
+		},
+		"enums":
+		{
+		},
+		"functions":
+		{
+			"/Script/Engine.Actor:UserConstructionScript":
+			{
+				"name": "UserConstructionScript",
+				"owner": "/Script/Engine.Actor",
+				"flags": [
+					"Event",
+					"BlueprintEvent"
+				],
+				"native": true,
+				"access": "public",
+				"internalOnly": true,
+				"params": []
+			},
+			"/Script/Engine.Actor:ReceiveBeginPlay":
+			{
+				"name": "ReceiveBeginPlay",
+				"owner": "/Script/Engine.Actor",
+				"flags": [
+					"Event",
+					"BlueprintEvent",
+					"Protected"
+				],
+				"native": true,
+				"access": "protected",
+				"params": []
+			},
+			"/Script/Engine.Actor:ReceiveActorBeginOverlap":
+			{
+				"name": "ReceiveActorBeginOverlap",
+				"owner": "/Script/Engine.Actor",
+				"flags": [
+					"Event",
+					"BlueprintEvent"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "OtherActor",
+						"cpp": "AActor*"
+					}
+				]
+			},
+			"/Script/Engine.Actor:ReceiveTick":
+			{
+				"name": "ReceiveTick",
+				"owner": "/Script/Engine.Actor",
+				"flags": [
+					"Event",
+					"BlueprintEvent"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "DeltaSeconds",
+						"cpp": "float"
+					}
+				]
+			},
+			"/Script/Engine.KismetMathLibrary:Add_IntInt":
+			{
+				"name": "Add_IntInt",
+				"owner": "/Script/Engine.KismetMathLibrary",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Pure",
+					"Static"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "A",
+						"cpp": "int32"
+					},
+					{
+						"name": "B",
+						"cpp": "int32",
+						"cppDefault": "1"
+					},
+					{
+						"name": "ReturnValue",
+						"cpp": "int32",
+						"return": true
+					}
+				]
+			},
+			"/Game/DwoQA/BP_LabNet.SKEL_BP_LabNet_C:ServerAdd":
+			{
+				"name": "ServerAdd",
+				"owner": "/Game/DwoQA/BP_LabNet.SKEL_BP_LabNet_C",
+				"flags": [
+					"BlueprintCallable",
+					"BlueprintEvent",
+					"Net",
+					"Reliable",
+					"Server"
+				],
+				"native": false,
+				"access": "public",
+				"params": [
+					{
+						"name": "Amount",
+						"cpp": "int32"
+					}
+				]
+			},
+			"/Game/DwoQA/BP_LabNet.SKEL_BP_LabNet_C:ClientNote":
+			{
+				"name": "ClientNote",
+				"owner": "/Game/DwoQA/BP_LabNet.SKEL_BP_LabNet_C",
+				"flags": [
+					"BlueprintCallable",
+					"BlueprintEvent",
+					"Net",
+					"Reliable",
+					"Client"
+				],
+				"native": false,
+				"access": "public",
+				"params": [
+					{
+						"name": "Text",
+						"cpp": "FString"
+					},
+					{
+						"name": "At",
+						"cpp": "FVector"
+					}
+				]
+			},
+			"/Game/DwoQA/BP_LabNet.SKEL_BP_LabNet_C:MulticastPing":
+			{
+				"name": "MulticastPing",
+				"owner": "/Game/DwoQA/BP_LabNet.SKEL_BP_LabNet_C",
+				"flags": [
+					"BlueprintCallable",
+					"BlueprintEvent",
+					"Net",
+					"Multicast"
+				],
+				"native": false,
+				"access": "public",
+				"params": []
+			}
+		},
+		"parentMembers": [
+			"PrimaryActorTick",
+			"bNetTemporary",
+			"bOnlyRelevantToOwner",
+			"bAlwaysRelevant",
+			"bReplicateMovement",
+			"bCallPreReplication",
+			"bCallPreReplicationForReplay",
+			"bHidden",
+			"bTearOff",
+			"bForceNetAddressable",
+			"LevelInstanceType",
+			"LevelInstanceFlags",
+			"bIsMainWorldOnly",
+			"bIgnoreInPIE",
+			"bExchangedRoles",
+			"bNetLoadOnClient",
+			"bNetUseOwnerRelevancy",
+			"bRelevantForNetworkReplays",
+			"bRelevantForLevelBounds",
+			"bReplayRewindable",
+			"bAllowTickBeforeBeginPlay",
+			"bAutoDestroyWhenFinished",
+			"bCanBeDamaged",
+			"bBlockInput",
+			"bCollideWhenPlacing",
+			"bFindCameraComponentWhenViewTarget",
+			"bGenerateOverlapEventsDuringLevelStreaming",
+			"bIgnoresOriginShifting",
+			"bEnableAutoLODGeneration",
+			"bIsEditorOnlyActor",
+			"bReplicates",
+			"bCanBeInCluster",
+			"bMigratingAsset",
+			"bAllowReceiveTickEventOnDedicatedServer",
+			"bReplicateUsingRegisteredSubObjectList",
+			"bActorEnableCollision",
+			"bActorIsBeingDestroyed",
+			"bAsyncPhysicsTickEnabled",
+			"UpdateOverlapsMethodDuringLevelStreaming",
+			"DefaultUpdateOverlapsMethodDuringLevelStreaming",
+			"RemoteRole",
+			"InitialLifeSpan",
+			"CustomTimeDilation",
+			"RayTracingGroupId",
+			"GridPlacement",
+			"RuntimeGrid",
+			"AttachmentReplication",
+			"ReplicatedMovement",
+			"Owner",
+			"NetDriverName",
+			"Role",
+			"NetDormancy",
+			"SpawnCollisionHandlingMethod",
+			"AutoReceiveInput",
+			"InputPriority",
+			"InputComponent",
+			"NetTag",
+			"NetCullDistanceSquared",
+			"NetUpdateFrequency",
+			"MinNetUpdateFrequency",
+			"NetPriority",
+			"PhysicsReplicationMode",
+			"Instigator",
+			"Children",
+			"RootComponent",
+			"PivotOffset",
+			"HLODLayer",
+			"ObjectsDetachedFromExternalPackage",
+			"Layers",
+			"ParentComponentActor",
+			"ParentComponent",
+			"ActorGuid",
+			"ActorInstanceGuid",
+			"ContentBundleGuid",
+			"DataLayers",
+			"DataLayerAssets",
+			"ExternalDataLayerAsset",
+			"GroupActor",
+			"SpriteScale",
+			"HiddenEditorViews",
+			"ActorLabel",
+			"FolderPath",
+			"FolderGuid",
+			"bHiddenEd",
+			"bIsEditorPreviewActor",
+			"bHiddenEdLayer",
+			"bHiddenEdLevel",
+			"bLockLocation",
+			"bActorLabelEditable",
+			"bEditable",
+			"bListedInSceneOutliner",
+			"bOptimizeBPComponentData",
+			"bCanPlayFromHere",
+			"bIsSpatiallyLoaded",
+			"bHiddenEdTemporary",
+			"bForceExternalActorLevelReferenceForPIE",
+			"Tags",
+			"OnTakeAnyDamage",
+			"OnTakePointDamage",
+			"OnTakeRadialDamage",
+			"OnActorBeginOverlap",
+			"OnActorEndOverlap",
+			"OnBeginCursorOver",
+			"OnEndCursorOver",
+			"OnClicked",
+			"OnReleased",
+			"OnInputTouchBegin",
+			"OnInputTouchEnd",
+			"OnInputTouchEnter",
+			"OnInputTouchLeave",
+			"OnActorHit",
+			"OnDestroyed",
+			"OnEndPlay",
+			"InstanceComponents",
+			"BlueprintCreatedComponents",
+			"WasRecentlyRendered",
+			"UserConstructionScript",
+			"UnregisterAsFocalPointInPhysicsReplicationLOD",
+			"TearOff",
+			"SetTickGroup",
+			"SetTickableWhenPaused",
+			"SetReplicates",
+			"SetReplicateMovement",
+			"SetRayTracingGroupId",
+			"SetPhysicsReplicationMode",
+			"SetOwner",
+			"SetNetUpdateFrequency",
+			"SetNetDormancy",
+			"SetNetCullDistanceSquared",
+			"SetMinNetUpdateFrequency",
+			"SetLifeSpan",
+			"SetIsTemporarilyHiddenInEditor",
+			"SetFolderPath",
+			"SetAutoDestroyWhenFinished",
+			"SetActorTickInterval",
+			"SetActorTickEnabled",
+			"SetActorScale3D",
+			"SetActorRelativeScale3D",
+			"SetActorLabel",
+			"SetActorHiddenInGame",
+			"SetActorEnableCollision",
+			"RemoveTickPrerequisiteComponent",
+			"RemoveTickPrerequisiteActor",
+			"RegisterAsFocalPointInPhysicsReplicationLOD",
+			"ReceiveTick",
+			"ReceiveRadialDamage",
+			"ReceivePointDamage",
+			"ReceiveHit",
+			"ReceiveEndPlay",
+			"ReceiveDestroyed",
+			"ReceiveBeginPlay",
+			"ReceiveAsyncPhysicsTick",
+			"ReceiveAnyDamage",
+			"ReceiveActorOnReleased",
+			"ReceiveActorOnInputTouchLeave",
+			"ReceiveActorOnInputTouchEnter",
+			"ReceiveActorOnInputTouchEnd",
+			"ReceiveActorOnInputTouchBegin",
+			"ReceiveActorOnClicked",
+			"ReceiveActorEndOverlap",
+			"ReceiveActorEndCursorOver",
+			"ReceiveActorBeginOverlap",
+			"ReceiveActorBeginCursorOver",
+			"PrestreamTextures",
+			"OnRep_ReplicateMovement",
+			"OnRep_ReplicatedMovement",
+			"OnRep_Owner",
+			"OnRep_Instigator",
+			"OnRep_AttachmentReplication",
+			"MakeNoise",
+			"K2_TeleportTo",
+			"K2_SetActorTransform",
+			"K2_SetActorRotation",
+			"K2_SetActorRelativeTransform",
+			"K2_SetActorRelativeRotation",
+			"K2_SetActorRelativeLocation",
+			"K2_SetActorLocationAndRotation",
+			"K2_SetActorLocation",
+			"K2_OnReset",
+			"K2_OnEndViewTarget",
+			"K2_OnBecomeViewTarget",
+			"K2_GetRootComponent",
+			"K2_GetComponentsByClass",
+			"K2_GetActorRotation",
+			"K2_GetActorLocation",
+			"K2_DetachFromActor",
+			"K2_DestroyActor",
+			"K2_AttachToComponent",
+			"K2_AttachToActor",
+			"K2_AttachRootComponentToActor",
+			"K2_AttachRootComponentTo",
+			"K2_AddActorWorldTransformKeepScale",
+			"K2_AddActorWorldTransform",
+			"K2_AddActorWorldRotation",
+			"K2_AddActorWorldOffset",
+			"K2_AddActorLocalTransform",
+			"K2_AddActorLocalRotation",
+			"K2_AddActorLocalOffset",
+			"IsTemporarilyHiddenInEditor",
+			"IsSelectable",
+			"IsOverlappingActor",
+			"IsHiddenEdAtStartup",
+			"IsHiddenEd",
+			"IsEditable",
+			"IsChildActor",
+			"IsActorTickEnabled",
+			"IsActorBeingDestroyed",
+			"HasAuthority",
+			"GetVerticalDistanceTo",
+			"GetVelocity",
+			"GetTransform",
+			"GetTickableWhenPaused",
+			"GetSquaredHorizontalDistanceTo",
+			"GetSquaredDistanceTo",
+			"GetResimulationThreshold",
+			"GetRemoteRole",
+			"GetRayTracingGroupId",
+			"GetPhysicsReplicationMode",
+			"GetParentComponent",
+			"GetParentActor",
+			"GetOwner",
+			"GetOverlappingComponents",
+			"GetOverlappingActors",
+			"GetNetUpdateFrequency",
+			"GetNetCullDistanceSquared",
+			"GetMinNetUpdateFrequency",
+			"GetLocalRole",
+			"GetLifeSpan",
+			"GetLevelTransform",
+			"GetLevel",
+			"GetInstigatorController",
+			"GetInstigator",
+			"GetInputVectorAxisValue",
+			"GetInputAxisValue",
+			"GetInputAxisKeyValue",
+			"GetHorizontalDotProductTo",
+			"GetHorizontalDistanceTo",
+			"GetGameTimeSinceCreation",
+			"GetFolderPath",
+			"GetDotProductTo",
+			"GetDistanceTo",
+			"GetDefaultActorLabel",
+			"GetComponentsByTag",
+			"GetComponentsByInterface",
+			"GetComponentByClass",
+			"GetAttachParentSocketName",
+			"GetAttachParentActor",
+			"GetAttachedActors",
+			"GetAllChildActors",
+			"GetActorUpVector",
+			"GetActorTimeDilation",
+			"GetActorTickInterval",
+			"GetActorScale3D",
+			"GetActorRightVector",
+			"GetActorRelativeScale3D",
+			"GetActorLabel",
+			"GetActorForwardVector",
+			"GetActorEyesViewPoint",
+			"GetActorEnableCollision",
+			"GetActorBounds",
+			"ForceNetUpdate",
+			"FlushNetDormancy",
+			"FinishAddComponent",
+			"FindComponentByTag",
+			"EnableInput",
+			"DisableInput",
+			"DetachRootComponentFromParent",
+			"CreateInputComponent",
+			"CanTriggerResimulation",
+			"AddTickPrerequisiteComponent",
+			"AddTickPrerequisiteActor",
+			"AddComponentByClass",
+			"AddComponent",
+			"ActorHasTag",
+			"ExecuteUbergraph"
+		]
+	}
+}

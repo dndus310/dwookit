@@ -7,13 +7,14 @@
 //   variables  [{name, type: {category, subCategory?, object?, container?}, default?, expose?}]
 //   nodes      [{id, and one of:
 //                  event: "<class path>:<function>"   an override (ReceiveBeginPlay)
-//                  custom: "<name>", params?: [{name, type}]
+//                  custom: "<name>", params?: [{name, type}], net?: ["Server" | "Client" | "Multicast", "Reliable"]
 //                  function: "<class path>:<function>"
 //                  macro: "<standard macro name>"     (Gate, DoN, ForLoopWithBreak ...)
 //                  get / set: "<variable>"
 //                  class: "<K2Node class name>", props?: {property: text}  (set before the pins exist)
 //                  entry / result: "<graph>"              that graph's existing entry or result node
-//                and graph?: "<function or interface graph>" (default: the event graph)}
+//                and graph?: "<function or interface graph>" (default: the event graph), late?: true (made after a
+//                first compile: calls of this Blueprint's own functions and events)}
 //              ]
 //   defaults   {"node.pin": "value"}   (object and class pins: an object path)
 //   links      [["node.output", "node.input"], ...]
@@ -194,11 +195,22 @@ int32 DwoLensInspector::BuildBlueprint(const FString& SpecFile)
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 	TMap<FString, UEdGraphNode*> Nodes;
 	int32 Column = 0;
-	if (Spec->TryGetArrayField(TEXT("nodes"), List))
+	// late nodes call this Blueprint's own functions and events: made after a first compile creates them
+	for (int32 Pass = 0; Pass < 2 && Spec->TryGetArrayField(TEXT("nodes"), List); ++Pass)
 	{
+		if (Pass == 1)
+		{
+			bool bAnyLate = false;
+			for (const TSharedPtr<FJsonValue>& V : *List) { bool bLate = false; bAnyLate |= V->AsObject()->TryGetBoolField(TEXT("late"), bLate) && bLate; }
+			if (!bAnyLate) { break; }
+			FKismetEditorUtilities::CompileBlueprint(Blueprint, EBlueprintCompileOptions::SkipGarbageCollection);
+		}
 		for (const TSharedPtr<FJsonValue>& V : *List)
 		{
 			const FJson N = V->AsObject();
+			bool bLateNode = false;
+			N->TryGetBoolField(TEXT("late"), bLateNode);
+			if (bLateNode != (Pass == 1)) { continue; }
 			const FString Id = N->GetStringField(TEXT("id"));
 			FString Ref;
 			UEdGraphNode* Node = nullptr;
@@ -228,6 +240,21 @@ int32 DwoLensInspector::BuildBlueprint(const FString& SpecFile)
 			{
 				UK2Node_CustomEvent* Event = NewObject<UK2Node_CustomEvent>(Graph);
 				Event->CustomFunctionName = FName(*Ref);
+				// replication, as the event's details panel sets it: Server / Client / Multicast, Reliable
+				const TArray<TSharedPtr<FJsonValue>>* Net = nullptr;
+				if (N->TryGetArrayField(TEXT("net"), Net))
+				{
+					for (const TSharedPtr<FJsonValue>& F : *Net)
+					{
+						const FString Flag = F->AsString();
+						Event->FunctionFlags |= FUNC_Net;
+						if (Flag == TEXT("Server")) { Event->FunctionFlags |= FUNC_NetServer; }
+						else if (Flag == TEXT("Client")) { Event->FunctionFlags |= FUNC_NetClient; }
+						else if (Flag == TEXT("Multicast")) { Event->FunctionFlags |= FUNC_NetMulticast; }
+						else if (Flag == TEXT("Reliable")) { Event->FunctionFlags |= FUNC_NetReliable; }
+						else { Problem(TEXT("unknown net flag ") + Flag); }
+					}
+				}
 				Node = Event;
 			}
 			else if (N->TryGetStringField(TEXT("function"), Ref))
