@@ -2048,14 +2048,17 @@ function Invoke-Bp {
 #   native rebase <bp> [--dry-run] [--force]
 #                                    back up the .uasset, rebase, verify; the backup goes back when it fails
 #   native restore <bp>              put the last backup of the .uasset back (and of Build.cs)
-#   native verify <bp> [--frames N] [--no-probe] [--probe-offset X:Y:Z] [--call Function@Frame[@Arg...] ...]
+#   native verify <bp> [--frames N] [--no-probe] [--probe-offset X:Y:Z] [--pawn <bp>] [--call [Child.]Function@Frame[@Arg...] ...]
 #                                    behaviour check: runs the rebased Blueprint and its pre-migration backup through
 #                                    the same scenario in a headless world (DwoLensBehaviour.cpp) and compares them;
 #                                    --probe-offset: where the probe lands, from the actor (cm);
 #                                    --call runs an event or function on the actor at that frame (an implementable
 #                                    event its C++ parent fires in the game); arguments as text in parameter order
 #                                    (quote values with commas), the rest value-initialized. Actors, widgets
-#                                    (created and ticked through Slate) and anim Blueprints (on a launched Character)
+#                                    (created and ticked through Slate) and anim Blueprints (on a launched Character).
+#                                    Child.Name: a function or dispatcher of a child widget or component (fires a
+#                                    button's OnPressed, a child widget's dispatcher). --pawn: the pawn a widget's
+#                                    owning player possesses (recorded). A pawn subject is possessed by a player.
 #   native status                    what was generated and rebased
 $NativeDir = Join-Path $ForgeDir 'native'
 
@@ -2150,6 +2153,8 @@ function Invoke-NativeVerify($Target, $UProject) {
     $doc = [ordered]@{ blueprint = $j.blueprint; frames = $frames; dt = 0.0333333; recordEvery = 10
                        probe = $(if ($Rest -contains '--no-probe') { 'none' } else { 'character' }); probeFrame = 20; probeOffset = @(0, 0, 0)
                        calls = @() }
+    $pawn = Get-NativeArg '--pawn'
+    if ($pawn) { $doc.pawn = $pawn }
     $offset = Get-NativeArg '--probe-offset'
     if ($offset) {
         $o = @($offset -split '[,:]' | ForEach-Object { [double]$_ })

@@ -202,7 +202,8 @@ class Export:
         self.native = doc["native"]
         self.types = self.native.get("types", {})
         self.enums = self.native.get("enums", {})
-        self.functions = self.native.get("functions", {})
+        # '/Game/X.SKEL_X_C:F' and '/Game/X.X_C:F' are one function (nodes name either)
+        self.functions = {strip_skel(k): v for k, v in self.native.get("functions", {}).items()}
         self.parent_members = set(self.native.get("parentMembers", []))
         self.generated = strip_skel(doc.get("generatedClass", ""))
         self.graphs = [g for g in doc.get("graphs", [])]
@@ -545,8 +546,9 @@ class Fn:
                     continue
                 is_obj = self.types.is_object(pin["type"])
                 member = f"EvArg_{nid[:8]}_{ident(pin_name)}"
-                root.members[member] = (self.types.of(pin["type"], header=True, as_property=is_obj), is_obj)
-                root.prologue.append(f"\t{member} = {expr};")
+                if member not in root.members:
+                    root.members[member] = (self.types.of(pin["type"], header=True, as_property=is_obj), is_obj)
+                    root.prologue.append(f"\t{member} = {expr};")
                 root.arg_members[(nid, pin_name)] = member
         return dict(root.arg_members)
 
@@ -588,6 +590,9 @@ class Fn:
             return self.params[key]
         if key in self.loop_vars:
             return self.loop_vars[key]
+        if node.get("role") == "event" and node["id"] != self.root_fn.root["id"] and pin["dir"] == "out":
+            # another event's argument: the Blueprint keeps the last one in its frame; so does a member
+            return self.plan.shared_arg(node, pin)
         cls, kind = node["class"], node.get("kind")
         if node.get("disabled"):
             raise Unsupported("a disabled node feeds data", node)
@@ -697,7 +702,7 @@ class Fn:
                 f"return P ? *P->ContainerPtrToValuePtr<{t}>(this) : {default_of(t)}; }}()")
 
     def native_fn(self, node: dict) -> dict:
-        key = f"{node.get('memberOwner', '')}:{node.get('member', '')}"
+        key = strip_skel(f"{node.get('memberOwner', '')}:{node.get('member', '')}")
         f = self.ex.functions.get(key)
         if (not f or not f.get("native")) and self.ex.is_self_class(node.get("memberOwner", "")) and self.plan.parent_function(node.get("member", "")):
             # a self call to a function the native parent declares (an implementable event, BlueprintCallable)
@@ -1117,6 +1122,8 @@ class Fn:
             return self.exec_target(node, "OutputPin")
         if cls == "K2Node_Timeline":
             return self.timeline_input(node)
+        if cls == "K2Node_Message":
+            return self.message(node)
         if cls == "K2Node_VariableGet":            # validated get: branches on IsValid
             self.say(f"if (IsValid({self.var_get(node)}))")
             self.block(self.exec_target(node, "then"))
@@ -1126,6 +1133,41 @@ class Fn:
                 self.block(other)
             return None
         raise Unsupported(f"node {cls.replace('K2Node_', '')} ({node.get('title', '').splitlines()[0]}) has no C++ translation yet", node)
+
+    def message(self, node: dict):
+        """An interface message: runs only when the target's class implements the interface, found by name as the
+        Blueprint VM finds it (a Blueprint interface has no C++ type to call through)."""
+        owner = strip_skel(node.get("memberOwner", ""))
+        f = self.ex.functions.get(f"{owner}:{node.get('member', '')}")
+        if not f:
+            raise Unsupported(f"no signature for the interface function {node.get('member')}", node)
+        self.plan.literals.uses_helpers = True
+        target = self.input(node, "self")
+        lines = [f'DwoNative::FCall Call({target}, DwoNative::FindClass({cpp_string(owner)}), {cpp_string(node["member"])});']
+        outs = []
+        for p in node["pins"]:
+            if p["type"].get("category") in ("exec",) or p["name"] == "self" or p.get("splitFrom"):
+                continue
+            if p["dir"] == "in":
+                v = self.input(node, p["name"])
+                if p["type"].get("category") in ("byte", "enum") and not p["type"].get("container"):
+                    v = f"static_cast<int64>({v})"
+                lines.append(f'Call.Set({cpp_string(p["name"])}, {v});')
+            else:
+                outs.append(p)
+        lines.append("Call.Run();")
+        for p in outs:
+            temp = self.declare_temp(node, p)
+            t = self.types.of(p["type"])
+            if p["type"].get("category") in ("byte", "enum") and not p["type"].get("container"):
+                lines.append(f'{temp} = static_cast<{t}>(Call.Get<int64>({cpp_string(p["name"])}));')
+            else:
+                lines.append(f'{temp} = Call.Get<{t}>({cpp_string(p["name"])});')
+        self.say("{")
+        for l in lines:
+            self.say("\t" + l)
+        self.say("}")
+        return self.exec_target(node, "then")
 
     def latent_call(self, node: dict):
         """Delay, MoveComponentTo ...: the call schedules the latent action; what follows Completed becomes its own
@@ -1322,6 +1364,8 @@ class Plan:
         self.local_names: dict[str, str] = {}
         self.timelines: dict[str, Item] = {}
         self.continuations: dict[str, Fn | None] = {}   # latent node id -> its continuation (None while translating)
+        self.shared_args: dict[tuple[str, str], str] = {}   # (event node, pin) another event reads -> member
+        self.shared_changed = False
 
     def _kind(self) -> str:
         chain = " ".join(short(p) for p in self.ex.doc.get("parentChain", []))
@@ -1365,6 +1409,17 @@ class Plan:
             out += known.get(short(path), [])
             path = self.ex.type_info(path).get("super", "")
         return list(dict.fromkeys(out))
+
+    def shared_arg(self, event: dict, pin: dict) -> str:
+        """An event argument other events read: a member the event copies it to when it runs (registered here; the
+        next translation pass writes the copy)."""
+        if pin.get("splitFrom"):
+            return f"({self.shared_arg(event, event['_pins'][pin['splitFrom']])}).{pin['name'][len(pin['splitFrom']) + 1:]}"
+        key = (event["id"], pin["name"])
+        if key not in self.shared_args:
+            self.shared_args[key] = f"EvArg_{event['id'][:8]}_{ident(pin['name'])}"
+            self.shared_changed = True
+        return self.shared_args[key]
 
     def parent_function(self, name: str) -> dict | None:
         """A function the native parent (or an ancestor) declares under this name."""
@@ -1495,8 +1550,9 @@ class Plan:
         self.plan_functions()
         # fixed point: a function may only be migrated if everything it uses is
         for _ in range(8):
+            self.shared_changed = False
             changed = self.translate_all()
-            if not changed:
+            if not changed and not self.shared_changed:
                 break
         return self
 
@@ -1552,6 +1608,14 @@ class Plan:
                 continue
             item = Item(w["name"], w["name"], extra=dict(w))
             t = next((v for k, v in self.ex.types.items() if short(k) == w["class"] and v.get("native")), None)
+            if not t:
+                # a widget Blueprint: BindWidget through its native parent class (the Blueprint compiler accepts a
+                # subclass); its own dispatchers are bound by name
+                bp = next((k for k, v in self.ex.types.items() if short(k) == w["class"] and not v.get("native")), None)
+                np = self.ex.type_info(self.ex.type_info(bp).get("nativeParent", "")) if bp else {}
+                if np.get("native") and np.get("cpp"):
+                    t = np
+                    item.extra["bpClass"] = bp
             if w["name"] in self.ex.parent_members:
                 item.reason = "the native parent already declares it (BindWidget there)"
             elif not t:
@@ -1810,6 +1874,19 @@ class Plan:
         for t in self.timelines.values():
             if t.migrated:
                 moved |= set(t.extra.get("nodes", []))
+        # a widget Blueprint member becomes the native parent's type: Blueprint code that stays would see that type
+        for f in self.funcs.values():
+            if f.migrated:
+                moved |= set(f.extra.get("nodes", []))
+        for w in self.widgets.values():
+            if not (w.migrated and w.extra.get("bpClass")):
+                continue
+            for g in self.ex.graphs:
+                for n in g["nodes"]:
+                    if n["class"] in ("K2Node_VariableGet", "K2Node_VariableSet") and n.get("member") == w.bp and n["id"] not in moved:
+                        w.migrated = False
+                        w.reason = f"Blueprint code that stays uses it as {w.extra['class']} ('{g['name']}')"
+                        changed = True
         for t in self.timelines.values():
             if not t.migrated:
                 continue
@@ -1968,7 +2045,8 @@ class Plan:
             return
         if cls == "K2Node_Event":
             ov = self.override_for(n)
-            native = self.ex.functions.get(f"{n.get('memberOwner', '')}:{n.get('member', '')}") or {}
+            native = self.ex.functions.get(strip_skel(f"{n.get('memberOwner', '')}:{n.get('member', '')}")) or {}
+            interface = strip_skel(n.get("memberOwner", "")) in {strip_skel(i) for i in self.ex.doc.get("interfaces", [])}
             if ov:
                 sig, order, super_call, names = ov
                 outs = [p for p in n["pins"] if p["dir"] == "out" and p["type"].get("category") not in ("exec", "delegate")]
@@ -1986,6 +2064,19 @@ class Plan:
                     params[(n["id"], prm["name"])] = prm["name"]
                 item.cpp = native["name"] + "_Implementation"
                 item.extra.update(signature=f"void {item.cpp}({', '.join(args)})", order="none", superCall="", override=True)
+            elif interface and not native.get("native"):
+                # an event of a Blueprint interface: C++ cannot implement that interface. Like an implementable event,
+                # the body moves to a C++ function and the interface event stays with a single call to it.
+                args = []
+                for p in n["pins"]:
+                    if p["dir"] == "out" and p["type"].get("category") not in ("exec", "delegate") and not p.get("splitFrom"):
+                        t = self.types.of(p["type"], header=True)
+                        args.append(f"{t} {ident(p['name'])}")
+                        params[(n["id"], p["name"])] = ident(p["name"])
+                item.cpp = f"{ident(n['member'])}Native"
+                if item.cpp in self.ex.parent_members:
+                    raise Unsupported(f"the name {item.cpp} is already taken")
+                item.extra.update(signature=f"void {item.cpp}({', '.join(args)})", order="none", superCall="", thunk=True)
             elif native and "BlueprintEvent" in native.get("flags", []):
                 # BlueprintImplementableEvent: C++ cannot override it. The body moves to a C++ function and the
                 # Blueprint event stays with a single call to it, so the native parent still reaches it.
@@ -2028,10 +2119,19 @@ class Plan:
                 args.append(f"{t} {ident(p['name'])}")
                 params[(n["id"], p["name"])] = ident(p["name"])
             item.cpp = f"On{ident(comp)}{ident(n['member'])}"
-            item.extra.update(signature=f"void {item.cpp}({', '.join(args)})", order="none", superCall="", bind=(owner_item.cpp, n["member"]))
+            item.extra.update(signature=f"void {item.cpp}({', '.join(args)})", order="none", superCall="", bind=(owner_item.cpp, n["member"]),
+                              byName=bool(owner_item.extra.get("bpClass")))
         else:
             raise Unsupported(f"{cls.replace('K2Node_', '')} events are not translated yet (input and animation events)")
         fn = Fn(self, g, n, "event", params)
+        for (nid, pin_name), member in self.shared_args.items():
+            if nid == n["id"]:
+                pin = n["_pins"][pin_name]
+                if (nid, pin_name) not in params:
+                    raise Unsupported(f"another event reads its argument {pin_name}, which it does not pass on")
+                is_obj = self.types.is_object(pin["type"])
+                fn.members[member] = (self.types.of(pin["type"], header=True, as_property=is_obj), is_obj)
+                fn.prologue.append(f"\t{member} = {params[(nid, pin_name)]};")
         then = "then" if "then" in n["_pins"] else None
         fn.translate(fn.exec_target(n, then) if then else None)
         used = set(fn.used_nodes)
@@ -2116,6 +2216,8 @@ def literals_header() -> str:
 #include "Curves/RichCurve.h"
 #include "Misc/DefaultValueHelper.h"
 #include "UObject/Class.h"
+#include "UObject/UnrealType.h"
+#include <type_traits>
 
 namespace DwoNative
 {
@@ -2161,6 +2263,114 @@ namespace DwoNative
 		T Value{};
 		TBaseStructure<T>::Get()->ImportText(Text, &Value, nullptr, PPF_None, GLog, TEXT("DwoNative"));
 		return Value;
+	}
+
+	/** A class by path (a Blueprint class C++ has no type for): the loaded one, else loaded now. */
+	inline UClass* FindClass(const TCHAR* Path)
+	{
+		UClass* Class = FindObject<UClass>(nullptr, Path);
+		return Class ? Class : LoadObject<UClass>(nullptr, Path);
+	}
+
+	/** A call by name, as a Blueprint interface message makes it: nothing runs unless the target's class implements
+	 *  the interface. Parameters are set and read by name; numbers convert as the Blueprint pins would. */
+	class FCall
+	{
+	public:
+		FCall(UObject* InTarget, UClass* Interface, const TCHAR* Name)
+		{
+			if (InTarget && Interface && InTarget->GetClass()->ImplementsInterface(Interface))
+			{
+				Function = InTarget->FindFunction(FName(Name));
+			}
+			if (Function)
+			{
+				Target = InTarget;
+				Params.SetNumZeroed(FMath::Max<int32>(1, Function->ParmsSize));   // never empty: InitializeStruct needs memory
+				Function->InitializeStruct(Params.GetData());
+			}
+		}
+		~FCall()
+		{
+			if (Function) { Function->DestroyStruct(Params.GetData()); }
+		}
+		FCall(const FCall&) = delete;
+		FCall& operator=(const FCall&) = delete;
+
+		template <typename T>
+		void Set(const TCHAR* Name, const T& Value)
+		{
+			FProperty* P = Find(Name);
+			if (!P) { return; }
+			void* Ptr = P->ContainerPtrToValuePtr<void>(Params.GetData());
+			if constexpr (std::is_arithmetic_v<T>)
+			{
+				if (FBoolProperty* B = CastField<FBoolProperty>(P)) { B->SetPropertyValue(Ptr, Value != 0); return; }
+				if (FEnumProperty* E = CastField<FEnumProperty>(P)) { E->GetUnderlyingProperty()->SetIntPropertyValue(Ptr, static_cast<int64>(Value)); return; }
+				if (FNumericProperty* N = CastField<FNumericProperty>(P))
+				{
+					if (N->IsFloatingPoint()) { N->SetFloatingPointPropertyValue(Ptr, static_cast<double>(Value)); }
+					else { N->SetIntPropertyValue(Ptr, static_cast<int64>(Value)); }
+					return;
+				}
+			}
+			else if constexpr (std::is_convertible_v<T, const UObject*>)
+			{
+				if (FObjectPropertyBase* O = CastField<FObjectPropertyBase>(P)) { O->SetObjectPropertyValue(Ptr, const_cast<UObject*>(static_cast<const UObject*>(Value))); return; }
+			}
+			if (ensureMsgf(P->GetElementSize() == sizeof(T), TEXT("DwoNative: parameter %s has another type"), Name)) { P->CopySingleValue(Ptr, &Value); }
+		}
+
+		void Run()
+		{
+			if (Target) { Target->ProcessEvent(Function, Params.GetData()); }
+		}
+
+		template <typename T>
+		T Get(const TCHAR* Name) const
+		{
+			FProperty* P = Find(Name);
+			if (!P) { return T{}; }
+			const void* Ptr = P->ContainerPtrToValuePtr<void>(Params.GetData());
+			if constexpr (std::is_arithmetic_v<T>)
+			{
+				if (const FBoolProperty* B = CastField<FBoolProperty>(P)) { return static_cast<T>(B->GetPropertyValue(Ptr)); }
+				if (const FEnumProperty* E = CastField<FEnumProperty>(P)) { return static_cast<T>(E->GetUnderlyingProperty()->GetSignedIntPropertyValue(Ptr)); }
+				if (const FNumericProperty* N = CastField<FNumericProperty>(P))
+				{
+					return N->IsFloatingPoint() ? static_cast<T>(N->GetFloatingPointPropertyValue(Ptr)) : static_cast<T>(N->GetSignedIntPropertyValue(Ptr));
+				}
+			}
+			else if constexpr (std::is_pointer_v<T>)
+			{
+				if (const FObjectPropertyBase* O = CastField<FObjectPropertyBase>(P)) { return Cast<std::remove_pointer_t<T>>(O->GetObjectPropertyValue(Ptr)); }
+			}
+			T Value{};
+			if (ensureMsgf(P->GetElementSize() == sizeof(T), TEXT("DwoNative: parameter %s has another type"), Name)) { P->CopySingleValue(&Value, Ptr); }
+			return Value;
+		}
+
+	private:
+		FProperty* Find(const TCHAR* Name) const
+		{
+			return Function ? Function->FindPropertyByName(FName(Name)) : nullptr;
+		}
+		UObject* Target = nullptr;
+		UFunction* Function = nullptr;
+		TArray<uint8, TAlignedHeapAllocator<16>> Params;
+	};
+
+	/** Adds a function to a multicast delegate found by name (a Blueprint class's event dispatcher), as a Blueprint
+	 *  bound event does when the component or widget is a Blueprint class. */
+	inline void AddDynamicByName(UObject* Source, const TCHAR* Delegate, UObject* Receiver, const TCHAR* Function)
+	{
+		if (!Source) { return; }
+		if (FMulticastDelegateProperty* P = FindFProperty<FMulticastDelegateProperty>(Source->GetClass(), FName(Delegate)))
+		{
+			FScriptDelegate D;
+			D.BindUFunction(Receiver, FName(Function));
+			P->AddDelegate(MoveTemp(D), Source);
+		}
 	}
 }
 """
@@ -2410,8 +2620,7 @@ def write(plan: Plan, out: Path) -> dict:
             C.append("{")
             C.append(f"\tSuper::{host}();")
             for e in bound:
-                comp, delegate = e.extra["bind"]
-                C.append(f"\tif ({comp}) {{ {comp}->{delegate}.AddDynamic(this, &ThisClass::{e.cpp}); }}")
+                C.append(bind_line(e))
             C.append("}")
             C.append("")
     if needs_net:
@@ -2494,8 +2703,7 @@ def write(plan: Plan, out: Path) -> dict:
             C.append("\t" + e.extra["superCall"])
         if name in ("NativeOnInitialized", "PostInitializeComponents") and bound:
             for b in bound:
-                comp, delegate = b.extra["bind"]
-                C.append(f"\tif ({comp}) {{ {comp}->{delegate}.AddDynamic(this, &ThisClass::{b.cpp}); }}")
+                C.append(bind_line(b))
         C += body(fn)
         if e.extra.get("order") == "before":
             C.append("\t" + e.extra["superCall"])
@@ -2516,6 +2724,13 @@ def write(plan: Plan, out: Path) -> dict:
     (out / f"{plan.ex.name}.native.json").write_text(json.dumps(s, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     (out / f"{plan.ex.name}.native.md").write_text(report_md(s), encoding="utf-8")
     return s
+
+
+def bind_line(e: Item) -> str:
+    comp, delegate = e.extra["bind"]
+    if e.extra.get("byName"):
+        return f"\tDwoNative::AddDynamicByName({comp}, {cpp_string(delegate)}, this, {cpp_string(e.cpp)});"
+    return f"\tif ({comp}) {{ {comp}->{delegate}.AddDynamic(this, &ThisClass::{e.cpp}); }}"
 
 
 def timeline_construction(tl: Item) -> list[str]:
@@ -2725,13 +2940,30 @@ def _flatten(step: dict, renames: dict) -> dict:
             out[f"{comp}.{k}"] = v
     for k, v in (step.get("probe") or {}).items():
         out[f"probe.{k}"] = v
+    for k, v in (step.get("pawn") or {}).items():
+        out[f"pawn.{k}"] = v
     return out
 
 
-def compare_traces(before: dict, after: dict, renames: dict | None = None, ignore: set | None = None) -> dict:
+BOUND_EVENT = re.compile(r"\.BndEvt__[^,()]*?__DelegateSignature")
+
+
+def _bindings(value, handlers: set) -> str:
+    """A dispatcher's bindings name the function they call: the Blueprint's generated bound-event function before,
+    the C++ handler after. Both are the same binding."""
+    text = BOUND_EVENT.sub(".<bound event>", str(value))
+    for h in handlers:
+        text = re.sub(rf"\.{re.escape(h)}(?=[,)])", ".<bound event>", text)
+    return text
+
+
+def compare_traces(before: dict, after: dict, renames: dict | None = None, ignore: set | None = None,
+                   handlers: set | None = None) -> dict:
     """Differences between a run of the original Blueprint and of the migrated one, step by step. Values only one side
-    has (members the generated class adds, like asset references it holds) are listed apart, not counted."""
+    has (members the generated class adds, like asset references it holds) are listed apart, not counted.
+    handlers: the C++ functions that replaced bound events (their bindings compare equal to the Blueprint's)."""
     renames = renames or {}
+    handlers = handlers or set()
     ignore = (ignore or set()) | PER_SPAWN
     if not before.get("ok") or not after.get("ok"):
         return {"verdict": "error", "error": before.get("error") or after.get("error"), "differences": [], "onlyOneSide": []}
@@ -2749,7 +2981,10 @@ def compare_traces(before: dict, after: dict, renames: dict | None = None, ignor
                 one_side.add(key)
                 continue
             compared += 1
-            if not same_value(fa[key], fb[key]):
+            va, vb = fa[key], fb[key]
+            if isinstance(va, str) and isinstance(vb, str) and va != vb:
+                va, vb = _bindings(va, handlers), _bindings(vb, handlers)
+            if not same_value(va, vb):
                 diffs.append({"step": sa["name"], "value": key, "before": str(fa[key])[:300], "after": str(fb[key])[:300]})
     return {"verdict": "same" if not diffs else "different", "compared": compared, "differences": diffs,
             "onlyOneSide": sorted(one_side)}
@@ -2817,12 +3052,14 @@ def main(argv=None) -> int:
     p.add_argument("--out", type=Path, help="write <out>.json and <out>.md")
     args = ap.parse_args(argv)
     if args.cmd == "compare":
-        renames, name = {}, args.after.stem
+        renames, name, handlers = {}, args.after.stem, set()
         if args.map:
             m = json.loads(args.map.read_text(encoding="utf-8"))
             name = m["name"]
             renames = {v["bp"]: v["cpp"] for v in m["variables"] if v["migrated"] and v["bp"] != v["cpp"]}
-        result = compare_traces(json.loads(args.before.read_text(encoding="utf-8")), json.loads(args.after.read_text(encoding="utf-8")), renames)
+            handlers = {e["cpp"] for e in m.get("events", []) if e.get("migrated") and e.get("cpp") and e.get("kind") in ("bound", "custom")}
+        result = compare_traces(json.loads(args.before.read_text(encoding="utf-8")), json.loads(args.after.read_text(encoding="utf-8")), renames,
+                                handlers=handlers)
         if args.out:
             Path(str(args.out) + ".json").write_text(json.dumps(result, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
             Path(str(args.out) + ".md").write_text(behaviour_md(name, result), encoding="utf-8")

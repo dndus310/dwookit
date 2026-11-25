@@ -1,0 +1,1617 @@
+{
+	"schema": "lens.bp/1",
+	"name": "BP_SideScrollingCharacter",
+	"asset": "/Game/Variant_SideScrolling/Blueprints/BP_SideScrollingCharacter.BP_SideScrollingCharacter",
+	"package": "/Game/Variant_SideScrolling/Blueprints/BP_SideScrollingCharacter",
+	"assetClass": "Blueprint",
+	"blueprintType": "BPTYPE_Normal",
+	"status": "BS_UpToDate",
+	"engineVersion": "5.7.4-51494982+++UE5+Release-5.7",
+	"exportedAtUtc": "2026-11-25T15:38:34.163Z",
+	"source":
+	{
+		"file": "Content/Variant_SideScrolling/Blueprints/BP_SideScrollingCharacter.uasset",
+		"bytes": 61322,
+		"modifiedUtc": "2026-11-07T10:01:32.000Z"
+	},
+	"parent": "/Script/DWO_Proj_01.SideScrollingCharacter",
+	"parentChain": [
+		"/Script/DWO_Proj_01.SideScrollingCharacter"
+	],
+	"generatedClass": "/Game/Variant_SideScrolling/Blueprints/BP_SideScrollingCharacter.BP_SideScrollingCharacter_C",
+	"interfaces": [
+		"/Game/Variant_SideScrolling/Input/BPI_TouchInterface_SideScrolling.BPI_TouchInterface_SideScrolling_C"
+	],
+	"variables": [],
+	"components": [],
+	"inheritedComponents": [
+		{
+			"name": "CharacterMesh0",
+			"class": "SkeletalMeshComponent",
+			"changed": [
+				{
+					"name": "AnimClass",
+					"value": "/Script/Engine.AnimBlueprintGeneratedClass'/Game/Variant_SideScrolling/Anims/ABP_Manny_SideScroller.ABP_Manny_SideScroller_C'",
+					"owner": "SkeletalMeshComponent"
+				},
+				{
+					"name": "SkeletalMesh",
+					"value": "/Script/Engine.SkeletalMesh'/Game/Characters/Mannequins/Meshes/SKM_Quinn_Simple.SKM_Quinn_Simple'",
+					"owner": "SkinnedMeshComponent"
+				},
+				{
+					"name": "BodyInstance",
+					"value": "(ObjectType=ECC_WorldStatic,CollisionEnabled=NoCollision,CollisionProfileName=\"NoCollision\",CollisionResponses=(ResponseArray=((Channel=\"Visibility\",Response=ECR_Ignore),(Channel=\"Camera\",Response=ECR_Ignore))))",
+					"owner": "PrimitiveComponent"
+				},
+				{
+					"name": "RelativeLocation",
+					"value": "(X=0.000000,Y=0.000000,Z=-90.000000)",
+					"owner": "SceneComponent"
+				},
+				{
+					"name": "RelativeRotation",
+					"value": "(Pitch=0.000000,Yaw=-90.000000,Roll=0.000000)",
+					"owner": "SceneComponent"
+				}
+			]
+		}
+	],
+	"classDefaults": [
+		{
+			"name": "MoveAction",
+			"value": "/Script/EnhancedInput.InputAction'/Game/Input/Actions/IA_Move.IA_Move'",
+			"owner": "SideScrollingCharacter"
+		},
+		{
+			"name": "JumpAction",
+			"value": "/Script/EnhancedInput.InputAction'/Game/Input/Actions/IA_Jump.IA_Jump'",
+			"owner": "SideScrollingCharacter"
+		},
+		{
+			"name": "DropAction",
+			"value": "/Script/EnhancedInput.InputAction'/Game/Variant_SideScrolling/Input/Actions/IA_Drop.IA_Drop'",
+			"owner": "SideScrollingCharacter"
+		},
+		{
+			"name": "InteractAction",
+			"value": "/Script/EnhancedInput.InputAction'/Game/Variant_SideScrolling/Input/Actions/IA_Interact.IA_Interact'",
+			"owner": "SideScrollingCharacter"
+		},
+		{
+			"name": "SoftCollisionObjectType",
+			"value": "ECC_GameTraceChannel1",
+			"owner": "SideScrollingCharacter"
+		}
+	],
+	"graphs": [
+		{
+			"name": "UserConstructionScript",
+			"kind": "function",
+			"nodes": [
+				{
+					"id": "84E079394C2D4D6D8D27428FDC532A4B",
+					"class": "K2Node_FunctionEntry",
+					"title": "Construction Script",
+					"member": "UserConstructionScript",
+					"role": "other",
+					"kind": "entry",
+					"pos": [
+						0,
+						0
+					],
+					"functionFlags": [
+						"Event",
+						"BlueprintEvent"
+					],
+					"pins": [
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "EventGraph",
+			"kind": "event",
+			"nodes": [
+				{
+					"id": "AF3DFA484EA6C2A566043C910A3A67C1",
+					"class": "K2Node_CallFunction",
+					"title": "Do Interact\n타깃은 Side Scrolling Character",
+					"member": "DoInteract",
+					"memberOwner": "/Script/DWO_Proj_01.SideScrollingCharacter",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable"
+					],
+					"role": "call",
+					"kind": "call",
+					"pos": [
+						528,
+						80
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "4F3EE7F442BD9922C4F0F1A9B5333E67",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "SideScrollingCharacter",
+								"category": "object",
+								"object": "/Script/DWO_Proj_01.SideScrollingCharacter"
+							}
+						}
+					]
+				},
+				{
+					"id": "A70718E5444147927BD7798B70078E20",
+					"class": "K2Node_CallFunction",
+					"title": "Do Jump Start\n타깃은 Side Scrolling Character",
+					"member": "DoJumpStart",
+					"memberOwner": "/Script/DWO_Proj_01.SideScrollingCharacter",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable"
+					],
+					"role": "call",
+					"kind": "call",
+					"pos": [
+						1280,
+						544
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "92B7147045FB97597D8F3D807E7ABE9A",
+									"pin": "else"
+								},
+								{
+									"node": "41D2C37B49C6D95ED4786B85E4C35472",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "SideScrollingCharacter",
+								"category": "object",
+								"object": "/Script/DWO_Proj_01.SideScrollingCharacter"
+							}
+						}
+					]
+				},
+				{
+					"id": "FF18117C4D4BB915AD6D559F2B3C7403",
+					"class": "K2Node_CallFunction",
+					"title": "Do Jump End\n타깃은 Side Scrolling Character",
+					"member": "DoJumpEnd",
+					"memberOwner": "/Script/DWO_Proj_01.SideScrollingCharacter",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable"
+					],
+					"role": "call",
+					"kind": "call",
+					"pos": [
+						513,
+						816
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "827DFEE04FBAD542FBE58EAD73CF93C4",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "SideScrollingCharacter",
+								"category": "object",
+								"object": "/Script/DWO_Proj_01.SideScrollingCharacter"
+							}
+						}
+					]
+				},
+				{
+					"id": "CEC0397141C53C566A4EBA93E01329D1",
+					"class": "K2Node_CallFunction",
+					"title": "Do Move\n타깃은 Side Scrolling Character",
+					"member": "DoMove",
+					"memberOwner": "/Script/DWO_Proj_01.SideScrollingCharacter",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable"
+					],
+					"role": "call",
+					"kind": "call",
+					"pos": [
+						896,
+						240
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "D74BE72B46552263F11F349048760DF1",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "SideScrollingCharacter",
+								"category": "object",
+								"object": "/Script/DWO_Proj_01.SideScrollingCharacter"
+							}
+						},
+						{
+							"name": "Forward",
+							"dir": "in",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "float"
+							},
+							"default": "0.0",
+							"autoDefault": "0.0",
+							"links": [
+								{
+									"node": "D74BE72B46552263F11F349048760DF1",
+									"pin": "Axis_Y"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "D74BE72B46552263F11F349048760DF1",
+					"class": "K2Node_Event",
+					"title": "Primary Thumbstick 이벤트\nBPI Touch Interface Side Scrolling에서",
+					"member": "Primary Thumbstick",
+					"memberOwner": "/Game/Variant_SideScrolling/Input/BPI_TouchInterface_SideScrolling.BPI_TouchInterface_SideScrolling_C",
+					"override": true,
+					"role": "event",
+					"kind": "event",
+					"pos": [
+						64,
+						240
+					],
+					"pins": [
+						{
+							"name": "OutputDelegate",
+							"dir": "out",
+							"type":
+							{
+								"text": "delegate",
+								"category": "delegate"
+							}
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "CEC0397141C53C566A4EBA93E01329D1",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "Axis",
+							"dir": "out",
+							"type":
+							{
+								"text": "Vector2D",
+								"category": "struct",
+								"object": "/Script/CoreUObject.Vector2D"
+							},
+							"hidden": true,
+							"split": true
+						},
+						{
+							"name": "Axis_X",
+							"label": "Axis X",
+							"dir": "out",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "double"
+							},
+							"default": "0.0",
+							"autoDefault": "0.0",
+							"splitFrom": "Axis",
+							"links": [
+								{
+									"node": "910E2E7E4541F8B4A46A82A403AAB33B",
+									"pin": "A"
+								},
+								{
+									"node": "EB8CD4B449CDB42EFAAB46B2B90BEEF9",
+									"pin": "A"
+								}
+							]
+						},
+						{
+							"name": "Axis_Y",
+							"label": "Axis Y",
+							"dir": "out",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "double"
+							},
+							"default": "0.0",
+							"autoDefault": "0.0",
+							"splitFrom": "Axis",
+							"links": [
+								{
+									"node": "CEC0397141C53C566A4EBA93E01329D1",
+									"pin": "Forward"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "D869EC3A47A4AF71EB0602B3AC9687EC",
+					"class": "K2Node_Event",
+					"title": "Touch Jump Start 이벤트\nBPI Touch Interface Side Scrolling에서",
+					"member": "Touch Jump Start",
+					"memberOwner": "/Game/Variant_SideScrolling/Input/BPI_TouchInterface_SideScrolling.BPI_TouchInterface_SideScrolling_C",
+					"override": true,
+					"role": "event",
+					"kind": "event",
+					"pos": [
+						64,
+						512
+					],
+					"pins": [
+						{
+							"name": "OutputDelegate",
+							"dir": "out",
+							"type":
+							{
+								"text": "delegate",
+								"category": "delegate"
+							}
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "92B7147045FB97597D8F3D807E7ABE9A",
+									"pin": "execute"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "827DFEE04FBAD542FBE58EAD73CF93C4",
+					"class": "K2Node_Event",
+					"title": "Touch Jump End 이벤트\nBPI Touch Interface Side Scrolling에서",
+					"member": "Touch Jump End",
+					"memberOwner": "/Game/Variant_SideScrolling/Input/BPI_TouchInterface_SideScrolling.BPI_TouchInterface_SideScrolling_C",
+					"override": true,
+					"role": "event",
+					"kind": "event",
+					"pos": [
+						64,
+						816
+					],
+					"pins": [
+						{
+							"name": "OutputDelegate",
+							"dir": "out",
+							"type":
+							{
+								"text": "delegate",
+								"category": "delegate"
+							}
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "FF18117C4D4BB915AD6D559F2B3C7403",
+									"pin": "execute"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "4F3EE7F442BD9922C4F0F1A9B5333E67",
+					"class": "K2Node_Event",
+					"title": "Touch Interact Start 이벤트\nBPI Touch Interface Side Scrolling에서",
+					"member": "Touch Interact Start",
+					"memberOwner": "/Game/Variant_SideScrolling/Input/BPI_TouchInterface_SideScrolling.BPI_TouchInterface_SideScrolling_C",
+					"override": true,
+					"role": "event",
+					"kind": "event",
+					"pos": [
+						80,
+						80
+					],
+					"pins": [
+						{
+							"name": "OutputDelegate",
+							"dir": "out",
+							"type":
+							{
+								"text": "delegate",
+								"category": "delegate"
+							}
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "AF3DFA484EA6C2A566043C910A3A67C1",
+									"pin": "execute"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "910E2E7E4541F8B4A46A82A403AAB33B",
+					"class": "K2Node_PromotableOperator",
+					"title": "float < float",
+					"member": "Less_DoubleDouble",
+					"memberOwner": "/Script/Engine.KismetMathLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						576,
+						640
+					],
+					"pins": [
+						{
+							"name": "A",
+							"dir": "in",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "double"
+							},
+							"links": [
+								{
+									"node": "D74BE72B46552263F11F349048760DF1",
+									"pin": "Axis_X"
+								}
+							]
+						},
+						{
+							"name": "B",
+							"dir": "in",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "double"
+							},
+							"default": "-0.500000"
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"links": [
+								{
+									"node": "92B7147045FB97597D8F3D807E7ABE9A",
+									"pin": "Condition"
+								}
+							]
+						},
+						{
+							"name": "ErrorTolerance",
+							"dir": "in",
+							"type":
+							{
+								"text": "None",
+								"category": "None"
+							},
+							"hidden": true
+						}
+					]
+				},
+				{
+					"id": "92B7147045FB97597D8F3D807E7ABE9A",
+					"class": "K2Node_IfThenElse",
+					"title": "Branch",
+					"role": "other",
+					"kind": "branch",
+					"pos": [
+						576,
+						528
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "D869EC3A47A4AF71EB0602B3AC9687EC",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "Condition",
+							"dir": "in",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "true",
+							"autoDefault": "true",
+							"links": [
+								{
+									"node": "910E2E7E4541F8B4A46A82A403AAB33B",
+									"pin": "ReturnValue"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"label": "True",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "41D2C37B49C6D95ED4786B85E4C35472",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "else",
+							"label": "False",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "A70718E5444147927BD7798B70078E20",
+									"pin": "execute"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "41D2C37B49C6D95ED4786B85E4C35472",
+					"class": "K2Node_CallFunction",
+					"title": "Do Drop\n타깃은 Side Scrolling Character",
+					"member": "DoDrop",
+					"memberOwner": "/Script/DWO_Proj_01.SideScrollingCharacter",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable"
+					],
+					"role": "call",
+					"kind": "call",
+					"pos": [
+						896,
+						448
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "92B7147045FB97597D8F3D807E7ABE9A",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "A70718E5444147927BD7798B70078E20",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "SideScrollingCharacter",
+								"category": "object",
+								"object": "/Script/DWO_Proj_01.SideScrollingCharacter"
+							}
+						},
+						{
+							"name": "Value",
+							"dir": "in",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "float"
+							},
+							"default": "0.0",
+							"autoDefault": "0.0",
+							"links": [
+								{
+									"node": "EB8CD4B449CDB42EFAAB46B2B90BEEF9",
+									"pin": "ReturnValue"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "664B6B3D49A1D0887C71BAA36376EE58",
+					"class": "EdGraphNode_Comment",
+					"title": "Touch controls for Third Person SideScrolling Character",
+					"size": [
+						1568,
+						944
+					],
+					"role": "other",
+					"kind": "comment",
+					"pos": [
+						0,
+						0
+					],
+					"pins": []
+				},
+				{
+					"id": "EB8CD4B449CDB42EFAAB46B2B90BEEF9",
+					"class": "K2Node_PromotableOperator",
+					"title": "float * float",
+					"member": "Multiply_DoubleDouble",
+					"memberOwner": "/Script/Engine.KismetMathLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						592,
+						432
+					],
+					"pins": [
+						{
+							"name": "A",
+							"dir": "in",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "double"
+							},
+							"links": [
+								{
+									"node": "D74BE72B46552263F11F349048760DF1",
+									"pin": "Axis_X"
+								}
+							]
+						},
+						{
+							"name": "B",
+							"dir": "in",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "double"
+							},
+							"default": "-1.000000"
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "float",
+								"category": "real",
+								"subCategory": "double"
+							},
+							"links": [
+								{
+									"node": "41D2C37B49C6D95ED4786B85E4C35472",
+									"pin": "Value"
+								}
+							]
+						}
+					]
+				}
+			]
+		}
+	],
+	"native":
+	{
+		"types":
+		{
+			"/Script/DWO_Proj_01.SideScrollingCharacter":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "ASideScrollingCharacter",
+				"include": "Variant_SideScrolling/SideScrollingCharacter.h",
+				"module": "DWO_Proj_01",
+				"nativeParent": "/Script/DWO_Proj_01.SideScrollingCharacter",
+				"super": "/Script/Engine.Character",
+				"abstract": true,
+				"actor": true
+			},
+			"/Script/Engine.Character":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "ACharacter",
+				"include": "GameFramework/Character.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.Character",
+				"super": "/Script/Engine.Pawn",
+				"actor": true
+			},
+			"/Script/Engine.Pawn":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "APawn",
+				"include": "GameFramework/Pawn.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.Pawn",
+				"super": "/Script/Engine.Actor",
+				"actor": true
+			},
+			"/Script/Engine.Actor":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "AActor",
+				"include": "GameFramework/Actor.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.Actor",
+				"super": "/Script/CoreUObject.Object",
+				"actor": true
+			},
+			"/Script/CoreUObject.Object":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UObject",
+				"include": "UObject/Object.h",
+				"module": "CoreUObject",
+				"nativeParent": "/Script/CoreUObject.Object",
+				"abstract": true
+			},
+			"/Script/CoreUObject.Vector2D":
+			{
+				"kind": "struct",
+				"native": true,
+				"cpp": "FVector2D",
+				"include": "UObject/NoExportTypes.h",
+				"module": "CoreUObject"
+			},
+			"/Game/Variant_SideScrolling/Input/BPI_TouchInterface_SideScrolling.SKEL_BPI_TouchInterface_SideScrolling_C":
+			{
+				"kind": "interface",
+				"native": false,
+				"cpp": "USKEL_BPI_TouchInterface_SideScrolling_C",
+				"nativeParent": "/Script/CoreUObject.Interface",
+				"super": "/Script/CoreUObject.Interface"
+			},
+			"/Script/Engine.KismetMathLibrary":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UKismetMathLibrary",
+				"include": "Kismet/KismetMathLibrary.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.KismetMathLibrary",
+				"super": "/Script/Engine.BlueprintFunctionLibrary"
+			}
+		},
+		"enums":
+		{
+		},
+		"functions":
+		{
+			"/Script/Engine.Actor:UserConstructionScript":
+			{
+				"name": "UserConstructionScript",
+				"owner": "/Script/Engine.Actor",
+				"flags": [
+					"Event",
+					"BlueprintEvent"
+				],
+				"native": true,
+				"access": "public",
+				"internalOnly": true,
+				"params": []
+			},
+			"/Script/DWO_Proj_01.SideScrollingCharacter:DoInteract":
+			{
+				"name": "DoInteract",
+				"owner": "/Script/DWO_Proj_01.SideScrollingCharacter",
+				"flags": [
+					"Native",
+					"BlueprintCallable"
+				],
+				"native": true,
+				"access": "public",
+				"params": []
+			},
+			"/Script/DWO_Proj_01.SideScrollingCharacter:DoJumpStart":
+			{
+				"name": "DoJumpStart",
+				"owner": "/Script/DWO_Proj_01.SideScrollingCharacter",
+				"flags": [
+					"Native",
+					"BlueprintCallable"
+				],
+				"native": true,
+				"access": "public",
+				"params": []
+			},
+			"/Script/DWO_Proj_01.SideScrollingCharacter:DoJumpEnd":
+			{
+				"name": "DoJumpEnd",
+				"owner": "/Script/DWO_Proj_01.SideScrollingCharacter",
+				"flags": [
+					"Native",
+					"BlueprintCallable"
+				],
+				"native": true,
+				"access": "public",
+				"params": []
+			},
+			"/Script/DWO_Proj_01.SideScrollingCharacter:DoMove":
+			{
+				"name": "DoMove",
+				"owner": "/Script/DWO_Proj_01.SideScrollingCharacter",
+				"flags": [
+					"Native",
+					"BlueprintCallable"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "Forward",
+						"cpp": "float"
+					}
+				]
+			},
+			"/Game/Variant_SideScrolling/Input/BPI_TouchInterface_SideScrolling.SKEL_BPI_TouchInterface_SideScrolling_C:Primary Thumbstick":
+			{
+				"name": "Primary Thumbstick",
+				"owner": "/Game/Variant_SideScrolling/Input/BPI_TouchInterface_SideScrolling.SKEL_BPI_TouchInterface_SideScrolling_C",
+				"flags": [
+					"BlueprintCallable",
+					"BlueprintEvent"
+				],
+				"native": false,
+				"access": "public",
+				"params": [
+					{
+						"name": "Axis",
+						"cpp": "FVector2D"
+					}
+				]
+			},
+			"/Game/Variant_SideScrolling/Input/BPI_TouchInterface_SideScrolling.SKEL_BPI_TouchInterface_SideScrolling_C:Touch Jump Start":
+			{
+				"name": "Touch Jump Start",
+				"owner": "/Game/Variant_SideScrolling/Input/BPI_TouchInterface_SideScrolling.SKEL_BPI_TouchInterface_SideScrolling_C",
+				"flags": [
+					"BlueprintCallable",
+					"BlueprintEvent"
+				],
+				"native": false,
+				"access": "public",
+				"params": []
+			},
+			"/Game/Variant_SideScrolling/Input/BPI_TouchInterface_SideScrolling.SKEL_BPI_TouchInterface_SideScrolling_C:Touch Jump End":
+			{
+				"name": "Touch Jump End",
+				"owner": "/Game/Variant_SideScrolling/Input/BPI_TouchInterface_SideScrolling.SKEL_BPI_TouchInterface_SideScrolling_C",
+				"flags": [
+					"BlueprintCallable",
+					"BlueprintEvent"
+				],
+				"native": false,
+				"access": "public",
+				"params": []
+			},
+			"/Game/Variant_SideScrolling/Input/BPI_TouchInterface_SideScrolling.SKEL_BPI_TouchInterface_SideScrolling_C:Touch Interact Start":
+			{
+				"name": "Touch Interact Start",
+				"owner": "/Game/Variant_SideScrolling/Input/BPI_TouchInterface_SideScrolling.SKEL_BPI_TouchInterface_SideScrolling_C",
+				"flags": [
+					"BlueprintCallable",
+					"BlueprintEvent"
+				],
+				"native": false,
+				"access": "public",
+				"params": []
+			},
+			"/Script/Engine.KismetMathLibrary:Less_DoubleDouble":
+			{
+				"name": "Less_DoubleDouble",
+				"owner": "/Script/Engine.KismetMathLibrary",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Pure",
+					"Static"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "A",
+						"cpp": "double"
+					},
+					{
+						"name": "B",
+						"cpp": "double"
+					},
+					{
+						"name": "ReturnValue",
+						"cpp": "bool",
+						"return": true
+					}
+				]
+			},
+			"/Script/DWO_Proj_01.SideScrollingCharacter:DoDrop":
+			{
+				"name": "DoDrop",
+				"owner": "/Script/DWO_Proj_01.SideScrollingCharacter",
+				"flags": [
+					"Native",
+					"BlueprintCallable"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "Value",
+						"cpp": "float"
+					}
+				]
+			},
+			"/Script/Engine.KismetMathLibrary:Multiply_DoubleDouble":
+			{
+				"name": "Multiply_DoubleDouble",
+				"owner": "/Script/Engine.KismetMathLibrary",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Pure",
+					"Static"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "A",
+						"cpp": "double"
+					},
+					{
+						"name": "B",
+						"cpp": "double"
+					},
+					{
+						"name": "ReturnValue",
+						"cpp": "double",
+						"return": true
+					}
+				]
+			}
+		},
+		"parentMembers": [
+			"Camera",
+			"MoveAction",
+			"JumpAction",
+			"DropAction",
+			"InteractAction",
+			"JumpPushImpulse",
+			"InteractionRadius",
+			"DelayBetweenWallJumps",
+			"WallJumpTraceDistance",
+			"WallJumpHorizontalImpulse",
+			"WallJumpVerticalMultiplier",
+			"SoftCollisionObjectType",
+			"SoftCollisionTraceDistance",
+			"MaxCoyoteTime",
+			"Mesh",
+			"CharacterMovement",
+			"CapsuleComponent",
+			"ArrowComponent",
+			"BasedMovement",
+			"ReplicatedBasedMovement",
+			"ReplicatedServerLastTransformUpdateTimeStamp",
+			"ReplayLastTransformUpdateTimeStamp",
+			"BaseRotationOffset",
+			"BaseTranslationOffset",
+			"ReplicatedGravityDirection",
+			"AnimRootMotionTranslationScale",
+			"CrouchedEyeHeight",
+			"bInBaseReplication",
+			"bIsCrouched",
+			"bProxyIsJumpForceApplied",
+			"bPressedJump",
+			"bClientUpdating",
+			"bClientWasFalling",
+			"bClientResimulateRootMotion",
+			"bClientResimulateRootMotionSources",
+			"bSimGravityDisabled",
+			"bClientCheckEncroachmentOnNetUpdate",
+			"bServerMoveIgnoreRootMotion",
+			"bWasJumping",
+			"ReplicatedMovementMode",
+			"JumpKeyHoldTime",
+			"JumpForceTimeRemaining",
+			"ProxyJumpForceStartedTime",
+			"JumpMaxHoldTime",
+			"JumpMaxCount",
+			"JumpCurrentCount",
+			"JumpCurrentCountPreJump",
+			"OnReachedJumpApex",
+			"LandedDelegate",
+			"MovementModeChangedDelegate",
+			"OnCharacterMovementUpdated",
+			"SavedRootMotion",
+			"ClientRootMotionParams",
+			"RootMotionRepMoves",
+			"RepRootMotion",
+			"bUseControllerRotationPitch",
+			"bUseControllerRotationYaw",
+			"bUseControllerRotationRoll",
+			"bCanAffectNavigationGeneration",
+			"bIsLocalViewTarget",
+			"BaseEyeHeight",
+			"AutoPossessPlayer",
+			"AutoPossessAI",
+			"RemoteViewPitch16",
+			"RemoteViewPitch",
+			"AIControllerClass",
+			"PlayerState",
+			"LastHitBy",
+			"Controller",
+			"PreviousController",
+			"ReceiveControllerChangedDelegate",
+			"ReceiveRestartedDelegate",
+			"ControlInputVector",
+			"LastControlInputVector",
+			"OverrideInputComponentClass",
+			"PrimaryActorTick",
+			"bNetTemporary",
+			"bOnlyRelevantToOwner",
+			"bAlwaysRelevant",
+			"bReplicateMovement",
+			"bCallPreReplication",
+			"bCallPreReplicationForReplay",
+			"bHidden",
+			"bTearOff",
+			"bForceNetAddressable",
+			"LevelInstanceType",
+			"LevelInstanceFlags",
+			"bIsMainWorldOnly",
+			"bIgnoreInPIE",
+			"bExchangedRoles",
+			"bNetLoadOnClient",
+			"bNetUseOwnerRelevancy",
+			"bRelevantForNetworkReplays",
+			"bRelevantForLevelBounds",
+			"bReplayRewindable",
+			"bAllowTickBeforeBeginPlay",
+			"bAutoDestroyWhenFinished",
+			"bCanBeDamaged",
+			"bBlockInput",
+			"bCollideWhenPlacing",
+			"bFindCameraComponentWhenViewTarget",
+			"bGenerateOverlapEventsDuringLevelStreaming",
+			"bIgnoresOriginShifting",
+			"bEnableAutoLODGeneration",
+			"bIsEditorOnlyActor",
+			"bReplicates",
+			"bCanBeInCluster",
+			"bMigratingAsset",
+			"bAllowReceiveTickEventOnDedicatedServer",
+			"bReplicateUsingRegisteredSubObjectList",
+			"bActorEnableCollision",
+			"bActorIsBeingDestroyed",
+			"bAsyncPhysicsTickEnabled",
+			"UpdateOverlapsMethodDuringLevelStreaming",
+			"DefaultUpdateOverlapsMethodDuringLevelStreaming",
+			"RemoteRole",
+			"InitialLifeSpan",
+			"CustomTimeDilation",
+			"RayTracingGroupId",
+			"GridPlacement",
+			"RuntimeGrid",
+			"AttachmentReplication",
+			"ReplicatedMovement",
+			"Owner",
+			"NetDriverName",
+			"Role",
+			"NetDormancy",
+			"SpawnCollisionHandlingMethod",
+			"AutoReceiveInput",
+			"InputPriority",
+			"InputComponent",
+			"NetTag",
+			"NetCullDistanceSquared",
+			"NetUpdateFrequency",
+			"MinNetUpdateFrequency",
+			"NetPriority",
+			"PhysicsReplicationMode",
+			"Instigator",
+			"Children",
+			"RootComponent",
+			"PivotOffset",
+			"HLODLayer",
+			"ObjectsDetachedFromExternalPackage",
+			"Layers",
+			"ParentComponentActor",
+			"ParentComponent",
+			"ActorGuid",
+			"ActorInstanceGuid",
+			"ContentBundleGuid",
+			"DataLayers",
+			"DataLayerAssets",
+			"ExternalDataLayerAsset",
+			"GroupActor",
+			"SpriteScale",
+			"HiddenEditorViews",
+			"ActorLabel",
+			"FolderPath",
+			"FolderGuid",
+			"bHiddenEd",
+			"bIsEditorPreviewActor",
+			"bHiddenEdLayer",
+			"bHiddenEdLevel",
+			"bLockLocation",
+			"bActorLabelEditable",
+			"bEditable",
+			"bListedInSceneOutliner",
+			"bOptimizeBPComponentData",
+			"bCanPlayFromHere",
+			"bIsSpatiallyLoaded",
+			"bHiddenEdTemporary",
+			"bForceExternalActorLevelReferenceForPIE",
+			"Tags",
+			"OnTakeAnyDamage",
+			"OnTakePointDamage",
+			"OnTakeRadialDamage",
+			"OnActorBeginOverlap",
+			"OnActorEndOverlap",
+			"OnBeginCursorOver",
+			"OnEndCursorOver",
+			"OnClicked",
+			"OnReleased",
+			"OnInputTouchBegin",
+			"OnInputTouchEnd",
+			"OnInputTouchEnter",
+			"OnInputTouchLeave",
+			"OnActorHit",
+			"OnDestroyed",
+			"OnEndPlay",
+			"InstanceComponents",
+			"BlueprintCreatedComponents",
+			"HasWallJumped",
+			"HasDoubleJumped",
+			"DoMove",
+			"DoJumpStart",
+			"DoJumpEnd",
+			"DoInteract",
+			"DoDrop",
+			"UnCrouch",
+			"StopJumping",
+			"StopAnimMontage",
+			"ServerMovePacked",
+			"ServerMoveOld",
+			"ServerMoveNoBase",
+			"ServerMoveDualNoBase",
+			"ServerMoveDualHybridRootMotion",
+			"ServerMoveDual",
+			"ServerMove",
+			"RootMotionDebugClientPrintOnScreen",
+			"PlayAnimMontage",
+			"OnWalkingOffLedge",
+			"OnRep_RootMotion",
+			"OnRep_ReplicatedBasedMovement",
+			"OnRep_ReplayLastTransformUpdateTimeStamp",
+			"OnRep_IsCrouched",
+			"OnLaunched",
+			"OnLanded",
+			"OnJumped",
+			"LaunchCharacter",
+			"K2_UpdateCustomMovement",
+			"K2_OnStartCrouch",
+			"K2_OnMovementModeChanged",
+			"K2_OnEndCrouch",
+			"Jump",
+			"IsPlayingRootMotion",
+			"IsPlayingNetworkedRootMotionMontage",
+			"IsJumpProvidingForce",
+			"HasAnyRootMotion",
+			"GetCurrentMontage",
+			"GetBaseTranslationOffset",
+			"GetBaseRotationOffsetRotator",
+			"GetAnimRootMotionTranslationScale",
+			"Crouch",
+			"ClientVeryShortAdjustPosition",
+			"ClientMoveResponsePacked",
+			"ClientCheatWalk",
+			"ClientCheatGhost",
+			"ClientCheatFly",
+			"ClientAdjustRootMotionSourcePosition",
+			"ClientAdjustRootMotionPosition",
+			"ClientAdjustPosition",
+			"ClientAckGoodMove",
+			"CanJumpInternal",
+			"CanJump",
+			"CanCrouch",
+			"CacheInitialMeshOffset",
+			"SpawnDefaultController",
+			"SetCanAffectNavigationGeneration",
+			"ReceiveUnpossessed",
+			"ReceiveRestarted",
+			"ReceivePossessed",
+			"ReceiveControllerChanged",
+			"PawnMakeNoise",
+			"OnRep_PlayerState",
+			"OnRep_Controller",
+			"IsPlayerControlled",
+			"IsPawnControlled",
+			"IsMoveInputIgnored",
+			"IsLocallyViewed",
+			"IsLocallyControlled",
+			"IsControlled",
+			"IsBotControlled",
+			"GetPlatformUserId",
+			"GetPendingMovementInputVector",
+			"GetOverrideInputComponentClass",
+			"GetNavAgentLocation",
+			"GetMovementComponent",
+			"GetMovementBaseActor",
+			"GetLocalViewingPlayerController",
+			"GetLastMovementInputVector",
+			"GetControlRotation",
+			"GetController",
+			"GetBaseAimRotation",
+			"DetachFromControllerPendingDestroy",
+			"ConsumeMovementInputVector",
+			"AddMovementInput",
+			"AddControllerYawInput",
+			"AddControllerRollInput",
+			"AddControllerPitchInput",
+			"WasRecentlyRendered",
+			"UserConstructionScript",
+			"UnregisterAsFocalPointInPhysicsReplicationLOD",
+			"TearOff",
+			"SetTickGroup",
+			"SetTickableWhenPaused",
+			"SetReplicates",
+			"SetReplicateMovement",
+			"SetRayTracingGroupId",
+			"SetPhysicsReplicationMode",
+			"SetOwner",
+			"SetNetUpdateFrequency",
+			"SetNetDormancy",
+			"SetNetCullDistanceSquared",
+			"SetMinNetUpdateFrequency",
+			"SetLifeSpan",
+			"SetIsTemporarilyHiddenInEditor",
+			"SetFolderPath",
+			"SetAutoDestroyWhenFinished",
+			"SetActorTickInterval",
+			"SetActorTickEnabled",
+			"SetActorScale3D",
+			"SetActorRelativeScale3D",
+			"SetActorLabel",
+			"SetActorHiddenInGame",
+			"SetActorEnableCollision",
+			"RemoveTickPrerequisiteComponent",
+			"RemoveTickPrerequisiteActor",
+			"RegisterAsFocalPointInPhysicsReplicationLOD",
+			"ReceiveTick",
+			"ReceiveRadialDamage",
+			"ReceivePointDamage",
+			"ReceiveHit",
+			"ReceiveEndPlay",
+			"ReceiveDestroyed",
+			"ReceiveBeginPlay",
+			"ReceiveAsyncPhysicsTick",
+			"ReceiveAnyDamage",
+			"ReceiveActorOnReleased",
+			"ReceiveActorOnInputTouchLeave",
+			"ReceiveActorOnInputTouchEnter",
+			"ReceiveActorOnInputTouchEnd",
+			"ReceiveActorOnInputTouchBegin",
+			"ReceiveActorOnClicked",
+			"ReceiveActorEndOverlap",
+			"ReceiveActorEndCursorOver",
+			"ReceiveActorBeginOverlap",
+			"ReceiveActorBeginCursorOver",
+			"PrestreamTextures",
+			"OnRep_ReplicateMovement",
+			"OnRep_ReplicatedMovement",
+			"OnRep_Owner",
+			"OnRep_Instigator",
+			"OnRep_AttachmentReplication",
+			"MakeNoise",
+			"K2_TeleportTo",
+			"K2_SetActorTransform",
+			"K2_SetActorRotation",
+			"K2_SetActorRelativeTransform",
+			"K2_SetActorRelativeRotation",
+			"K2_SetActorRelativeLocation",
+			"K2_SetActorLocationAndRotation",
+			"K2_SetActorLocation",
+			"K2_OnReset",
+			"K2_OnEndViewTarget",
+			"K2_OnBecomeViewTarget",
+			"K2_GetRootComponent",
+			"K2_GetComponentsByClass",
+			"K2_GetActorRotation",
+			"K2_GetActorLocation",
+			"K2_DetachFromActor",
+			"K2_DestroyActor",
+			"K2_AttachToComponent",
+			"K2_AttachToActor",
+			"K2_AttachRootComponentToActor",
+			"K2_AttachRootComponentTo",
+			"K2_AddActorWorldTransformKeepScale",
+			"K2_AddActorWorldTransform",
+			"K2_AddActorWorldRotation",
+			"K2_AddActorWorldOffset",
+			"K2_AddActorLocalTransform",
+			"K2_AddActorLocalRotation",
+			"K2_AddActorLocalOffset",
+			"IsTemporarilyHiddenInEditor",
+			"IsSelectable",
+			"IsOverlappingActor",
+			"IsHiddenEdAtStartup",
+			"IsHiddenEd",
+			"IsEditable",
+			"IsChildActor",
+			"IsActorTickEnabled",
+			"IsActorBeingDestroyed",
+			"HasAuthority",
+			"GetVerticalDistanceTo",
+			"GetVelocity",
+			"GetTransform",
+			"GetTickableWhenPaused",
+			"GetSquaredHorizontalDistanceTo",
+			"GetSquaredDistanceTo",
+			"GetResimulationThreshold",
+			"GetRemoteRole",
+			"GetRayTracingGroupId",
+			"GetPhysicsReplicationMode",
+			"GetParentComponent",
+			"GetParentActor",
+			"GetOwner",
+			"GetOverlappingComponents",
+			"GetOverlappingActors",
+			"GetNetUpdateFrequency",
+			"GetNetCullDistanceSquared",
+			"GetMinNetUpdateFrequency",
+			"GetLocalRole",
+			"GetLifeSpan",
+			"GetLevelTransform",
+			"GetLevel",
+			"GetInstigatorController",
+			"GetInstigator",
+			"GetInputVectorAxisValue",
+			"GetInputAxisValue",
+			"GetInputAxisKeyValue",
+			"GetHorizontalDotProductTo",
+			"GetHorizontalDistanceTo",
+			"GetGameTimeSinceCreation",
+			"GetFolderPath",
+			"GetDotProductTo",
+			"GetDistanceTo",
+			"GetDefaultActorLabel",
+			"GetComponentsByTag",
+			"GetComponentsByInterface",
+			"GetComponentByClass",
+			"GetAttachParentSocketName",
+			"GetAttachParentActor",
+			"GetAttachedActors",
+			"GetAllChildActors",
+			"GetActorUpVector",
+			"GetActorTimeDilation",
+			"GetActorTickInterval",
+			"GetActorScale3D",
+			"GetActorRightVector",
+			"GetActorRelativeScale3D",
+			"GetActorLabel",
+			"GetActorForwardVector",
+			"GetActorEyesViewPoint",
+			"GetActorEnableCollision",
+			"GetActorBounds",
+			"ForceNetUpdate",
+			"FlushNetDormancy",
+			"FinishAddComponent",
+			"FindComponentByTag",
+			"EnableInput",
+			"DisableInput",
+			"DetachRootComponentFromParent",
+			"CreateInputComponent",
+			"CanTriggerResimulation",
+			"AddTickPrerequisiteComponent",
+			"AddTickPrerequisiteActor",
+			"AddComponentByClass",
+			"AddComponent",
+			"ActorHasTag",
+			"ExecuteUbergraph"
+		]
+	}
+}

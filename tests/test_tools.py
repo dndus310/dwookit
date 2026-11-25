@@ -1171,6 +1171,54 @@ class NativeMigrationTests(TempDir):
         plan, s, files = self.generate("UI_LifeBar")
         self.assertIn("void SetLifePercentageNative(float Percent);", files["LifeBarBase.h"])
 
+    def test_interface_events_move_like_implementable_events(self):
+        # Blueprint interface (BPI_TouchInterface): C++ cannot implement it, so each event keeps a one-node call
+        plan, s, files = self.generate("BP_SideScrollingCharacter")
+        self.assertEqual(s["coverage"]["migrated"], s["coverage"]["nodes"])
+        h, cpp = files["SideScrollingCharacterBase.h"], files["SideScrollingCharacterBase.cpp"]
+        self.assertIn("void PrimaryThumbstickNative(FVector2D Axis);", h)          # identifier, not "Primary Thumbstick"
+        kinds = {e["bp"]: e["kind"] for e in s["events"]}
+        self.assertEqual(kinds["Touch Jump Start"], "thunk")
+        # Touch Jump Start reads Primary Thumbstick's Axis: the Blueprint frame keeps the last one, so does a member
+        self.assertIn("EvArg_D74BE72B_Axis = Axis;", cpp)
+        self.assertIn("(EvArg_D74BE72B_Axis).X, -0.5", cpp)
+
+    def test_interface_messages_and_blueprint_widget_dispatchers(self):
+        plan, s, files = self.generate("UI_TouchSimple")
+        self.assertEqual(s["coverage"]["migrated"], s["coverage"]["nodes"])
+        h, cpp = files["TouchSimpleBase.h"], files["TouchSimpleBase.cpp"]
+        # UI_Thumbstick is a widget Blueprint: BindWidget through its native parent, its dispatcher bound by name
+        self.assertIn("TObjectPtr<UUserWidget> Thumbstick_Move;", h)
+        self.assertIn('DwoNative::AddDynamicByName(Thumbstick_Move, TEXT("Stick Input"), this, TEXT("OnThumbstick_MoveStickInput"));', cpp)
+        # an interface message: only when the target implements the interface, by name
+        self.assertIn('DwoNative::FindClass(TEXT("/Game/Input/Touch/BPI_TouchInterface.BPI_TouchInterface_C")), TEXT("Primary Thumbstick"));', cpp)
+        self.assertIn('Call.Set(TEXT("Axis"), NewParam);', cpp)
+        lit = (self.tmp / "DwoNativeLiterals.h").read_text(encoding="utf-8")
+        self.assertIn("ImplementsInterface(Interface)", lit)
+        self.assertIn("FMath::Max<int32>(1, Function->ParmsSize)", lit)          # no parameters: still a buffer
+
+    def test_blueprint_widget_stays_when_blueprint_code_uses_it(self):
+        def keep_a_reader(doc):
+            g = next(g for g in doc["graphs"] if g["kind"] == "event")
+            g["nodes"].append({"id": "F" * 32, "class": "K2Node_VariableGet", "member": "Thumbstick_Aim", "role": "get", "kind": "get",
+                               "pins": [{"name": "Thumbstick_Aim", "dir": "out", "type": {"category": "object", "object": "/Game/Input/Touch/UI_Thumbstick.UI_Thumbstick_C"},
+                                         "links": [{"node": "E" * 32, "pin": "self"}]}]})
+            g["nodes"].append({"id": "E" * 32, "class": "K2Node_CallFunction", "member": "SomeBlueprintFunction", "memberOwner": "/Game/Input/Touch/UI_Thumbstick.UI_Thumbstick_C",
+                               "role": "call", "kind": "call", "pins": [{"name": "execute", "dir": "in", "type": {"category": "exec"}},
+                                                                     {"name": "self", "dir": "in", "type": {"category": "object"}, "links": [{"node": "F" * 32, "pin": "Thumbstick_Aim"}]}]})
+        plan = self.plan("UI_TouchSimple", keep_a_reader)
+        self.assertFalse(plan.widgets["Thumbstick_Aim"].migrated)
+        self.assertIn("stays uses it", plan.widgets["Thumbstick_Aim"].reason)
+        self.assertTrue(plan.widgets["Thumbstick_Move"].migrated)
+
+    def test_bound_event_bindings_compare_equal(self):
+        import lens_native
+        bp = "(/Engine/Transient.GI.Subject.BndEvt__UI_X_K2Node_ComponentBoundEvent_0_Stick Input__DelegateSignature)"
+        cpp = "(/Engine/Transient.GI.Subject.OnThumbstick_MoveStickInput)"
+        mk = lambda v: {"ok": True, "steps": [{"name": "spawn", "subjectAlive": True, "subject": {"components": {"Thumbstick_Move": {"Stick Input": v}}}}]}
+        self.assertEqual(lens_native.compare_traces(mk(bp), mk(cpp), handlers={"OnThumbstick_MoveStickInput"})["verdict"], "same")
+        self.assertEqual(lens_native.compare_traces(mk(bp), mk("(/Engine/Transient.GI.Subject.Other)"), handlers={"OnThumbstick_MoveStickInput"})["verdict"], "different")
+
     def test_signature_helpers(self):
         import lens_native
         self.assertEqual(lens_native.enum_exec_value("TEnumAsByte<EMoveComponentAction::Type>", "Stop"), "EMoveComponentAction::Stop")

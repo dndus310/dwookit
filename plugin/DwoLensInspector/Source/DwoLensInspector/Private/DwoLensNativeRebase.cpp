@@ -387,10 +387,27 @@ namespace DwoLensInspector::NativeRebase
 		{
 			Problems.Add(TEXT("could not wire the call to ") + Function->GetName());
 		}
+		// split outputs (Axis X / Axis Y) pass as the whole struct: the nodes that read the parts moved to C++
+		for (UEdGraphPin* Pin : TArray<UEdGraphPin*>(From->Pins))
+		{
+			if (Pin && Pin->Direction == EGPD_Output && Pin->SubPins.Num() > 0 && !Pin->ParentPin)
+			{
+				Schema->RecombinePin(Pin->SubPins[0]);
+			}
+		}
+		TArray<UEdGraphPin*> Inputs;
+		for (UEdGraphPin* Pin : Call->Pins)
+		{
+			if (Pin->Direction == EGPD_Input && Pin->PinType.PinCategory != UEdGraphSchema_K2::PC_Exec && Pin->PinName != UEdGraphSchema_K2::PN_Self) { Inputs.Add(Pin); }
+		}
+		int32 Index = 0;
 		for (UEdGraphPin* Pin : From->Pins)
 		{
-			if (Pin->Direction != EGPD_Output || Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Exec || Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Delegate) { continue; }
+			if (Pin->Direction != EGPD_Output || Pin->ParentPin || Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Exec || Pin->PinType.PinCategory == UEdGraphSchema_K2::PC_Delegate) { continue; }
+			// by name; a name C++ could not use (spaces) became an identifier, so then by position
 			UEdGraphPin* In = Call->FindPin(Pin->PinName, EGPD_Input);
+			if (!In && Inputs.IsValidIndex(Index)) { In = Inputs[Index]; }
+			++Index;
 			if (!In || !Schema->TryCreateConnection(Pin, In))
 			{
 				Problems.Add(FString::Printf(TEXT("could not pass %s to %s"), *Pin->PinName.ToString(), *Function->GetName()));

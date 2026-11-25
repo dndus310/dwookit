@@ -1,0 +1,1675 @@
+{
+	"schema": "lens.bp/1",
+	"name": "UI_TouchSimple",
+	"asset": "/Game/Input/Touch/UI_TouchSimple.UI_TouchSimple",
+	"package": "/Game/Input/Touch/UI_TouchSimple",
+	"assetClass": "WidgetBlueprint",
+	"blueprintType": "BPTYPE_Normal",
+	"status": "BS_UpToDate",
+	"engineVersion": "5.7.4-51494982+++UE5+Release-5.7",
+	"exportedAtUtc": "2026-11-25T15:38:33.792Z",
+	"source":
+	{
+		"file": "Content/Input/Touch/UI_TouchSimple.uasset",
+		"bytes": 70301,
+		"modifiedUtc": "2026-11-07T10:01:37.000Z"
+	},
+	"parent": "/Script/UMG.UserWidget",
+	"parentChain": [
+		"/Script/UMG.UserWidget"
+	],
+	"generatedClass": "/Game/Input/Touch/UI_TouchSimple.UI_TouchSimple_C",
+	"interfaces": [],
+	"variables": [
+		{
+			"name": "In String",
+			"type":
+			{
+				"text": "string",
+				"category": "string"
+			},
+			"category": "디폴트",
+			"default": "Hello"
+		}
+	],
+	"components": [],
+	"widgets": [
+		{
+			"name": "Overlay_19",
+			"class": "Overlay"
+		},
+		{
+			"name": "SizeBox_0",
+			"class": "SizeBox",
+			"parent": "Overlay_19"
+		},
+		{
+			"name": "Btn_Jump",
+			"class": "Button",
+			"parent": "SizeBox_0",
+			"variable": true
+		},
+		{
+			"name": "Thumbstick_Move",
+			"class": "UI_Thumbstick",
+			"parent": "Overlay_19",
+			"variable": true
+		},
+		{
+			"name": "Thumbstick_Aim",
+			"class": "UI_Thumbstick",
+			"parent": "Overlay_19",
+			"variable": true
+		}
+	],
+	"graphs": [
+		{
+			"name": "EventGraph",
+			"kind": "event",
+			"nodes": [
+				{
+					"id": "E615A7B2430DE5787A22CC88139EB982",
+					"class": "K2Node_Event",
+					"title": "Construct 이벤트",
+					"member": "Construct",
+					"memberOwner": "/Script/UMG.UserWidget",
+					"override": true,
+					"role": "event",
+					"kind": "event",
+					"pos": [
+						-102,
+						346
+					],
+					"pins": [
+						{
+							"name": "OutputDelegate",
+							"dir": "out",
+							"type":
+							{
+								"text": "delegate",
+								"category": "delegate"
+							}
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "1EE7050C4CAD655D84DB4AB53BF33722",
+									"pin": "execute"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "9DFFCFA94B93AC6C064B048588CF219E",
+					"class": "K2Node_ComponentBoundEvent",
+					"title": "On Pressed (Btn_Jump)",
+					"member": "OnPressed",
+					"component": "Btn_Jump",
+					"role": "event",
+					"kind": "boundEvent",
+					"pos": [
+						160,
+						1216
+					],
+					"pins": [
+						{
+							"name": "OutputDelegate",
+							"dir": "out",
+							"type":
+							{
+								"text": "delegate",
+								"category": "delegate"
+							}
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "FE088A9B490CF64E0D1A74AD4C3CFB21",
+									"pin": "execute"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "7D08350F42B7EA519B8A6CA738C53897",
+					"class": "K2Node_CallFunction",
+					"title": "Get Owning Player\n타깃은 Widget",
+					"member": "GetOwningPlayer",
+					"memberOwner": "/Script/UMG.Widget",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Const"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						186,
+						490
+					],
+					"pins": [
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "Widget",
+								"category": "object",
+								"object": "/Script/UMG.Widget"
+							}
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "PlayerController",
+								"category": "object",
+								"object": "/Script/Engine.PlayerController"
+							},
+							"links": [
+								{
+									"node": "1EE7050C4CAD655D84DB4AB53BF33722",
+									"pin": "self"
+								},
+								{
+									"node": "AFE5BF604B99ED397B63E8B5A42C1FDD",
+									"pin": "PlayerController"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "1EE7050C4CAD655D84DB4AB53BF33722",
+					"class": "K2Node_VariableSet",
+					"title": "Set bShowMouseCursor",
+					"member": "bShowMouseCursor",
+					"memberOwner": "/Script/Engine.PlayerController",
+					"memberCpp": "uint8",
+					"memberName": "bShowMouseCursor",
+					"role": "variable",
+					"kind": "set",
+					"pos": [
+						202,
+						362
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "E615A7B2430DE5787A22CC88139EB982",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "AFE5BF604B99ED397B63E8B5A42C1FDD",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "bShowMouseCursor",
+							"label": "Show Mouse Cursor",
+							"dir": "in",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "true",
+							"autoDefault": "false"
+						},
+						{
+							"name": "Output_Get",
+							"label": "Show Mouse Cursor",
+							"dir": "out",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "false"
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "PlayerController",
+								"category": "object",
+								"object": "/Script/Engine.PlayerController"
+							},
+							"links": [
+								{
+									"node": "7D08350F42B7EA519B8A6CA738C53897",
+									"pin": "ReturnValue"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "AFE5BF604B99ED397B63E8B5A42C1FDD",
+					"class": "K2Node_CallFunction",
+					"title": "Set Input Mode Game And UI",
+					"member": "SetInputMode_GameAndUIEx",
+					"memberOwner": "/Script/UMG.WidgetBlueprintLibrary",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Static"
+					],
+					"role": "call",
+					"kind": "call",
+					"pos": [
+						650,
+						346
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "1EE7050C4CAD655D84DB4AB53BF33722",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "WidgetBlueprintLibrary",
+								"category": "object",
+								"object": "/Script/UMG.WidgetBlueprintLibrary"
+							},
+							"defaultObject": "/Script/UMG.Default__WidgetBlueprintLibrary",
+							"hidden": true
+						},
+						{
+							"name": "PlayerController",
+							"dir": "in",
+							"type":
+							{
+								"text": "PlayerController",
+								"category": "object",
+								"object": "/Script/Engine.PlayerController"
+							},
+							"links": [
+								{
+									"node": "7D08350F42B7EA519B8A6CA738C53897",
+									"pin": "ReturnValue"
+								}
+							]
+						},
+						{
+							"name": "InWidgetToFocus",
+							"dir": "in",
+							"type":
+							{
+								"text": "Widget",
+								"category": "object",
+								"object": "/Script/UMG.Widget"
+							},
+							"autoDefault": "None"
+						},
+						{
+							"name": "InMouseLockMode",
+							"dir": "in",
+							"type":
+							{
+								"text": "EMouseLockMode",
+								"category": "byte",
+								"object": "/Script/Engine.EMouseLockMode"
+							},
+							"default": "DoNotLock",
+							"autoDefault": "DoNotLock"
+						},
+						{
+							"name": "bHideCursorDuringCapture",
+							"dir": "in",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool"
+							},
+							"default": "false",
+							"autoDefault": "true"
+						},
+						{
+							"name": "bFlushInput",
+							"dir": "in",
+							"type":
+							{
+								"text": "bool",
+								"category": "bool",
+								"const": true
+							},
+							"default": "false",
+							"autoDefault": "false"
+						}
+					]
+				},
+				{
+					"id": "1ADC252247E435966DD89E840B2E38D1",
+					"class": "K2Node_ComponentBoundEvent",
+					"title": "Stick Input (Thumbstick_Move)",
+					"member": "Stick Input",
+					"component": "Thumbstick_Move",
+					"role": "event",
+					"kind": "boundEvent",
+					"pos": [
+						112,
+						800
+					],
+					"pins": [
+						{
+							"name": "OutputDelegate",
+							"dir": "out",
+							"type":
+							{
+								"text": "delegate",
+								"category": "delegate"
+							}
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "0DCA7B6E41421284D5A6D38637256D40",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "NewParam",
+							"dir": "out",
+							"type":
+							{
+								"text": "Vector2D",
+								"category": "struct",
+								"object": "/Script/CoreUObject.Vector2D"
+							},
+							"links": [
+								{
+									"node": "0DCA7B6E41421284D5A6D38637256D40",
+									"pin": "Axis"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "86196A9848070D143457B08BFD648757",
+					"class": "K2Node_ComponentBoundEvent",
+					"title": "Stick Input (Thumbstick_Aim)",
+					"member": "Stick Input",
+					"component": "Thumbstick_Aim",
+					"role": "event",
+					"kind": "boundEvent",
+					"pos": [
+						128,
+						1040
+					],
+					"pins": [
+						{
+							"name": "OutputDelegate",
+							"dir": "out",
+							"type":
+							{
+								"text": "delegate",
+								"category": "delegate"
+							}
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "DD52361A4D1EF515A7BD978E109EDAE5",
+									"pin": "execute"
+								}
+							]
+						},
+						{
+							"name": "NewParam",
+							"dir": "out",
+							"type":
+							{
+								"text": "Vector2D",
+								"category": "struct",
+								"object": "/Script/CoreUObject.Vector2D"
+							},
+							"links": [
+								{
+									"node": "DD52361A4D1EF515A7BD978E109EDAE5",
+									"pin": "Axis"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "E727142F4D245694BDEBDAB65A25E463",
+					"class": "EdGraphNode_Comment",
+					"title": "Send inputs to pawn",
+					"size": [
+						848,
+						848
+					],
+					"role": "other",
+					"kind": "comment",
+					"pos": [
+						-160,
+						720
+					],
+					"pins": []
+				},
+				{
+					"id": "908C581E49D7FAF9C59AA9AEF464FC81",
+					"class": "EdGraphNode_Comment",
+					"title": "Force Visible Input",
+					"size": [
+						1136,
+						432
+					],
+					"role": "other",
+					"kind": "comment",
+					"pos": [
+						-160,
+						256
+					],
+					"pins": []
+				},
+				{
+					"id": "0D4F1C564580D2F902E6E182F382F24E",
+					"class": "K2Node_CallFunction",
+					"title": "Get Owning Player\n타깃은 Widget",
+					"member": "GetOwningPlayer",
+					"memberOwner": "/Script/UMG.Widget",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Const"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						-112,
+						928
+					],
+					"pins": [
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "Widget",
+								"category": "object",
+								"object": "/Script/UMG.Widget"
+							}
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "PlayerController",
+								"category": "object",
+								"object": "/Script/Engine.PlayerController"
+							},
+							"links": [
+								{
+									"node": "3E6D89DA46D4EE973951C186284B1899",
+									"pin": "self"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "3E6D89DA46D4EE973951C186284B1899",
+					"class": "K2Node_CallFunction",
+					"title": "Get Controlled Pawn\n타깃은 Controller",
+					"member": "K2_GetPawn",
+					"memberOwner": "/Script/Engine.Controller",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Const"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						144,
+						928
+					],
+					"pins": [
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "Controller",
+								"category": "object",
+								"object": "/Script/Engine.Controller"
+							},
+							"links": [
+								{
+									"node": "0D4F1C564580D2F902E6E182F382F24E",
+									"pin": "ReturnValue"
+								}
+							]
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "Pawn",
+								"category": "object",
+								"object": "/Script/Engine.Pawn"
+							},
+							"links": [
+								{
+									"node": "0DCA7B6E41421284D5A6D38637256D40",
+									"pin": "self"
+								},
+								{
+									"node": "DD52361A4D1EF515A7BD978E109EDAE5",
+									"pin": "self"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "0DCA7B6E41421284D5A6D38637256D40",
+					"class": "K2Node_Message",
+					"title": "Primary Thumbstick\nTarget is BPI Touch Interface",
+					"member": "Primary Thumbstick",
+					"memberOwner": "/Game/Input/Touch/BPI_TouchInterface.SKEL_BPI_TouchInterface_C",
+					"memberFlags": [
+						"BlueprintCallable",
+						"BlueprintEvent"
+					],
+					"role": "call",
+					"kind": "call",
+					"pos": [
+						400,
+						784
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "1ADC252247E435966DD89E840B2E38D1",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "Object",
+								"category": "object",
+								"object": "/Script/CoreUObject.Object"
+							},
+							"links": [
+								{
+									"node": "3E6D89DA46D4EE973951C186284B1899",
+									"pin": "ReturnValue"
+								}
+							]
+						},
+						{
+							"name": "Axis",
+							"dir": "in",
+							"type":
+							{
+								"text": "Vector2D",
+								"category": "struct",
+								"object": "/Script/CoreUObject.Vector2D"
+							},
+							"links": [
+								{
+									"node": "1ADC252247E435966DD89E840B2E38D1",
+									"pin": "NewParam"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "DD52361A4D1EF515A7BD978E109EDAE5",
+					"class": "K2Node_Message",
+					"title": "Secondary Thumbstick\nTarget is BPI Touch Interface",
+					"member": "Secondary Thumbstick",
+					"memberOwner": "/Game/Input/Touch/BPI_TouchInterface.SKEL_BPI_TouchInterface_C",
+					"memberFlags": [
+						"BlueprintCallable",
+						"BlueprintEvent"
+					],
+					"role": "call",
+					"kind": "call",
+					"pos": [
+						400,
+						1024
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "86196A9848070D143457B08BFD648757",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "Object",
+								"category": "object",
+								"object": "/Script/CoreUObject.Object"
+							},
+							"links": [
+								{
+									"node": "3E6D89DA46D4EE973951C186284B1899",
+									"pin": "ReturnValue"
+								}
+							]
+						},
+						{
+							"name": "Axis",
+							"dir": "in",
+							"type":
+							{
+								"text": "Vector2D",
+								"category": "struct",
+								"object": "/Script/CoreUObject.Vector2D"
+							},
+							"links": [
+								{
+									"node": "86196A9848070D143457B08BFD648757",
+									"pin": "NewParam"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "9127F5364C3542196C8D0C99819180F5",
+					"class": "K2Node_ComponentBoundEvent",
+					"title": "On Released (Btn_Jump)",
+					"member": "OnReleased",
+					"component": "Btn_Jump",
+					"role": "event",
+					"kind": "boundEvent",
+					"pos": [
+						155,
+						1391
+					],
+					"pins": [
+						{
+							"name": "OutputDelegate",
+							"dir": "out",
+							"type":
+							{
+								"text": "delegate",
+								"category": "delegate"
+							}
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "B1E93807439D1578B6EE1084C5CD9C0E",
+									"pin": "execute"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "FE088A9B490CF64E0D1A74AD4C3CFB21",
+					"class": "K2Node_Message",
+					"title": "Touch Jump Start\nTarget is BPI Touch Interface",
+					"member": "Touch Jump Start",
+					"memberOwner": "/Game/Input/Touch/BPI_TouchInterface.SKEL_BPI_TouchInterface_C",
+					"memberFlags": [
+						"BlueprintCallable",
+						"BlueprintEvent"
+					],
+					"role": "call",
+					"kind": "call",
+					"pos": [
+						416,
+						1200
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "9DFFCFA94B93AC6C064B048588CF219E",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "Object",
+								"category": "object",
+								"object": "/Script/CoreUObject.Object"
+							},
+							"links": [
+								{
+									"node": "FD4C73D142568E3E020623B220072271",
+									"pin": "ReturnValue"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "B1E93807439D1578B6EE1084C5CD9C0E",
+					"class": "K2Node_Message",
+					"title": "Touch Jump End\nTarget is BPI Touch Interface",
+					"member": "Touch Jump End",
+					"memberOwner": "/Game/Input/Touch/BPI_TouchInterface.SKEL_BPI_TouchInterface_C",
+					"memberFlags": [
+						"BlueprintCallable",
+						"BlueprintEvent"
+					],
+					"role": "call",
+					"kind": "call",
+					"pos": [
+						416,
+						1376
+					],
+					"pins": [
+						{
+							"name": "execute",
+							"dir": "in",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							},
+							"links": [
+								{
+									"node": "9127F5364C3542196C8D0C99819180F5",
+									"pin": "then"
+								}
+							]
+						},
+						{
+							"name": "then",
+							"dir": "out",
+							"type":
+							{
+								"text": "exec",
+								"category": "exec"
+							}
+						},
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "Object",
+								"category": "object",
+								"object": "/Script/CoreUObject.Object"
+							},
+							"links": [
+								{
+									"node": "FD4C73D142568E3E020623B220072271",
+									"pin": "ReturnValue"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "8C1966E54D1258D4A21E289BABC25B83",
+					"class": "K2Node_CallFunction",
+					"title": "Get Owning Player\n타깃은 Widget",
+					"member": "GetOwningPlayer",
+					"memberOwner": "/Script/UMG.Widget",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Const"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						-112,
+						1296
+					],
+					"pins": [
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "Widget",
+								"category": "object",
+								"object": "/Script/UMG.Widget"
+							}
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "PlayerController",
+								"category": "object",
+								"object": "/Script/Engine.PlayerController"
+							},
+							"links": [
+								{
+									"node": "FD4C73D142568E3E020623B220072271",
+									"pin": "self"
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "FD4C73D142568E3E020623B220072271",
+					"class": "K2Node_CallFunction",
+					"title": "Get Controlled Pawn\n타깃은 Controller",
+					"member": "K2_GetPawn",
+					"memberOwner": "/Script/Engine.Controller",
+					"memberFlags": [
+						"Native",
+						"BlueprintCallable",
+						"Pure",
+						"Const"
+					],
+					"role": "call",
+					"kind": "call",
+					"pure": true,
+					"pos": [
+						157,
+						1296
+					],
+					"pins": [
+						{
+							"name": "self",
+							"label": "타깃",
+							"dir": "in",
+							"type":
+							{
+								"text": "Controller",
+								"category": "object",
+								"object": "/Script/Engine.Controller"
+							},
+							"links": [
+								{
+									"node": "8C1966E54D1258D4A21E289BABC25B83",
+									"pin": "ReturnValue"
+								}
+							]
+						},
+						{
+							"name": "ReturnValue",
+							"dir": "out",
+							"type":
+							{
+								"text": "Pawn",
+								"category": "object",
+								"object": "/Script/Engine.Pawn"
+							},
+							"links": [
+								{
+									"node": "FE088A9B490CF64E0D1A74AD4C3CFB21",
+									"pin": "self"
+								},
+								{
+									"node": "B1E93807439D1578B6EE1084C5CD9C0E",
+									"pin": "self"
+								}
+							]
+						}
+					]
+				}
+			]
+		}
+	],
+	"native":
+	{
+		"types":
+		{
+			"/Script/UMG.UserWidget":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UUserWidget",
+				"include": "Blueprint/UserWidget.h",
+				"module": "UMG",
+				"nativeParent": "/Script/UMG.UserWidget",
+				"super": "/Script/UMG.Widget",
+				"abstract": true
+			},
+			"/Script/UMG.Widget":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UWidget",
+				"include": "Components/Widget.h",
+				"module": "UMG",
+				"nativeParent": "/Script/UMG.Widget",
+				"super": "/Script/UMG.Visual",
+				"abstract": true
+			},
+			"/Script/UMG.Visual":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UVisual",
+				"include": "Components/Visual.h",
+				"module": "UMG",
+				"nativeParent": "/Script/UMG.Visual",
+				"super": "/Script/CoreUObject.Object"
+			},
+			"/Script/CoreUObject.Object":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UObject",
+				"include": "UObject/Object.h",
+				"module": "CoreUObject",
+				"nativeParent": "/Script/CoreUObject.Object",
+				"abstract": true
+			},
+			"/Script/UMG.Overlay":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UOverlay",
+				"include": "Components/Overlay.h",
+				"module": "UMG",
+				"nativeParent": "/Script/UMG.Overlay",
+				"super": "/Script/UMG.PanelWidget"
+			},
+			"/Script/UMG.SizeBox":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "USizeBox",
+				"include": "Components/SizeBox.h",
+				"module": "UMG",
+				"nativeParent": "/Script/UMG.SizeBox",
+				"super": "/Script/UMG.ContentWidget"
+			},
+			"/Script/UMG.Button":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UButton",
+				"include": "Components/Button.h",
+				"module": "UMG",
+				"nativeParent": "/Script/UMG.Button",
+				"super": "/Script/UMG.ContentWidget"
+			},
+			"/Game/Input/Touch/UI_Thumbstick.UI_Thumbstick_C":
+			{
+				"kind": "class",
+				"native": false,
+				"cpp": "UUI_Thumbstick_C",
+				"nativeParent": "/Script/UMG.UserWidget",
+				"super": "/Script/UMG.UserWidget"
+			},
+			"/Script/Engine.PlayerController":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "APlayerController",
+				"include": "GameFramework/PlayerController.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.PlayerController",
+				"super": "/Script/Engine.Controller",
+				"actor": true
+			},
+			"/Script/UMG.WidgetBlueprintLibrary":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "UWidgetBlueprintLibrary",
+				"include": "Blueprint/WidgetBlueprintLibrary.h",
+				"module": "UMG",
+				"nativeParent": "/Script/UMG.WidgetBlueprintLibrary",
+				"super": "/Script/Engine.BlueprintFunctionLibrary"
+			},
+			"/Script/CoreUObject.Vector2D":
+			{
+				"kind": "struct",
+				"native": true,
+				"cpp": "FVector2D",
+				"include": "UObject/NoExportTypes.h",
+				"module": "CoreUObject"
+			},
+			"/Script/Engine.Controller":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "AController",
+				"include": "GameFramework/Controller.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.Controller",
+				"super": "/Script/Engine.Actor",
+				"abstract": true,
+				"actor": true
+			},
+			"/Script/Engine.Pawn":
+			{
+				"kind": "class",
+				"native": true,
+				"cpp": "APawn",
+				"include": "GameFramework/Pawn.h",
+				"module": "Engine",
+				"nativeParent": "/Script/Engine.Pawn",
+				"super": "/Script/Engine.Actor",
+				"actor": true
+			},
+			"/Game/Input/Touch/BPI_TouchInterface.SKEL_BPI_TouchInterface_C":
+			{
+				"kind": "interface",
+				"native": false,
+				"cpp": "USKEL_BPI_TouchInterface_C",
+				"nativeParent": "/Script/CoreUObject.Interface",
+				"super": "/Script/CoreUObject.Interface"
+			}
+		},
+		"enums":
+		{
+			"/Script/Engine.EMouseLockMode":
+			{
+				"native": true,
+				"cpp": "EMouseLockMode",
+				"form": "enumClass",
+				"include": "Engine/EngineBaseTypes.h",
+				"values":
+				{
+					"DoNotLock": "EMouseLockMode::DoNotLock",
+					"LockOnCapture": "EMouseLockMode::LockOnCapture",
+					"LockAlways": "EMouseLockMode::LockAlways",
+					"LockInFullscreen": "EMouseLockMode::LockInFullscreen"
+				}
+			}
+		},
+		"functions":
+		{
+			"/Script/UMG.UserWidget:Construct":
+			{
+				"name": "Construct",
+				"owner": "/Script/UMG.UserWidget",
+				"flags": [
+					"Event",
+					"BlueprintEvent"
+				],
+				"native": true,
+				"access": "public",
+				"params": []
+			},
+			":OnButtonPressedEvent__DelegateSignature":
+			{
+				"name": "OnButtonPressedEvent__DelegateSignature",
+				"owner": "",
+				"flags": [],
+				"native": false,
+				"access": "public",
+				"params": []
+			},
+			"/Script/UMG.Widget:GetOwningPlayer":
+			{
+				"name": "GetOwningPlayer",
+				"owner": "/Script/UMG.Widget",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Pure",
+					"Const"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "ReturnValue",
+						"cpp": "APlayerController*",
+						"return": true
+					}
+				]
+			},
+			"/Script/UMG.WidgetBlueprintLibrary:SetInputMode_GameAndUIEx":
+			{
+				"name": "SetInputMode_GameAndUIEx",
+				"owner": "/Script/UMG.WidgetBlueprintLibrary",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Static"
+				],
+				"native": true,
+				"access": "public",
+				"params": [
+					{
+						"name": "PlayerController",
+						"cpp": "APlayerController*"
+					},
+					{
+						"name": "InWidgetToFocus",
+						"cpp": "UWidget*",
+						"cppDefault": "None"
+					},
+					{
+						"name": "InMouseLockMode",
+						"cpp": "EMouseLockMode",
+						"cppDefault": "DoNotLock"
+					},
+					{
+						"name": "bHideCursorDuringCapture",
+						"cpp": "bool",
+						"cppDefault": "true"
+					},
+					{
+						"name": "bFlushInput",
+						"cpp": "bool",
+						"const": true,
+						"cppDefault": "false"
+					}
+				]
+			},
+			"/Game/Input/Touch/UI_Thumbstick.UI_Thumbstick_C:Stick Input__DelegateSignature":
+			{
+				"name": "Stick Input__DelegateSignature",
+				"owner": "/Game/Input/Touch/UI_Thumbstick.UI_Thumbstick_C",
+				"flags": [
+					"BlueprintCallable",
+					"BlueprintEvent"
+				],
+				"native": false,
+				"access": "public",
+				"params": [
+					{
+						"name": "NewParam",
+						"cpp": "FVector2D"
+					}
+				]
+			},
+			"/Script/Engine.Controller:K2_GetPawn":
+			{
+				"name": "K2_GetPawn",
+				"owner": "/Script/Engine.Controller",
+				"flags": [
+					"Native",
+					"BlueprintCallable",
+					"Pure",
+					"Const"
+				],
+				"native": true,
+				"access": "public",
+				"scriptName": "GetControlledPawn",
+				"params": [
+					{
+						"name": "ReturnValue",
+						"cpp": "APawn*",
+						"return": true
+					}
+				]
+			},
+			"/Game/Input/Touch/BPI_TouchInterface.SKEL_BPI_TouchInterface_C:Primary Thumbstick":
+			{
+				"name": "Primary Thumbstick",
+				"owner": "/Game/Input/Touch/BPI_TouchInterface.SKEL_BPI_TouchInterface_C",
+				"flags": [
+					"BlueprintCallable",
+					"BlueprintEvent"
+				],
+				"native": false,
+				"access": "public",
+				"params": [
+					{
+						"name": "Axis",
+						"cpp": "FVector2D"
+					}
+				]
+			},
+			"/Game/Input/Touch/BPI_TouchInterface.SKEL_BPI_TouchInterface_C:Secondary Thumbstick":
+			{
+				"name": "Secondary Thumbstick",
+				"owner": "/Game/Input/Touch/BPI_TouchInterface.SKEL_BPI_TouchInterface_C",
+				"flags": [
+					"BlueprintCallable",
+					"BlueprintEvent"
+				],
+				"native": false,
+				"access": "public",
+				"params": [
+					{
+						"name": "Axis",
+						"cpp": "FVector2D"
+					}
+				]
+			},
+			":OnButtonReleasedEvent__DelegateSignature":
+			{
+				"name": "OnButtonReleasedEvent__DelegateSignature",
+				"owner": "",
+				"flags": [],
+				"native": false,
+				"access": "public",
+				"params": []
+			},
+			"/Game/Input/Touch/BPI_TouchInterface.SKEL_BPI_TouchInterface_C:Touch Jump Start":
+			{
+				"name": "Touch Jump Start",
+				"owner": "/Game/Input/Touch/BPI_TouchInterface.SKEL_BPI_TouchInterface_C",
+				"flags": [
+					"BlueprintCallable",
+					"BlueprintEvent"
+				],
+				"native": false,
+				"access": "public",
+				"params": []
+			},
+			"/Game/Input/Touch/BPI_TouchInterface.SKEL_BPI_TouchInterface_C:Touch Jump End":
+			{
+				"name": "Touch Jump End",
+				"owner": "/Game/Input/Touch/BPI_TouchInterface.SKEL_BPI_TouchInterface_C",
+				"flags": [
+					"BlueprintCallable",
+					"BlueprintEvent"
+				],
+				"native": false,
+				"access": "public",
+				"params": []
+			}
+		},
+		"parentMembers": [
+			"ColorAndOpacity",
+			"ColorAndOpacityDelegate",
+			"ForegroundColor",
+			"ForegroundColorDelegate",
+			"OnVisibilityChanged",
+			"Padding",
+			"Priority",
+			"bIsFocusable",
+			"bStopAction",
+			"bAutomaticallyRegisterInputOnConstruction",
+			"QueuedWidgetAnimationTransitions",
+			"ActiveSequencePlayers",
+			"AnimationTickManager",
+			"StoppedSequencePlayers",
+			"NamedSlotBindings",
+			"Extensions",
+			"WidgetTree",
+			"DesignTimeSize",
+			"DesignSizeMode",
+			"PaletteCategory",
+			"PreviewBackground",
+			"bHasScriptImplementedTick",
+			"bHasScriptImplementedPaint",
+			"TickFrequency",
+			"DesiredFocusWidget",
+			"InputComponent",
+			"AnimationCallbacks",
+			"Slot",
+			"bIsEnabledDelegate",
+			"ToolTipTextDelegate",
+			"ToolTipText",
+			"ToolTipWidget",
+			"ToolTipWidgetDelegate",
+			"VisibilityDelegate",
+			"RenderTransform",
+			"RenderTransformPivot",
+			"FlowDirectionPreference",
+			"bIsVariable",
+			"bCreatedByConstructionScript",
+			"bIsEnabled",
+			"bOverride_Cursor",
+			"bOverrideAccessibleDefaults",
+			"bCanChildrenBeAccessible",
+			"AccessibleBehavior",
+			"AccessibleSummaryBehavior",
+			"AccessibleText",
+			"AccessibleTextDelegate",
+			"AccessibleSummaryText",
+			"AccessibleSummaryTextDelegate",
+			"bIsVolatile",
+			"bWrappedByComponent",
+			"bHiddenInDesigner",
+			"bExpandedInDesigner",
+			"bLockedInDesigner",
+			"Cursor",
+			"Clipping",
+			"Visibility",
+			"PixelSnapping",
+			"RenderOpacity",
+			"AccessibleWidgetData",
+			"Navigation",
+			"NativeBindings",
+			"DesignerFlags",
+			"DisplayLabel",
+			"CategoryName",
+			"UnregisterInputComponent",
+			"UnbindFromAnimationStarted",
+			"UnbindFromAnimationFinished",
+			"UnbindAllFromAnimationStarted",
+			"UnbindAllFromAnimationFinished",
+			"Tick",
+			"StopListeningForInputAction",
+			"StopListeningForAllInputActions",
+			"StopAnimationsAndLatentActions",
+			"StopAnimation",
+			"StopAllAnimations",
+			"SetPositionInViewport",
+			"SetPlaybackSpeed",
+			"SetPadding",
+			"SetOwningPlayer",
+			"SetNumLoopsToPlay",
+			"SetInputActionPriority",
+			"SetInputActionBlocking",
+			"SetForegroundColor",
+			"SetDesiredSizeInViewport",
+			"SetDesiredFocusWidget",
+			"SetColorAndOpacity",
+			"SetAnimationCurrentTime",
+			"SetAnchorsInViewport",
+			"SetAlignmentInViewport",
+			"ReverseAnimation",
+			"RemoveFromViewport",
+			"RemoveExtensions",
+			"RemoveExtension",
+			"RegisterInputComponent",
+			"QueueStopAnimation",
+			"QueueStopAllAnimations",
+			"QueuePlayAnimationTimeRange",
+			"QueuePlayAnimationReverse",
+			"QueuePlayAnimationForward",
+			"QueuePlayAnimation",
+			"QueuePauseAnimation",
+			"PreConstruct",
+			"PlaySound",
+			"PlayAnimationTimeRange",
+			"PlayAnimationReverse",
+			"PlayAnimationForward",
+			"PlayAnimation",
+			"PauseAnimation",
+			"OnTouchStarted",
+			"OnTouchMoved",
+			"OnTouchGesture",
+			"OnTouchForceChanged",
+			"OnTouchFirstMove",
+			"OnTouchEnded",
+			"OnRemovedFromFocusPath",
+			"OnPreviewMouseButtonDown",
+			"OnPreviewKeyDown",
+			"OnPaint",
+			"OnMouseWheel",
+			"OnMouseMove",
+			"OnMouseLeave",
+			"OnMouseEnter",
+			"OnMouseCaptureLost",
+			"OnMouseButtonUp",
+			"OnMouseButtonDown",
+			"OnMouseButtonDoubleClick",
+			"OnMotionDetected",
+			"OnKeyUp",
+			"OnKeyDown",
+			"OnKeyChar",
+			"OnInitialized",
+			"OnFocusReceived",
+			"OnFocusLost",
+			"OnDrop",
+			"OnDragOver",
+			"OnDragLeave",
+			"OnDragEnter",
+			"OnDragDetected",
+			"OnDragCancelled",
+			"OnAnimationStarted",
+			"OnAnimationFinished",
+			"OnAnalogValueChanged",
+			"OnAddedToFocusPath",
+			"ListenForInputAction",
+			"IsPlayingAnimation",
+			"IsListeningForInputAction",
+			"IsInteractable",
+			"IsAnyAnimationPlaying",
+			"IsAnimationPlayingForward",
+			"IsAnimationPlaying",
+			"GetOwningPlayerPawn",
+			"GetOwningPlayerCameraManager",
+			"GetIsVisible",
+			"GetExtensions",
+			"GetExtension",
+			"GetAnimationCurrentTime",
+			"GetAnchorsInViewport",
+			"GetAlignmentInViewport",
+			"FlushAnimations",
+			"Destruct",
+			"Construct",
+			"CancelLatentActions",
+			"BindToAnimationStarted",
+			"BindToAnimationFinished",
+			"BindToAnimationEvent",
+			"AddToViewport",
+			"AddToPlayerScreen",
+			"AddExtension",
+			"SetVisibility",
+			"SetUserFocus",
+			"SetToolTipText",
+			"SetToolTip",
+			"SetRenderTranslation",
+			"SetRenderTransformPivot",
+			"SetRenderTransformAngle",
+			"SetRenderTransform",
+			"SetRenderShear",
+			"SetRenderScale",
+			"SetRenderOpacity",
+			"SetNavigationRuleExplicit",
+			"SetNavigationRuleCustomBoundary",
+			"SetNavigationRuleCustom",
+			"SetNavigationRuleBase",
+			"SetNavigationRule",
+			"SetKeyboardFocus",
+			"SetIsEnabled",
+			"SetFocus",
+			"SetCursor",
+			"SetClipping",
+			"SetAllNavigationRules",
+			"ResetCursor",
+			"RemoveFromParent",
+			"OnReply__DelegateSignature",
+			"OnPointerEvent__DelegateSignature",
+			"K2_RemoveFieldValueChangedDelegate",
+			"K2_BroadcastFieldValueChanged",
+			"K2_AddFieldValueChangedDelegate",
+			"IsVisible",
+			"IsRendered",
+			"IsInViewport",
+			"IsHovered",
+			"InvalidateLayoutAndVolatility",
+			"HasUserFocusedDescendants",
+			"HasUserFocus",
+			"HasMouseCaptureByUser",
+			"HasMouseCapture",
+			"HasKeyboardFocus",
+			"HasFocusedDescendants",
+			"HasAnyUserFocus",
+			"GetWidget__DelegateSignature",
+			"GetVisibility",
+			"GetTickSpaceGeometry",
+			"GetText__DelegateSignature",
+			"GetSlateVisibility__DelegateSignature",
+			"GetSlateColor__DelegateSignature",
+			"GetSlateBrush__DelegateSignature",
+			"GetRenderTransformAngle",
+			"GetRenderOpacity",
+			"GetParent",
+			"GetPaintSpaceGeometry",
+			"GetOwningPlayer",
+			"GetOwningLocalPlayer",
+			"GetMouseCursor__DelegateSignature",
+			"GetLinearColor__DelegateSignature",
+			"GetIsEnabled",
+			"GetInt32__DelegateSignature",
+			"GetGameInstance",
+			"GetFloat__DelegateSignature",
+			"GetDesiredSize",
+			"GetClipping",
+			"GetCheckBoxState__DelegateSignature",
+			"GetCachedGeometry",
+			"GetBool__DelegateSignature",
+			"GetAccessibleText",
+			"GetAccessibleSummaryText",
+			"GenerateWidgetForString__DelegateSignature",
+			"GenerateWidgetForObject__DelegateSignature",
+			"ForceVolatile",
+			"ForceLayoutPrepass",
+			"ExecuteUbergraph"
+		]
+	}
+}

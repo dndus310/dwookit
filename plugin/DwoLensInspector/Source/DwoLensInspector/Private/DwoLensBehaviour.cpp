@@ -25,6 +25,9 @@
 #include "Blueprint/UserWidget.h"
 #include "Blueprint/WidgetTree.h"
 #include "Components/ActorComponent.h"
+#include "Engine/LocalPlayer.h"
+#include "Engine/GameInstance.h"
+#include "GameFramework/PlayerController.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/Widget.h"
 #include "Engine/SkeletalMesh.h"
@@ -147,6 +150,25 @@ namespace DwoLensInspector::Behaviour
 		return Out;
 	}
 
+	static FJson DescribePawn(const APawn* Pawn)
+	{
+		FJson Out = MakeShared<FJsonObject>();
+		Out->SetStringField(TEXT("class"), Pawn->GetClass()->GetName());
+		Out->SetStringField(TEXT("location"), Pawn->GetActorLocation().ToString());
+		Out->SetStringField(TEXT("rotation"), Pawn->GetActorRotation().ToString());
+		Out->SetStringField(TEXT("velocity"), Pawn->GetVelocity().ToString());
+		Out->SetStringField(TEXT("pendingInput"), Pawn->GetPendingMovementInputVector().ToString());
+		if (const ACharacter* Character = Cast<ACharacter>(Pawn))
+		{
+			Out->SetBoolField(TEXT("pressedJump"), Character->bPressedJump);
+			if (const UCharacterMovementComponent* M = Character->GetCharacterMovement())
+			{
+				Out->SetStringField(TEXT("movementMode"), StaticEnum<EMovementMode>()->GetNameStringByValue(M->MovementMode));
+			}
+		}
+		return Out;
+	}
+
 	/** A skeletal mesh made for the anim Blueprint's target skeleton (the first by path, so every run picks the same). */
 	static USkeletalMesh* FindMeshFor(const UClass* Class, const UBlueprint* Blueprint)
 	{
@@ -231,6 +253,9 @@ int32 DwoLensInspector::RunBehaviour(const FString& ScenarioFile, const FString&
 		ProbeOffset = FVector((*Offset)[0]->AsNumber(), (*Offset)[1]->AsNumber(), (*Offset)[2]->AsNumber());
 	}
 	Trace->SetStringField(TEXT("blueprint"), BlueprintPath);
+	// pawn: for a widget, the pawn its owning player possesses (what GetOwningPlayer().GetPawn() reaches); recorded
+	FString PawnPath;
+	Scenario->TryGetStringField(TEXT("pawn"), PawnPath);
 	// calls: functions or events to run on the subject at a frame (an implementable event the C++ parent would
 	// fire), with arguments as text in parameter order; parameters without one are value-initialized
 	struct FCall { int32 Frame; FString Function; TArray<FString> Args; };
@@ -278,10 +303,29 @@ int32 DwoLensInspector::RunBehaviour(const FString& ScenarioFile, const FString&
 	TSharedPtr<SWidget> SlateWidget;
 	ACharacter* Owner = nullptr;
 	ACharacter* Probe = nullptr;
+	APawn* PlayerPawn = nullptr;
 	UObject* Target = nullptr;                // what calls run on
 	const FGeometry Geometry = FGeometry::MakeRoot(FVector2D(1920, 1080), FSlateLayoutTransform());
 	double SlateTime = 0;
 
+	// a local player's controller (no viewport): widgets accept only a local player as owner, and a possessed
+	// pawn gets its player input as in a game
+	auto MakePlayer = [&]() -> APlayerController*
+	{
+		APlayerController* Player = World->SpawnActor<APlayerController>();
+		if (Player && World->GetGameInstance())
+		{
+			// CreateLocalPlayer wants a game viewport; this world has none, so the player is added directly
+			ULocalPlayer* Local = World->GetGameInstance()->GetFirstGamePlayer();
+			if (!Local)
+			{
+				Local = NewObject<ULocalPlayer>(GEngine, GEngine->LocalPlayerClass);
+				World->GetGameInstance()->AddLocalPlayer(Local, FPlatformMisc::GetPlatformUserForUserIndex(0));
+			}
+			Player->SetPlayer(Local);
+		}
+		return Player;
+	};
 	auto Alive = [&]() -> bool
 	{
 		return Kind == EKind::Actor ? IsValid(Subject) : Kind == EKind::Widget ? IsValid(Widget) : (IsValid(Owner) && Owner->GetMesh() && Owner->GetMesh()->GetAnimInstance());
@@ -301,6 +345,7 @@ int32 DwoLensInspector::RunBehaviour(const FString& ScenarioFile, const FString&
 			else { Step->SetObjectField(TEXT("subject"), DescribeAnim(Owner)); }
 		}
 		if (Probe) { Step->SetObjectField(TEXT("probe"), DescribeProbe(Probe)); }
+		if (IsValid(PlayerPawn)) { Step->SetObjectField(TEXT("pawn"), DescribePawn(PlayerPawn)); }
 		Steps.Add(MakeShared<FJsonValueObject>(Step));
 	};
 
@@ -311,12 +356,31 @@ int32 DwoLensInspector::RunBehaviour(const FString& ScenarioFile, const FString&
 		SubjectParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 		Subject = World->SpawnActor<AActor>(Class, FTransform::Identity, SubjectParams);
 		Target = Subject;
+		// a pawn runs as the player's: possessed, so its movement and controller-relative input work as in a game
+		if (APawn* Pawn = Cast<APawn>(Subject))
+		{
+			if (APlayerController* Player = MakePlayer()) { Player->Possess(Pawn); }
+		}
 	}
 	else if (Kind == EKind::Widget)
 	{
 		// a commandlet has no Slate application; widgets need one to build (nothing is painted, so no renderer)
 		if (!FSlateApplication::IsInitialized()) { FSlateApplication::Create(); }
-		Widget = CreateWidget<UUserWidget>(World->GetGameInstance(), Class, TEXT("Subject"));
+		// owned by a player (GetOwningPlayer), who possesses the scenario's pawn if it names one
+		APlayerController* Player = MakePlayer();
+		if (!PawnPath.IsEmpty())
+		{
+			UClass* PawnClass = nullptr;
+			if (UBlueprint* PawnBlueprint = LoadObject<UBlueprint>(nullptr, *PawnPath)) { PawnClass = PawnBlueprint->GeneratedClass; }
+			if (!PawnClass) { PawnClass = LoadObject<UClass>(nullptr, *PawnPath); }
+			if (!PawnClass || !PawnClass->IsChildOf(APawn::StaticClass())) { Wrapper.DestroyTestWorld(false); return Write(false, TEXT("not a pawn: ") + PawnPath); }
+			FActorSpawnParameters PawnParams;
+			PawnParams.Name = TEXT("PlayerPawn");
+			PawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+			PlayerPawn = World->SpawnActor<APawn>(PawnClass, FTransform(FVector(0, 0, 200)), PawnParams);
+			if (Player && PlayerPawn) { Player->Possess(PlayerPawn); }
+		}
+		Widget = Player ? CreateWidget<UUserWidget>(Player, Class, TEXT("Subject")) : CreateWidget<UUserWidget>(World->GetGameInstance(), Class, TEXT("Subject"));
 		if (Widget) { SlateWidget = Widget->TakeWidget(); }     // builds the tree: PreConstruct, Construct
 		Target = Widget;
 	}
@@ -380,8 +444,25 @@ int32 DwoLensInspector::RunBehaviour(const FString& ScenarioFile, const FString&
 		for (const FCall& Call : Calls)
 		{
 			if (Call.Frame != Frame || !IsValid(Target)) { continue; }
-			UFunction* Function = Target->FindFunction(FName(*Call.Function));
-			if (!Function) { Wrapper.DestroyTestWorld(false); return Write(false, TEXT("no function ") + Call.Function + TEXT(" on the subject")); }
+			// Child.Name: a function or event dispatcher of a widget or component the subject holds (a button's
+			// OnPressed, a child widget's dispatcher), fired as the child would fire it
+			UObject* CallTarget = Target;
+			FString Name = Call.Function, Child, Member;
+			if (Call.Function.Split(TEXT("."), &Child, &Member))
+			{
+				const FObjectPropertyBase* ChildProperty = FindFProperty<FObjectPropertyBase>(Target->GetClass(), FName(*Child));
+				CallTarget = ChildProperty ? ChildProperty->GetObjectPropertyValue_InContainer(Target) : nullptr;
+				if (!CallTarget) { Wrapper.DestroyTestWorld(false); return Write(false, TEXT("no child ") + Child + TEXT(" on the subject")); }
+				Name = Member;
+			}
+			UFunction* Function = CallTarget->FindFunction(FName(*Name));
+			const FMulticastDelegateProperty* Delegate = nullptr;
+			if (!Function)
+			{
+				Delegate = FindFProperty<FMulticastDelegateProperty>(CallTarget->GetClass(), FName(*Name));
+				Function = Delegate ? Delegate->SignatureFunction.Get() : nullptr;
+			}
+			if (!Function) { Wrapper.DestroyTestWorld(false); return Write(false, TEXT("no function or dispatcher ") + Call.Function + TEXT(" on the subject")); }
 			uint8* Params = static_cast<uint8*>(FMemory::Malloc(FMath::Max<int32>(1, Function->ParmsSize), 16));
 			FMemory::Memzero(Params, FMath::Max<int32>(1, Function->ParmsSize));
 			int32 ArgIndex = 0;
@@ -398,7 +479,17 @@ int32 DwoLensInspector::RunBehaviour(const FString& ScenarioFile, const FString&
 					++ArgIndex;
 				}
 			}
-			Target->ProcessEvent(Function, Params);
+			if (Delegate)
+			{
+				if (const FMulticastScriptDelegate* Bound = Delegate->GetMulticastDelegate(Delegate->ContainerPtrToValuePtr<void>(CallTarget)))
+				{
+					Bound->ProcessMulticastDelegate<UObject>(Params);
+				}
+			}
+			else
+			{
+				CallTarget->ProcessEvent(Function, Params);
+			}
 			for (TFieldIterator<FProperty> It(Function); It && It->HasAnyPropertyFlags(CPF_Parm); ++It) { It->DestroyValue_InContainer(Params); }
 			FMemory::Free(Params);
 			Record(TEXT("call ") + Call.Function, Frame);
@@ -413,6 +504,10 @@ int32 DwoLensInspector::RunBehaviour(const FString& ScenarioFile, const FString&
 	}
 	Trace->SetStringField(TEXT("gameMode"), GetNameSafe(World->GetAuthGameMode() ? World->GetAuthGameMode()->GetClass() : nullptr));
 	SlateWidget.Reset();
+	if (UGameInstance* GameInstance = World->GetGameInstance())
+	{
+		for (ULocalPlayer* Local : TArray<ULocalPlayer*>(GameInstance->GetLocalPlayers())) { GameInstance->RemoveLocalPlayer(Local); }
+	}
 	Wrapper.DestroyTestWorld(false);
 	return Write(true, FString());
 }
