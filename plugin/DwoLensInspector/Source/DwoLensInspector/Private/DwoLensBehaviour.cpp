@@ -19,6 +19,10 @@
 #include "DwoLensBehaviour.h"
 
 #include "AIController.h"
+#include "Editor.h"
+#include "EngineUtils.h"
+#include "Misc/AutomationTest.h"
+#include "Settings/LevelEditorPlaySettings.h"
 #include "Animation/AnimBlueprint.h"
 #include "BehaviorTree/BehaviorTree.h"
 #include "BehaviorTree/BehaviorTreeComponent.h"
@@ -638,3 +642,224 @@ int32 DwoLensInspector::RunBehaviour(const FString& ScenarioFile, const FString&
 	Wrapper.DestroyTestWorld(false);
 	return Write(true, FString());
 }
+
+
+// ------------------------------------------------------------------------------------------------ network check
+// The same Blueprint on a listen server and one connected client, in one PIE session as the editor's multiplayer
+// Play runs it: the subject is spawned on the server, replicated, owned by the client's controller (so the client
+// may call its Server functions); calls run on either side; both copies are recorded. Shows where replicated events
+// run (Server on the server, Client on the owning client, Multicast on both), not only what their bodies do.
+// Run in the editor (a commandlet has no PIE):
+//   UnrealEditor <project> -LensNetScenario=<scenario.json> -LensNetOut=<trace.json>
+//       -ExecCmds="Automation RunTests DwoLens.NativeNetCheck" -TestExit="Automation Test Queue Empty" -nullrhi
+#if WITH_DEV_AUTOMATION_TESTS
+namespace DwoLensInspector::Behaviour
+{
+	static FString InvokeByName(UObject* Target, const FString& Name, const TArray<FString>& Args)
+	{
+		UFunction* Function = Target ? Target->FindFunction(FName(*Name)) : nullptr;
+		if (!Function) { return TEXT("no function ") + Name; }
+		uint8* Params = static_cast<uint8*>(FMemory::Malloc(FMath::Max<int32>(1, Function->ParmsSize), 16));
+		FMemory::Memzero(Params, FMath::Max<int32>(1, Function->ParmsSize));
+		FString Error;
+		int32 ArgIndex = 0;
+		for (TFieldIterator<FProperty> It(Function); It && It->HasAnyPropertyFlags(CPF_Parm); ++It)
+		{
+			It->InitializeValue_InContainer(Params);
+			if (!It->HasAnyPropertyFlags(CPF_ReturnParm | CPF_OutParm) || It->HasAnyPropertyFlags(CPF_ReferenceParm))
+			{
+				if (Args.IsValidIndex(ArgIndex) && !It->ImportText_InContainer(*Args[ArgIndex], Params, nullptr, PPF_None))
+				{
+					Error = FString::Printf(TEXT("argument %d of %s is not a %s: %s"), ArgIndex + 1, *Name, *It->GetCPPType(), *Args[ArgIndex]);
+				}
+				++ArgIndex;
+			}
+		}
+		if (Error.IsEmpty()) { Target->ProcessEvent(Function, Params); }
+		for (TFieldIterator<FProperty> It(Function); It && It->HasAnyPropertyFlags(CPF_Parm); ++It) { It->DestroyValue_InContainer(Params); }
+		FMemory::Free(Params);
+		return Error;
+	}
+
+	class FNetCheckCommand : public IAutomationLatentCommand
+	{
+	public:
+		FNetCheckCommand(const FString& InScenario, const FString& InOut) : ScenarioFile(InScenario), OutFile(InOut) {}
+
+		virtual bool Update() override
+		{
+			switch (Phase)
+			{
+			case EPhase::Start: return Start();
+			case EPhase::Connect: return Connect();
+			case EPhase::Replicate: return Replicate();
+			case EPhase::Run: return Run();
+			case EPhase::Stop: return Stop();
+			}
+			return true;
+		}
+
+	private:
+		enum class EPhase { Start, Connect, Replicate, Run, Stop } Phase = EPhase::Start;
+		struct FCall { int32 Frame; FString Side; FString Function; TArray<FString> Args; };
+		FString ScenarioFile, OutFile, BlueprintPath, Error;
+		TArray<FCall> Calls;
+		UClass* Class = nullptr;
+		int32 Frames = 90, Every = 10, Frame = 0, Waited = 0;
+		TWeakObjectPtr<UWorld> ServerWorld, ClientWorld;
+		TWeakObjectPtr<AActor> ServerActor, ClientActor;
+		TArray<TSharedPtr<FJsonValue>> Steps;
+
+		bool Fail(const FString& Message)
+		{
+			Error = Message;
+			Phase = EPhase::Stop;
+			return false;
+		}
+
+		bool Start()
+		{
+			FString Text;
+			TSharedPtr<FJsonObject> Scenario;
+			if (!FFileHelper::LoadFileToString(Text, *ScenarioFile) || !FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Text), Scenario) || !Scenario.IsValid())
+			{
+				return Fail(TEXT("cannot read the scenario ") + ScenarioFile);
+			}
+			BlueprintPath = Scenario->GetStringField(TEXT("blueprint"));
+			Frames = FMath::Max(1, static_cast<int32>(Scenario->GetNumberField(TEXT("frames"))));
+			Every = FMath::Max(1, static_cast<int32>(Scenario->GetNumberField(TEXT("recordEvery"))));
+			const TArray<TSharedPtr<FJsonValue>>* List = nullptr;
+			if (Scenario->TryGetArrayField(TEXT("calls"), List))
+			{
+				for (const TSharedPtr<FJsonValue>& V : *List)
+				{
+					const TSharedPtr<FJsonObject> C = V->AsObject();
+					FCall Call{ static_cast<int32>(C->GetNumberField(TEXT("frame"))), TEXT("server"), C->GetStringField(TEXT("function")), {} };
+					C->TryGetStringField(TEXT("side"), Call.Side);
+					const TArray<TSharedPtr<FJsonValue>>* Args = nullptr;
+					if (C->TryGetArrayField(TEXT("args"), Args)) { for (const TSharedPtr<FJsonValue>& A : *Args) { Call.Args.Add(A->AsString()); } }
+					Calls.Add(Call);
+				}
+			}
+			UBlueprint* Blueprint = LoadObject<UBlueprint>(nullptr, *BlueprintPath);
+			Class = Blueprint ? Blueprint->GeneratedClass.Get() : nullptr;
+			if (!Class || !Class->IsChildOf(AActor::StaticClass())) { return Fail(TEXT("the network check runs actor Blueprints: ") + BlueprintPath); }
+			// a listen server and one client in this process, as Play > Net Mode: Listen Server, 2 players
+			ULevelEditorPlaySettings* Settings = NewObject<ULevelEditorPlaySettings>();
+			Settings->SetPlayNetMode(EPlayNetMode::PIE_ListenServer);
+			Settings->SetPlayNumberOfClients(2);
+			Settings->SetRunUnderOneProcess(true);
+			Settings->bLaunchSeparateServer = false;
+			FRequestPlaySessionParams Params;
+			Params.EditorPlaySettings = Settings;
+			GEditor->RequestPlaySession(Params);
+			Phase = EPhase::Connect;
+			return false;
+		}
+
+		static APlayerController* RemoteController(UWorld* World)
+		{
+			for (FConstPlayerControllerIterator It = World->GetPlayerControllerIterator(); It; ++It)
+			{
+				if (APlayerController* Controller = It->Get()) { if (!Controller->IsLocalController()) { return Controller; } }
+			}
+			return nullptr;
+		}
+
+		bool Connect()
+		{
+			if (++Waited > 3000) { return Fail(TEXT("the client did not connect")); }
+			for (const FWorldContext& Context : GEngine->GetWorldContexts())
+			{
+				UWorld* World = Context.World();
+				if (Context.WorldType != EWorldType::PIE || !World) { continue; }
+				if (World->GetNetMode() == NM_ListenServer) { ServerWorld = World; }
+				else if (World->GetNetMode() == NM_Client) { ClientWorld = World; }
+			}
+			if (!ServerWorld.IsValid() || !ClientWorld.IsValid()) { return false; }
+			APlayerController* Remote = RemoteController(ServerWorld.Get());
+			APlayerController* Local = ClientWorld->GetFirstPlayerController();
+			if (!Remote || !Local || !Local->GetPawn()) { return false; }      // logged in and possessing
+			FActorSpawnParameters SpawnParams;
+			SpawnParams.Owner = Remote;          // the client's connection owns it: its Server functions are allowed
+			SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+			AActor* Actor = ServerWorld->SpawnActor<AActor>(Class, FTransform(FVector(0, 0, 10000)), SpawnParams);
+			if (!Actor) { return Fail(TEXT("could not spawn ") + BlueprintPath + TEXT(" on the server")); }
+			Actor->SetReplicates(true);
+			Actor->bAlwaysRelevant = true;
+			ServerActor = Actor;
+			Waited = 0;
+			Phase = EPhase::Replicate;
+			return false;
+		}
+
+		bool Replicate()
+		{
+			if (++Waited > 600) { return Fail(TEXT("the subject did not replicate to the client")); }
+			for (TActorIterator<AActor> It(ClientWorld.Get(), Class); It; ++It) { ClientActor = *It; }
+			if (!ClientActor.IsValid()) { return false; }
+			Record(TEXT("replicated"));
+			Phase = EPhase::Run;
+			return false;
+		}
+
+		void Record(const FString& Name)
+		{
+			FJson Step = MakeShared<FJsonObject>();
+			Step->SetStringField(TEXT("name"), Name);
+			Step->SetNumberField(TEXT("frame"), Frame);
+			Step->SetBoolField(TEXT("subjectAlive"), ServerActor.IsValid());
+			if (ServerActor.IsValid()) { Step->SetObjectField(TEXT("subject"), DescribeActor(ServerActor.Get())); }
+			if (ClientActor.IsValid()) { Step->SetObjectField(TEXT("client"), DescribeActor(ClientActor.Get())); }
+			Steps.Add(MakeShared<FJsonValueObject>(Step));
+		}
+
+		bool Run()
+		{
+			++Frame;
+			for (const FCall& Call : Calls)
+			{
+				if (Call.Frame != Frame) { continue; }
+				AActor* Target = Call.Side == TEXT("client") ? ClientActor.Get() : ServerActor.Get();
+				if (!Target) { return Fail(TEXT("no ") + Call.Side + TEXT(" copy of the subject for ") + Call.Function); }
+				const FString CallError = InvokeByName(Target, Call.Function, Call.Args);
+				if (!CallError.IsEmpty()) { return Fail(CallError); }
+				Record(Call.Side + TEXT(" calls ") + Call.Function);
+			}
+			if (Frame % Every == 0 || Frame == Frames) { Record(FString::Printf(TEXT("frame %d"), Frame)); }
+			if (Frame >= Frames) { Phase = EPhase::Stop; }
+			return false;
+		}
+
+		bool Stop()
+		{
+			FJson Trace = MakeShared<FJsonObject>();
+			Trace->SetStringField(TEXT("schema"), TEXT("dwookit.behaviour/1"));
+			Trace->SetStringField(TEXT("blueprint"), BlueprintPath);
+			Trace->SetStringField(TEXT("kind"), TEXT("network"));
+			Trace->SetBoolField(TEXT("ok"), Error.IsEmpty());
+			if (!Error.IsEmpty()) { Trace->SetStringField(TEXT("error"), Error); UE_LOG(LogDwoBehaviour, Error, TEXT("%s"), *Error); }
+			Trace->SetArrayField(TEXT("steps"), Steps);
+			FString Text;
+			FJsonSerializer::Serialize(Trace.ToSharedRef(), TJsonWriterFactory<>::Create(&Text));
+			FFileHelper::SaveStringToFile(Text, *OutFile, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
+			if (GEditor->IsPlaySessionInProgress()) { GEditor->RequestEndPlayMap(); }
+			return true;
+		}
+	};
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDwoLensNativeNetCheck, "DwoLens.NativeNetCheck", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FDwoLensNativeNetCheck::RunTest(const FString& Parameters)
+{
+	FString Scenario, Out;
+	if (!FParse::Value(FCommandLine::Get(), TEXT("LensNetScenario="), Scenario) || !FParse::Value(FCommandLine::Get(), TEXT("LensNetOut="), Out))
+	{
+		AddError(TEXT("run with -LensNetScenario=<scenario.json> -LensNetOut=<trace.json>"));
+		return false;
+	}
+	ADD_LATENT_AUTOMATION_COMMAND(DwoLensInspector::Behaviour::FNetCheckCommand(Scenario, Out));
+	return true;
+}
+#endif

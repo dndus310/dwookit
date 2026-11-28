@@ -3505,6 +3505,14 @@ def _flatten(step: dict, renames: dict) -> dict:
         out[f"probe.{k}"] = v
     for k, v in (step.get("pawn") or {}).items():
         out[f"pawn.{k}"] = v
+    client = step.get("client") or {}            # the network check: the subject's copy on the client
+    for k, v in (client.get("props") or {}).items():
+        out[f"client.actor.{renames.get(k, k)}"] = v
+    if "transform" in client:
+        out["client.actor.@transform"] = client["transform"]
+    for comp, props in (client.get("components") or {}).items():
+        for k, v in props.items():
+            out[f"client.{comp}.{k}"] = v
     return out
 
 
@@ -3538,7 +3546,7 @@ def compare_traces(before: dict, after: dict, renames: dict | None = None, ignor
     for sa, sb in zip(steps_a, steps_b):
         fa, fb = _flatten(sa, renames), _flatten(sb, renames)
         for key in sorted(set(fa) | set(fb)):
-            if key in ignore or key.split(".", 1)[-1] in ignore:
+            if key in ignore or key.split(".", 1)[-1] in ignore or key.rsplit(".", 1)[-1] in ignore:
                 continue
             if key not in fa or key not in fb:
                 one_side.add(key)

@@ -2063,6 +2063,9 @@ function Invoke-Bp {
 #                                    a Sequence over the task (or a short Wait) with the decorators and services,
 #                                    run by an AIController on a pawn. --blackboard Name:Type,... (Int, Float, Bool,
 #                                    String, Name, Vector, Object) makes its keys; --bt-node <bp> adds another node.
+#                                    --net: an actor on a listen server and one client (PIE in the editor, null RHI),
+#                                    spawned on the server and owned by the client; --call client:F@N / server:F@N
+#                                    picks the copy that calls; both copies are recorded and compared.
 #   native status                    what was generated and rebased
 $NativeDir = Join-Path $ForgeDir 'native'
 
@@ -2139,6 +2142,14 @@ function Invoke-BehaviourRun($UProject, $Engine, [string]$Scenario, [string]$Out
     return $true
 }
 
+function Invoke-NetRun($UProject, $Engine, [string]$Scenario, [string]$Out, [string]$Log) {
+    # the network check needs PIE, so the editor itself (no window, null RHI) runs it as an automation test
+    Remove-Item -Force $Out -ErrorAction SilentlyContinue
+    $editor = Join-Path (Split-Path -Parent $Engine.Cmd) 'UnrealEditor.exe'
+    & cmd /c "`"$editor`" `"$($UProject.Path)`" -EnablePlugins=DwoLensInspector -LensNetScenario=`"$Scenario`" -LensNetOut=`"$Out`" -ExecCmds=`"Automation RunTests DwoLens.NativeNetCheck`" -TestExit=`"Automation Test Queue Empty`" -unattended -nullrhi -nosplash -NoSound -stdout -FullStdOutLogOutput > `"$Log`" 2>&1"
+    return (Test-Path $Out)
+}
+
 function Invoke-NativeVerify($Target, $UProject) {
     $last = Join-Path $NativeDir "$($Target.Name).last-backup.txt"
     $rb = Join-Path $NativeDir "$($Target.Name).rebase.json"
@@ -2179,7 +2190,9 @@ function Invoke-NativeVerify($Target, $UProject) {
         if ($Rest[$i] -ne '--call') { continue }
         $c = @("$($Rest[$i + 1])" -split '@')
         if ($c.Count -lt 2 -or $c[1] -notmatch '^\d+$') { Fail "--call takes Function@Frame[@Arg...], for example --call SetLifePercentage@5@0.35" }
-        $doc.calls += [ordered]@{ function = $c[0]; frame = [int]$c[1]; args = @($c | Select-Object -Skip 2) }
+        $call = [ordered]@{ function = $c[0]; frame = [int]$c[1]; args = @($c | Select-Object -Skip 2) }
+        if ($c[0] -match '^(client|server):(.+)$') { $call.side = $Matches[1]; $call.function = $Matches[2] }   # --net: which copy calls it
+        $doc.calls += $call
     }
     Write-Json $scenario $doc
     $logDir = Join-Path $DataDir 'logs'
@@ -2188,13 +2201,17 @@ function Invoke-NativeVerify($Target, $UProject) {
     Say "native verify: $($Target.Name), $frames frames, $what$(if ($doc.calls.Count) { ", $($doc.calls.Count) call(s)" })"
     $after = Join-Path $dir 'after.json'
     $before = Join-Path $dir 'before.json'
-    if (-not (Invoke-BehaviourRun $UProject $engine $scenario $after (Join-Path $logDir "native-verify-after-$($Target.Name).log"))) { Fail "The migrated run wrote no trace (see $logDir)." }
+    $net = $Rest -contains '--net'
+    if ($net) { $what = 'listen server + 1 client (PIE in the editor, a few minutes)' }
+    $run = { param($out, $log) if ($net) { Invoke-NetRun $UProject $engine $scenario $out $log } else { Invoke-BehaviourRun $UProject $engine $scenario $out $log } }
+    if ($net) { Say "native verify: network check, $what" }
+    if (-not (& $run $after (Join-Path $logDir "native-verify-after-$($Target.Name).log"))) { Fail "The migrated run wrote no trace (see $logDir)." }
     # the original: its backup in place of the migrated asset for one run, then the migrated asset back no matter what
     $keep = Join-Path $dir 'migrated.uasset'
     Copy-Item $Target.Asset $keep -Force
     try {
         Copy-Item $original $Target.Asset -Force
-        $ok = Invoke-BehaviourRun $UProject $engine $scenario $before (Join-Path $logDir "native-verify-before-$($Target.Name).log")
+        $ok = & $run $before (Join-Path $logDir "native-verify-before-$($Target.Name).log")
     } finally {
         Copy-Item $keep $Target.Asset -Force
         Remove-Item -Force $keep -ErrorAction SilentlyContinue

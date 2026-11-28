@@ -1212,6 +1212,18 @@ class NativeMigrationTests(TempDir):
         self.assertIn("stays uses it", plan.widgets["Thumbstick_Aim"].reason)
         self.assertTrue(plan.widgets["Thumbstick_Move"].migrated)
 
+    def test_network_check_compares_the_client_copy(self):
+        import lens_native
+        def trace(client_total, guid):
+            return {"ok": True, "steps": [{"name": "frame 10", "subjectAlive": True,
+                                           "subject": {"props": {"Total": "10", "ActorGuid": "A"}},
+                                           "client": {"props": {"Total": client_total, "ActorGuid": guid}}}]}
+        same = lens_native.compare_traces(trace("0", "B"), trace("0", "C"))      # GUIDs change per spawn, on both copies
+        self.assertEqual(same["verdict"], "same")
+        moved = lens_native.compare_traces(trace("0", "B"), trace("10", "B"))    # a Server call that ran on the client
+        self.assertEqual(moved["verdict"], "different")
+        self.assertEqual(moved["differences"][0]["value"], "client.actor.Total")
+
     def test_bound_event_bindings_compare_equal(self):
         import lens_native
         bp = "(/Engine/Transient.GI.Subject.BndEvt__UI_X_K2Node_ComponentBoundEvent_0_Stick Input__DelegateSignature)"
