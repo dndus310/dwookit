@@ -1,0 +1,42 @@
+{
+  "path": "/Game/DwoQA/BTS_LabTick",
+  "parent": "/Script/AIModule.BTService_BlueprintBase",
+  "classDefaults": {"Interval": "0.1", "RandomDeviation": "0.0"},
+  "variables": [
+    {"name": "TicksKey", "type": {"category": "struct", "object": "/Script/AIModule.BlackboardKeySelector"}, "default": "(SelectedKeyName=\"Ticks\")", "expose": true},
+    {"name": "Activations", "type": {"category": "int"}},
+    {"name": "Elapsed", "type": {"category": "real"}}
+  ],
+  "nodes": [
+    {"id": "act", "event": "/Script/AIModule.BTService_BlueprintBase:ReceiveActivationAI"},
+    {"id": "gAct", "get": "Activations"},
+    {"id": "incAct", "function": "/Script/Engine.KismetMathLibrary:Add_IntInt"},
+    {"id": "setAct", "set": "Activations"},
+
+    {"id": "tick", "event": "/Script/AIModule.BTService_BlueprintBase:ReceiveTickAI"},
+    {"id": "getBB", "function": "/Script/AIModule.BTFunctionLibrary:GetBlackboardValueAsInt"},
+    {"id": "gKey1", "get": "TicksKey"},
+    {"id": "inc", "function": "/Script/Engine.KismetMathLibrary:Add_IntInt"},
+    {"id": "setBB", "function": "/Script/AIModule.BTFunctionLibrary:SetBlackboardValueAsInt"},
+    {"id": "gKey2", "get": "TicksKey"},
+    {"id": "gEl", "get": "Elapsed"},
+    {"id": "addEl", "function": "/Script/Engine.KismetMathLibrary:Add_DoubleDouble"},
+    {"id": "setEl", "set": "Elapsed"}
+  ],
+  "defaults": {"incAct.B": "1", "inc.B": "1"},
+  "links": [
+    ["act.then", "setAct.execute"],
+    ["gAct.Activations", "incAct.A"],
+    ["incAct.ReturnValue", "setAct.Activations"],
+
+    ["tick.then", "setBB.execute"],
+    ["gKey1.TicksKey", "getBB.Key"],
+    ["getBB.ReturnValue", "inc.A"],
+    ["gKey2.TicksKey", "setBB.Key"],
+    ["inc.ReturnValue", "setBB.Value"],
+    ["setBB.then", "setEl.execute"],
+    ["gEl.Elapsed", "addEl.A"],
+    ["tick.DeltaSeconds", "addEl.B"],
+    ["addEl.ReturnValue", "setEl.Elapsed"]
+  ]
+}

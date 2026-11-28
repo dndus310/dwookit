@@ -5,6 +5,7 @@
 //   parent     native parent class path (/Script/Engine.Actor)
 //   interfaces Blueprint interface classes it implements (/Game/X/BPI_Y.BPI_Y_C)
 //   overrides  parent functions it implements as graphs (PerformConditionCheckAI)
+//   classDefaults {property: text} inherited values on the class default object (Interval: 0.1)
 //   variables  [{name, type: {category, subCategory?, object?, container?}, default?, expose?}]
 //   nodes      [{id, and one of:
 //                  event: "<class path>:<function>"   an override (ReceiveBeginPlay)
@@ -424,6 +425,18 @@ int32 DwoLensInspector::BuildBlueprint(const FString& SpecFile)
 	{
 		if (Message->GetSeverity() == EMessageSeverity::Error) { Problem(TEXT("compile: ") + Message->ToText().ToString()); }
 		else if (Message->GetSeverity() == EMessageSeverity::Warning) { UE_LOG(LogDwoBuild, Warning, TEXT("compile: %s"), *Message->ToText().ToString()); }
+	}
+	// classDefaults: inherited properties set on the class default object, as in Class Defaults
+	const FJson* ClassDefaults = nullptr;
+	if (Spec->TryGetObjectField(TEXT("classDefaults"), ClassDefaults) && Blueprint->GeneratedClass)
+	{
+		UObject* Cdo = Blueprint->GeneratedClass->GetDefaultObject();
+		for (const TPair<FString, TSharedPtr<FJsonValue>>& D : (*ClassDefaults)->Values)
+		{
+			FProperty* Property = FindFProperty<FProperty>(Blueprint->GeneratedClass, FName(*D.Key));
+			if (!Property || !Property->ImportText_InContainer(*D.Value->AsString(), Cdo, Cdo, PPF_None)) { Problem(TEXT("cannot set the class default ") + D.Key); }
+		}
+		Cdo->MarkPackageDirty();
 	}
 	if (Problems > 0)
 	{

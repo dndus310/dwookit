@@ -1353,6 +1353,17 @@ class NativeMigrationTests(TempDir):
         f = next(f for f in s["functions"] if f["bp"] == "PerformConditionCheckAI")
         self.assertTrue(f["thunk"])
 
+    def test_behavior_tree_service(self):
+        plan, s, files = self.generate("BTS_LabTick")
+        self.assertEqual(s["coverage"]["migrated"], s["coverage"]["nodes"])
+        h, cpp = files["LabTickBase.h"], files["LabTickBase.cpp"]
+        self.assertIn("class GAME_API ULabTickBase : public UBTService_BlueprintBase", h)
+        self.assertIn("void ReceiveTickAINative(AAIController* OwnerController, APawn* ControlledPawn, float DeltaSeconds);", h)
+        self.assertIn("void ReceiveActivationAINative(AAIController* OwnerController, APawn* ControlledPawn);", h)
+        self.assertIn("UBTFunctionLibrary::SetBlackboardValueAsInt(this, TicksKey,", cpp)
+        self.assertEqual({e["bp"]: e["kind"] for e in s["events"] if e["migrated"]},
+                         {"ReceiveActivationAI": "thunk", "ReceiveTickAI": "thunk"})
+
     def test_signature_helpers(self):
         import lens_native
         self.assertEqual(lens_native.enum_exec_value("TEnumAsByte<EMoveComponentAction::Type>", "Stop"), "EMoveComponentAction::Stop")
