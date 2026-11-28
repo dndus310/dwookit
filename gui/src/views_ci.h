@@ -320,7 +320,7 @@ static void DrawCiNav(App& app)
 	{
 		TextDim("DwoBuilder가 설치되지 않았습니다.");
 		ImGui::BeginDisabled(!app.attached || !idle);
-		if (PrimaryButton((std::string(ICON_ADD) + "  DwoBuilder 설치").c_str(), ImVec2(w, 0))) app.Run("tool install ci");
+		if (PrimaryButton((std::string(ICON_ADD) + "  DwoBuilder 설치").c_str(), ImVec2(w, 0))) app.Run("tool install builder");
 		ImGui::EndDisabled();
 		Tooltip("Jenkins에 이 프로젝트의 파이프라인(컴파일 → DwoLens 검사 → 패키지)을 만들고, git 훅으로 push·merge·브랜치 생성·커밋 때 자동 빌드합니다. PC에 Jenkins가 없으면 오프라인 번들로 먼저 설치합니다.");
 	}
@@ -330,7 +330,7 @@ static void DrawCiNav(App& app)
 		KeyValue("보관", s.keepBuilds ? Fmt("최근 %d개 (넘으면 오래된 것부터 삭제)", s.keepBuilds) : std::string("-"), 60);
 		KeyValue("git 훅", s.hooks.empty() ? std::string("없음 (git 저장소 아님)") : std::to_string(s.hooks.size()) + "개", 60);
 		ImGui::BeginDisabled(!idle);
-		if (ImGui::Button((std::string(ICON_SYNC) + "  설정 다시 적용").c_str(), ImVec2(w, 0))) app.Run("tool update ci");
+		if (ImGui::Button((std::string(ICON_SYNC) + "  설정 다시 적용").c_str(), ImVec2(w, 0))) app.Run("tool update builder");
 		Tooltip("__dwookit/config.json의 \"ci\" 설정(트리거, 보관 개수, DwoLens 검사 목록)과 이 dwookit의 파이프라인을 작업과 훅에 다시 적용합니다.");
 		ImGui::EndDisabled();
 		if (!s.user.empty() && ImGui::Button((std::string(ICON_COPY) + "  계정 복사").c_str(), ImVec2(w, 0)))

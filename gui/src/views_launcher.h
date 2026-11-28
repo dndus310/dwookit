@@ -24,7 +24,7 @@ static const ToolMeta kToolMeta[] = {
 	{ "lens", "DwoLens", "Ln", ICON_SEARCH, col::Accent, "아키텍처·문제·검증·로그·성능·용량 검사와 실행 기록", Activity::Overview, "Plugins/__DwoLensInspector (편집기 전용, 기본 꺼짐)" },
 	{ "statemonitor", "DwoStateMonitor", "SM", ICON_EYE, col::Pass, "실행 중인 게임의 상태를 실시간으로 보는 플러그인", Activity::Live, "Plugins/__DwoStateMonitor" },
 	{ "canvas", "DwoCanvas", "Cv", ICON_CANVAS, col::Purple, "디자인 파일(*.dwocanvas.json)을 UMG 위젯 블루프린트로 가져오기", Activity::Canvas, "Plugins/__DwoCanvas" },
-	{ "ci", "DwoBuilder", "Bd", ICON_PACKAGE, col::Teal, "C++ 컴파일·패키지 빌드, push·merge·커밋 때 자동 빌드(Jenkins)", Activity::Ci, "Jenkins 작업, .git/hooks (Jenkins는 PC에 하나)" },
+	{ "builder", "DwoBuilder", "Bd", ICON_PACKAGE, col::Teal, "C++ 컴파일·패키지 빌드, push·merge·커밋 때 자동 빌드(Jenkins)", Activity::Ci, "Jenkins 작업, .git/hooks (Jenkins는 PC에 하나)" },
 };
 static const int kToolCount = 4;
 
@@ -44,7 +44,7 @@ static const char* ToolOfActivity(Activity a)
 	case Activity::Logs: case Activity::Performance: case Activity::History: case Activity::Files: case Activity::Flow:
 	case Activity::Live: return "lens";      // DwoLens' runtime view (the DwoStateMonitor plugin feeds it)
 	case Activity::Canvas: return "canvas";
-	case Activity::Ci: return "ci";
+	case Activity::Ci: return "builder";
 	default: return "";
 	}
 }
@@ -349,7 +349,7 @@ static std::string VersionText(const ToolView& v)
 static std::string TagLine(App& app, const ToolMeta& m, const ToolView& v)
 {
 	std::string id = m.id;
-	std::string t = id == "ci" ? "프로젝트 + PC" : "프로젝트";
+	std::string t = id == "builder" ? "프로젝트 + PC" : "프로젝트";
 	if (id == "lens" && ToolPresent(v))
 	{
 		int done = 0, failed = 0;
@@ -360,7 +360,7 @@ static std::string TagLine(App& app, const ToolMeta& m, const ToolView& v)
 	else if (id == "statemonitor" && v.detail == "runtime") t += "  ·  패키지 게임에도 포함";
 	else if (id == "statemonitor" && v.detail == "editor") t += "  ·  에디터·PIE 전용";
 	else if (id == "canvas" && !app.canvasVersion.empty()) t += "  ·  플러그인 " + app.canvasVersion;
-	else if (id == "ci")
+	else if (id == "builder")
 	{
 		if (!v.detail.empty())
 		{
@@ -393,11 +393,11 @@ static void DrawToolDetails(App& app, const ToolMeta& m, const ToolView& v)
 	if (!v.availableVersion.empty()) KeyValue("최신 버전", v.availableVersion, 90);
 	if (!v.installedEngine.empty()) KeyValue("빌드 엔진", "UE " + v.installedEngine, 90);
 	if (!v.installedAt.empty()) KeyValue("설치 일시", ShortDate(v.installedAt), 90);
-	KeyValue("범위", m.id == std::string("ci") ? "프로젝트 + PC" : "프로젝트", 90);
+	KeyValue("범위", m.id == std::string("builder") ? "프로젝트 + PC" : "프로젝트", 90);
 	KeyValue("설치 위치", m.folder, 90);
 	ImGui::Spacing();
 	TextDim("명령줄 (누르면 복사)");
-	std::string id = m.id == std::string("ci") ? "builder" : m.id;
+	std::string id = m.id;
 	for (const char* verb : { "install", "update", "remove" })
 	{
 		std::string line = "__dwookit.bat tool " + std::string(verb) + " " + id;
@@ -421,7 +421,7 @@ static void DrawToolItem(App& app, const ToolMeta& m, const ToolView& v, const j
 	ImGui::SetNextItemAllowOverlap();
 	ImGui::InvisibleButton("row", ImVec2(w, h));
 	bool hovered = ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenOverlappedByItem);
-	if (hovered && ImGui::IsMouseDoubleClicked(0) && (present || id == "ci")) app.requestActivity = m.open;
+	if (hovered && ImGui::IsMouseDoubleClicked(0) && (present || id == "builder")) app.requestActivity = m.open;
 	if (hovered) dl->AddRectFilled(p + ImVec2(-S(8), S(4)), p + ImVec2(w + S(8), h - S(4)), IM_COL32(255, 255, 255, 8), S(8));
 
 	// thumbnail: full size, smaller in a narrow card, none when there is no room
@@ -483,7 +483,7 @@ static void DrawToolItem(App& app, const ToolMeta& m, const ToolView& v, const j
 	else if (v.state == "legacy") { primary = "옮기기"; icon = ICON_SYNC; }
 	else { primary = "열기"; icon = ICON_OPEN; }
 	json pc = Obj(doc, "pc");
-	bool ciBlocked = id == "ci" && v.state == "none" && v.known && !Obj(pc, "jenkins").value("installed", false) && Str(Obj(pc, "bundle"), "file").empty();
+	bool ciBlocked = id == "builder" && v.state == "none" && v.known && !Obj(pc, "jenkins").value("installed", false) && Str(Obj(pc, "bundle"), "file").empty();
 	std::string label = icon + "  " + primary;
 	float bw = ImGui::CalcTextSize(label.c_str()).x + ImGui::GetStyle().FramePadding.x * 2 + S(18);
 	float mw = ImGui::GetFrameHeight() + S(6);
@@ -505,7 +505,7 @@ static void DrawToolItem(App& app, const ToolMeta& m, const ToolView& v, const j
 	if (ImGui::Button("···", ImVec2(mw, 0))) ImGui::OpenPopup("more");
 	if (ImGui::BeginPopup("more"))
 	{
-		if (ImGui::MenuItem("열기", nullptr, false, present || id == "ci")) app.requestActivity = m.open;
+		if (ImGui::MenuItem("열기", nullptr, false, present || id == "builder")) app.requestActivity = m.open;
 		if (id == "statemonitor" && ImGui::MenuItem("설치 (패키지 게임 포함)", nullptr, false, idle && v.state == "none")) RunToolCommand(app, "tool install statemonitor --runtime");
 		if (ImGui::MenuItem("업데이트", nullptr, false, idle && managed)) app.Run("tool update " + id);
 		if (ImGui::MenuItem("제거...", nullptr, false, idle && managed)) u.confirmRemove = id;
@@ -525,7 +525,7 @@ static void DrawToolItem(App& app, const ToolMeta& m, const ToolView& v, const j
 	{
 		TextBold(std::string(m.name) + " 제거");
 		ImGui::PushTextWrapPos(S(360));
-		if (id == "ci") TextDim("이 프로젝트의 Jenkins 작업(빌드 기록 포함)과 git 훅을 지웁니다. PC의 Jenkins와 다른 프로젝트는 그대로입니다.");
+		if (id == "builder") TextDim("이 프로젝트의 Jenkins 작업(빌드 기록 포함)과 git 훅을 지웁니다. PC의 Jenkins와 다른 프로젝트는 그대로입니다.");
 		else if (id == "lens") TextDim("Plugins/__DwoLensInspector를 지웁니다. 실행 기록은 남고, 다시 설치하면 이어서 씁니다.");
 		else TextDim(std::string(m.folder) + "를 지웁니다. 프로젝트 코드나 에셋이 아직 쓰고 있으면 제거를 멈추고 목록을 보여 줍니다.");
 		ImGui::PopTextWrapPos();

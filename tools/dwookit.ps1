@@ -989,7 +989,7 @@ $ToolDefs = [ordered]@{
     lens         = @{ Name = 'DwoLens';            Scope = 'project' }
     statemonitor = @{ Name = 'DwoStateMonitor'; Scope = 'project' }
     canvas       = @{ Name = 'DwoCanvas';       Scope = 'project' }
-    ci           = @{ Name = 'DwoBuilder';        Scope = 'project+pc' }
+    builder      = @{ Name = 'DwoBuilder';        Scope = 'project+pc' }
 }
 
 function Get-SystemVersion {
@@ -1015,7 +1015,7 @@ function Get-ToolSourceHash([string]$Id) {
         'lens'         { return Get-PluginSourceHash 'DwoLensInspector' }
         'statemonitor' { return Get-PluginSourceHash 'DwoStateMonitor' }
         'canvas'       { return Get-PluginSourceHash 'DwoCanvas' }
-        'ci'           { return Get-CiSourceHash }
+        'builder'      { return Get-CiSourceHash }
     }
 }
 
@@ -1024,7 +1024,7 @@ function Test-ToolSource([string]$Id) {
         'lens'         { return Test-Path (Join-Path $SystemDir 'plugin\DwoLensInspector\DwoLensInspector.uplugin') }
         'statemonitor' { return Test-Path (Join-Path $SystemDir 'plugin\DwoStateMonitor\DwoStateMonitor.uplugin') }
         'canvas'       { return Test-Path (Join-Path $SystemDir 'plugin\DwoCanvas\DwoCanvas.uplugin') }
-        'ci'           { return Test-Path (Join-Path $SystemDir 'tools\ci.ps1') }
+        'builder'      { return Test-Path (Join-Path $SystemDir 'tools\ci.ps1') }
     }
     return $false
 }
@@ -1103,7 +1103,7 @@ function Get-ToolStatus([string]$Id, $EngineVersion) {
         'canvas' {
             switch (Get-CanvasState) { 'managed' { $state = 'installed' } 'own' { $state = 'own' } }
         }
-        'ci' {
+        'builder' {
             $ciFile = Join-Path $ForgeDir 'ci.json'
             if (Test-Path $ciFile) { $state = 'installed'; $rec = Get-Content -Raw -Encoding UTF8 $ciFile | ConvertFrom-Json; $detail = "$($rec.job)" }
         }
@@ -1213,7 +1213,7 @@ function Invoke-ToolAction([string]$Action, [string]$Id) {
         'canvas' {
             if ($Action -eq 'remove') { Invoke-CanvasRemove } else { Invoke-CanvasInstall }
         }
-        'ci' { Invoke-CiTool $Action }
+        'builder' { Invoke-CiTool $Action }
     }
 }
 
@@ -1233,8 +1233,8 @@ function Invoke-Tool {
     $a = @($Rest)
     $action = if ($a.Count) { $a[0] } else { '' }
     $id = if ($a.Count -gt 1) { "$($a[1])".ToLowerInvariant() } else { '' }
-    # Tool names work too: DwoLens, DwoStateMonitor, DwoCanvas, DwoBuilder (and builder for ci).
-    $aliases = @{ dwolens = 'lens'; dwostatemonitor = 'statemonitor'; dwocanvas = 'canvas'; dwobuilder = 'ci'; builder = 'ci' }
+    # Tool names work too: DwoLens, DwoStateMonitor, DwoCanvas, DwoBuilder ('ci' is DwoBuilder's id before 3.x).
+    $aliases = @{ dwolens = 'lens'; dwostatemonitor = 'statemonitor'; dwocanvas = 'canvas'; dwobuilder = 'builder'; ci = 'builder' }
     if ($aliases.ContainsKey($id)) { $id = $aliases[$id] }
     $usage = 'Usage: __dwookit.bat tool install|update|remove <lens|statemonitor|canvas|builder>   or   tool update --all'
     if ($action -notin @('install', 'update', 'remove')) { Fail $usage }

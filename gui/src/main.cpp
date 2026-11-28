@@ -32,7 +32,7 @@ struct ActivityDef
 	const char* key;    // --view value
 	const char* shortcut;
 	ImGuiKey hotkey;    // with Ctrl
-	const char* group;  // tool the screen belongs to: DwoLens, DwoStateMonitor, DwoCanvas, CI (Forge = the launcher)
+	const char* group;  // tool the screen belongs to: DwoLens, DwoCanvas, CI (DwoBuilder; Forge = the launcher)
 };
 
 // Shortcuts keep their dwo-Lens 1.x numbers (Ctrl+1..8); Ctrl+9 (formerly the tools screen) opens the launcher,
@@ -52,7 +52,7 @@ static const ActivityDef kActivities[] = {
 	{ Activity::Performance, ICON_SPEED, "성능·용량", "performance", "Ctrl+6", ImGuiKey_6, "DwoLens" },
 	{ Activity::History, ICON_HISTORY, "실행 기록", "history", "Ctrl+8", ImGuiKey_8, "DwoLens" },
 	{ Activity::Canvas, ICON_CANVAS, "DwoCanvas", "canvas", "Ctrl+0", ImGuiKey_0, "DwoCanvas" },
-	{ Activity::Ci, ICON_SYNC, "DwoBuilder", "ci", "", ImGuiKey_None, "CI" },
+	{ Activity::Ci, ICON_SYNC, "DwoBuilder", "builder", "", ImGuiKey_None, "CI" },
 };
 
 // Short caption drawn above each group in the activity bar.
@@ -1599,6 +1599,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int)
 		if (viewArg == ToWide(a.key)) app.activity = a.id;
 	if (viewArg == L"result" || viewArg == L"history") app.activity = Activity::History;
 	if (viewArg == L"tools") app.activity = Activity::Launcher;   // the tools screen became the launcher (3.0)
+	if (viewArg == L"ci") app.activity = Activity::Ci;            // DwoBuilder's view key before its id became builder
 	// launcher pages (docs, screenshots): --view jenkins | engines | about | agentlib
 	if (viewArg == L"jenkins" || viewArg == L"engines" || viewArg == L"about" || viewArg == L"agentlib")
 	{
