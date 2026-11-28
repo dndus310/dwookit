@@ -2041,7 +2041,7 @@ function Invoke-Bp {
 # commandlet (DwoLensNativeRebase.cpp), which verifies every class default and component value and saves only when
 # nothing differs. Steps, editor closed:
 #   native plan <bp>                 export it and show what moves to C++, and why the rest stays in Blueprint
-#   native generate <bp> [--module M] [--class-name N]
+#   native generate <bp> [--module M] [--class-name N] [--no-export]
 #                                    Source\<Module>\DwoNative\<Name>\ (your code from now on: commit it) and the
 #                                    modules it needs in <Module>.Build.cs (a backup is kept)
 #   compile                          build the editor target with the new class
@@ -2248,7 +2248,8 @@ function Invoke-Native {
             & python $py plan $target.Export --module (Get-GameModule $uproject)
         }
         'generate' {
-            Update-NativeExport $target
+            # --no-export: use the current export (after one bp export of everything, for several Blueprints in a row)
+            if ($Rest -notcontains '--no-export' -or -not (Test-Path $target.Export)) { Update-NativeExport $target }
             $module = Get-GameModule $uproject
             $out = Join-Path $Project "Source\$module\DwoNative\$($target.Name)"
             $pyArgs = @($py, 'generate', $target.Export, '--module', $module, '--out', $out)
