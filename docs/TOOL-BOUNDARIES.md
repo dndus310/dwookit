@@ -92,17 +92,20 @@
    - `kLines`를 도구별로 나눕니다.
 6. **문서.** 위 7의 문구와 표를 고치고, 설계 가이드에 DwoNative를 단계로 추가합니다(블루프린트 export → 계획 → 생성 → rebase → 동작 비교).
 
-## 결정 (2026-11-28)
+## 결정 (2026-11-28, 최종)
 
-1. **C++ 전환과 DwoStateMonitor는 둘 다 DwoLens의 세부 기능으로 둡니다.** 위 정리안 1(DwoNative 분리)은 쓰지 않습니다. 대신 DwoLens가 이제 읽기·전환·실행 중 관찰을 모두 하므로 **"Lens"가 아닌 새 이름**을 붙입니다(이름은 정하는 중). 이 도구의 설명·README·화면에는 프로젝트에서 바꾸는 범위(전환 때 에셋 저장, `Source/<모듈>/DwoNative/`, `Build.cs`)를 적습니다. DwoStateMonitor의 런타임 플러그인은 지침 2-7에 따라 에디터 플러그인과 따로 두되, 같은 도구의 설치 단위로 묶습니다(DwoCanvas가 Runtime·Editor 모듈을 함께 갖는 것처럼).
-2. **DwoBuilder 도구 ID는 `builder`로 통일합니다.**
-3. 추가 요청: 언리얼 에디터의 블루프린트 편집기 툴바에 메뉴를 넣어, 통합된 도구의 기능(C++ 전환 포함)을 에디터 안에서 실행합니다.
+1. **DwoLens와 DwoStateMonitor를 DwoLens 하나로 합칩니다.** 실행 중 관찰은 DwoLens의 세부 기능입니다. 런타임 플러그인(`__DwoStateMonitor`)은 지침 2-7에 따라 에디터 플러그인과 따로 두고, DwoLens에서 그 기능을 켤 때만 설치합니다. DwoLens는 다시 **읽기만 하는 도구**입니다(실행 중 관찰 플러그인은 프로젝트 코드를 바꾸지 않고 추가만 합니다).
+2. **C++ 전환은 새 도구 DwoConvert로 뺍니다.** 전환 계획·C++ 생성·rebase·되돌리기와 전환 전후 동작 비교·네트워크 검사가 여기에 속합니다. 플러그인 `__DwoConvert`(에디터 전용). 프로젝트에서 바꾸는 것: 블루프린트 에셋(백업 후), `Source/<모듈>/DwoNative/`, `<모듈>.Build.cs`. DwoLens의 블루프린트 export 결과 파일을 읽으므로 DwoLens가 필요합니다.
+3. **DwoCanvas와 DwoBuilder는 그대로 따로 둡니다.** DwoBuilder 도구 ID는 `builder`로 통일합니다.
+4. 추가 요청: 언리얼 에디터의 블루프린트 편집기 툴바에 dwookit 메뉴를 넣고, 설치된 도구별로 묶어 그 기능(DwoConvert의 C++ 전환 포함)을 에디터 안에서 실행합니다.
 
 ## 작업 순서
 
-1. 카탈로그에 C++ 전환 항목 등록(DwoLens 소속), 문서 문구 바로잡기 (작음, 동작 변경 없음)
-2. QA 블루프린트 생성기 분리
-3. DwoBuilder 도구 ID를 `builder`로 통일, Python 파일 이름 정리
-4. DwoLens의 새 이름으로 변경: 플러그인 폴더, 명령, 화면, 문서, 이미 설치된 프로젝트의 이전 이름 처리 (QA 프로젝트에서 재검증 22개)
-5. 화면: 런처 세부 기능 목록, C++ 전환 화면, DwoStateMonitor를 이 도구의 세부 기능으로 표시
-6. 에디터 블루프린트 편집기 툴바 메뉴
+1. 카탈로그와 문서: 모든 기능의 소속 도구 바로잡기 (C++ 전환 → convert, DwoStateMonitor 기능 → lens)
+2. DwoBuilder 도구 ID를 `builder`로 통일
+3. DwoConvert 분리: 플러그인, 명령(`convert`, 기존 `native`도 받음), 설치·업데이트·제거, 설치 확인, Python(`convert_*.py`)
+4. DwoLens를 다시 읽기 전용으로: 전환 코드를 뺀 플러그인, DwoStateMonitor를 세부 기능으로(도구 목록에서 빠지고 DwoLens 안에서 켜고 끔)
+5. QA 블루프린트 생성기를 사용자 플러그인에서 분리
+6. 화면: 런처의 도구별 세부 기능 목록, DwoConvert 항목, DwoLens 안의 실행 중 관찰
+7. QA 프로젝트에서 재검증 (전환한 블루프린트 22개)
+8. 에디터 블루프린트 편집기 툴바 메뉴
