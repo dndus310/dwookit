@@ -92,8 +92,8 @@ FString WatchedSourceId(const UObject* Object)
 } // namespace StateMonitorSubsystem
 
 UStateMonitorSubsystem::UStateMonitorSubsystem()
-    : Model(), Overlay(), LiveLink(), LiveTickerHandle(), AutoInterval(0.25), NextAutoTime(0.0), NextSendTime(0.0),
-      bAutoObserve(false), bAutoEngineProperties(false), bLivePaused(false), bResendAll(false), RefDepth(1)
+    : Model(), Overlay(), LiveLink(), LiveTickerHandle(), RefDepth(1), AutoInterval(0.25), NextAutoTime(0.0), NextSendTime(0.0),
+      bAutoObserve(false), bAutoEngineProperties(false), bLivePaused(false), bResendAll(false)
 {
 }
 

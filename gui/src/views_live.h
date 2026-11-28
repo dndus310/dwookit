@@ -325,7 +325,7 @@ static void LiveGuide(App& app)
 	};
 	step(1, app.stateMonitor != 0, "DwoStateMonitor 설치", "런처나 아래 버튼으로 설치합니다. 기본 설치는 에디터·PIE 전용이라 패키지 빌드에 영향이 없습니다.");
 	ImGui::BeginDisabled(!app.attached || app.stateMonitor != 0 || app.runner.running);
-	if (ImGui::Button("설치 (에디터·PIE 전용)")) app.Run("tool install statemonitor");
+	if (ImGui::Button(app.lensInstalled ? "DwoLens 업데이트 (실행 중 관찰 설치)" : "DwoLens 설치 (실행 중 관찰 포함)")) app.Run(app.lensInstalled ? "tool update lens" : "tool install lens");
 	ImGui::EndDisabled();
 	ImGui::Unindent(S(24));
 	ImGui::Spacing();

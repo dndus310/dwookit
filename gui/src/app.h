@@ -1110,7 +1110,7 @@ struct App
 				                 : verb == "update" ? "연결 새로 고침과 도구 업데이트" : verb == "tool" ? ToolCommandName(done)
 				                 : verb == "canvas-import" ? "DwoCanvas 가져오기" : verb == "canvas-validate" ? "디자인 파일 검사"
 				                 : verb == "canvas-install" ? "DwoCanvas 설치" : verb == "canvas-remove" ? "DwoCanvas 제거"
-				                 : verb == "sm-install" ? "DwoStateMonitor 설치" : verb == "sm-remove" ? "DwoStateMonitor 제거"
+				                 : verb == "sm-install" ? "DwoLens 설치 (실행 중 관찰)" : verb == "sm-remove" ? "실행 중 관찰 제거"
 				                 : verb == "status" && migrationStarted ? "dwo-Lens 1.x 이전" : verb == "status" ? "상태 확인"
 				                 : verb == "doctor" ? "환경 점검" : verb == "play" ? "게임 실행"
 				                 : verb == "ci-install" ? "DwoBuilder 설치" : verb == "ci-start" ? "DwoBuilder 시작" : verb == "ci-stop" ? "DwoBuilder 중지"

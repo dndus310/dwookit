@@ -496,7 +496,7 @@ function Install-StateMonitor($Engine, [bool]$Runtime) {
         foreach ($m in $uplugin.Modules) { $m | Add-Member -NotePropertyName TargetAllowList -NotePropertyValue @('Editor') -Force }
     }
     [IO.File]::WriteAllText($upluginPath, ($uplugin | ConvertTo-Json -Depth 10), $Utf8)
-    [IO.File]::WriteAllText((Join-Path $SmDest $Marker), "DwoStateMonitor installed by dwookit. Remove with '__dwookit.bat sm-remove'.`n", $Utf8)
+    [IO.File]::WriteAllText((Join-Path $SmDest $Marker), "DwoStateMonitor installed by dwookit as DwoLens's live state. Removed with '__dwookit.bat tool remove lens'.`n", $Utf8)
     Set-ToolInstalled 'statemonitor' @{ engine = $Engine.Version; mode = $(if ($Runtime) { 'runtime' } else { 'editor' }) }
 }
 
@@ -516,7 +516,8 @@ function Move-LegacyStateMonitor($Engine) {
 
 function Invoke-SmInstall {
     if (-not (Read-State)) { Fail 'Not connected. Connect the project first: __dwookit.bat connect' }
-    if (-not (Test-Path (Join-Path $PluginDest 'DwoLensInspector.uplugin'))) { Fail 'Live state is a DwoLens feature: install DwoLens first (__dwookit.bat tool install lens), then turn it on (tool install statemonitor).' }
+    # DwoStateMonitor is DwoLens's live state now: installing it is installing (or updating) DwoLens
+    if (-not (Find-OwnStateMonitor)) { Say 'DwoStateMonitor is part of DwoLens now (live state): installing DwoLens with it.'; Invoke-ToolAction 'install' 'lens'; return }
     $own = Find-OwnStateMonitor
     if ($own) { Fail "The project already contains a state monitor plugin ($($own.FullName.Substring($Project.Length + 1))). Nothing to install." }
     $uproject = Get-UProject
@@ -535,7 +536,7 @@ function Invoke-SmInstall {
         Say 'Remove those entries before sm-remove or uninstall.'
     } else {
         Say "DwoStateMonitor installed for editor and PIE: Plugins\__DwoStateMonitor (UE $($engine.Version))"
-        Say 'Packaged builds are not affected. For packaged games use: __dwookit.bat sm-install --runtime'
+        Say 'Packaged builds are not affected. For packaged games use: __dwookit.bat tool install lens --runtime'
     }
     Say 'Live view: open dwookit > DwoStateMonitor, then Play in the editor or run __dwookit.bat play. No project code needed.'
     Say 'Optional: Blueprint Watch State Object / Submit State Snapshot. C++: UStateMonitorSubsystem::Get(this)->Submit(TEXT("Id"), State).'
@@ -991,9 +992,6 @@ function Invoke-Attach([string]$Mode) {
 # DwoBuilder keeps its record in __dwookit\ci.json (written by ci.ps1).
 $ToolDefs = [ordered]@{
     lens         = @{ Name = 'DwoLens';            Scope = 'project' }
-    # DwoLens's live-state feature: its own runtime plugin (it can ship in a packaged game, DwoLens's cannot),
-    # installed and removed as part of DwoLens. 'tool install statemonitor' and sm-install still turn it on.
-    statemonitor = @{ Name = 'DwoStateMonitor'; Scope = 'project'; PartOf = 'lens'; Feature = 'live state' }
     canvas       = @{ Name = 'DwoCanvas';       Scope = 'project' }
     convert      = @{ Name = 'DwoConvert';      Scope = 'project' }
     builder      = @{ Name = 'DwoBuilder';        Scope = 'project+pc' }
@@ -1019,7 +1017,7 @@ function Get-CiSourceHash {
 
 function Get-ToolSourceHash([string]$Id) {
     switch ($Id) {
-        'lens'         { return Get-PluginSourceHash 'DwoLensInspector' }
+        'lens'         { return Get-TextHash "lens=$(Get-PluginSourceHash 'DwoLensInspector');live=$(Get-PluginSourceHash 'DwoStateMonitor')" }
         'statemonitor' { return Get-PluginSourceHash 'DwoStateMonitor' }
         'canvas'       { return Get-PluginSourceHash 'DwoCanvas' }
         'convert'      { return Get-PluginSourceHash 'DwoConvert' }
@@ -1102,6 +1100,8 @@ function Get-ToolStatus([string]$Id, $EngineVersion) {
     switch ($Id) {
         'lens' {
             if (Test-Path (Join-Path $PluginDest 'DwoLensInspector.uplugin')) { $state = $(if (Test-Managed $PluginDest) { 'installed' } else { 'own' }) }
+            $sm = Get-InstalledStateMonitor
+            $detail = if (Find-OwnStateMonitor) { "live state: the project's own plugin" } elseif ($sm -and -not $sm.Legacy) { "live state: $(if (Test-RuntimeMode $sm.Uplugin) { 'runtime' } else { 'editor and PIE' })" } else { '' }
         }
         'statemonitor' {
             $sm = Get-InstalledStateMonitor
@@ -1133,6 +1133,11 @@ function Get-ToolStatus([string]$Id, $EngineVersion) {
         # rewritten so the project carries nothing from the old version.
         elseif ($version -and $version -ne (Get-SystemVersion)) { $state = 'update'; $reason = 'older-release' }
         elseif ($engine -and $EngineVersion -and $engine -ne $EngineVersion) { $state = 'update'; $reason = 'engine-changed' }
+    }
+    # DwoLens installed before it carried its live state (or the dwo-Lens 1.x copy): update installs it
+    if ($Id -eq 'lens' -and $state -eq 'installed' -and -not (Find-OwnStateMonitor)) {
+        $sm = Get-InstalledStateMonitor
+        if (-not $sm -or $sm.Legacy) { $state = 'update'; $reason = 'live-state-missing' }
     }
     return [ordered]@{
         id = $Id; name = $ToolDefs[$Id].Name; scope = $ToolDefs[$Id].Scope; state = $state; reason = $reason; detail = $detail
@@ -1215,10 +1220,28 @@ function Assert-ConvertInstalled {
     if (-not (Test-Path (Join-Path $ConvertDest 'DwoConvert.uplugin'))) { Fail 'DwoConvert is not installed in this project. Install it: __dwookit.bat tool install convert' }
 }
 
+# DwoLens's live state: the DwoStateMonitor runtime plugin, a plugin of its own because it may ship in a packaged
+# game (--runtime) and DwoLens's editor plugin must not. Installed, updated and removed with DwoLens.
+function Install-LensLiveState($Engine) {
+    if (Find-OwnStateMonitor) { Say "DwoLens live state: the project has its own state monitor plugin; DwoLens uses it as it is."; return }
+    if (Move-LegacyStateMonitor $Engine) { return }
+    $sm = Get-InstalledStateMonitor
+    $runtime = ($Rest -contains '--runtime') -or ($sm -and (Test-RuntimeMode $sm.Uplugin) -and ($Rest -notcontains '--editor-only'))
+    Install-StateMonitor $Engine $runtime
+    if (-not $runtime) {
+        Say 'DwoLens live state: Plugins\__DwoStateMonitor for editor and PIE (packaged games are not affected; --runtime includes it in them).'
+        return
+    }
+    Say 'DwoLens live state: Plugins\__DwoStateMonitor for runtime. Packaged games include it only when the project declares it:'
+    if ((Get-UProject).IsCode) { Say '  C++ project: add "DwoStateMonitor" to the Build.cs of the module that calls it.' }
+    else { Say '  Blueprint-only project: add {"Name": "DwoStateMonitor", "Enabled": true} to Plugins in the .uproject.' }
+    Say 'Remove those entries before removing DwoLens.'
+}
+
 function Update-StateMonitor($Engine) {
     if (Move-LegacyStateMonitor $Engine) { return }
     $sm = Get-InstalledStateMonitor
-    if (-not $sm) { Fail 'DwoStateMonitor is not installed by dwookit. Install it: __dwookit.bat tool install statemonitor' }
+    if (-not $sm) { Fail 'DwoLens live state is not installed. Install or update DwoLens: __dwookit.bat tool update lens' }
     $runtime = Test-RuntimeMode $sm.Uplugin
     Install-StateMonitor $Engine $runtime
     Say "DwoStateMonitor updated ($(if ($runtime) { 'runtime' } else { 'editor and PIE' }), UE $($Engine.Version))."
@@ -1242,8 +1265,8 @@ function Invoke-ToolAction([string]$Action, [string]$Id) {
         'lens' {
             if ($Action -eq 'remove') {
                 if (-not (Test-Path $PluginDest)) { Say 'DwoLens is not installed.'; Save-ToolRecord 'lens' $null; return }
-                # its live-state feature goes with it (Invoke-SmRemove refuses while project code still uses it)
-                if (Get-InstalledStateMonitor) { Invoke-SmRemove }
+                # its live state goes with it (refused while project code still uses that plugin)
+                if (-not (Remove-StateMonitor ($Rest -contains '--force'))) { exit 1 }
                 Remove-Plugin
                 Save-ToolRecord 'lens' $null
                 Say 'DwoLens removed (Plugins\__DwoLensInspector). Run history in __dwookit\data stays; uninstall removes it.'
@@ -1252,6 +1275,7 @@ function Invoke-ToolAction([string]$Action, [string]$Id) {
             $engine = Resolve-Engine (Get-UProject).Json.EngineAssociation
             $null = Set-ExcludeBlock
             Install-Lens $engine
+            Install-LensLiveState $engine
         }
         'statemonitor' {
             switch ($Action) {
@@ -1289,9 +1313,10 @@ function Invoke-Tool {
     $action = if ($a.Count) { $a[0] } else { '' }
     $id = if ($a.Count -gt 1) { "$($a[1])".ToLowerInvariant() } else { '' }
     # Tool names work too: DwoLens, DwoStateMonitor, DwoCanvas, DwoBuilder ('ci' is DwoBuilder's id before 3.x).
-    $aliases = @{ dwolens = 'lens'; dwostatemonitor = 'statemonitor'; dwocanvas = 'canvas'; dwobuilder = 'builder'; ci = 'builder'; dwoconvert = 'convert' }
+    # DwoStateMonitor became DwoLens's live state (installed, updated and removed with DwoLens)
+    $aliases = @{ dwolens = 'lens'; statemonitor = 'lens'; dwostatemonitor = 'lens'; dwocanvas = 'canvas'; dwobuilder = 'builder'; ci = 'builder'; dwoconvert = 'convert' }
     if ($aliases.ContainsKey($id)) { $id = $aliases[$id] }
-    $usage = 'Usage: __dwookit.bat tool install|update|remove <lens|statemonitor|canvas|convert|builder>   or   tool update --all'
+    $usage = 'Usage: __dwookit.bat tool install|update|remove <lens|canvas|convert|builder> [--runtime: lens live state also in packaged games]   or   tool update --all'
     if ($action -notin @('install', 'update', 'remove')) { Fail $usage }
     if (-not (Read-State)) { Fail 'This project is not connected. Connect it first: __dwookit.bat connect' }
     if ($action -eq 'update' -and $id -eq '--all') { Update-AllTools; return }
@@ -1312,7 +1337,7 @@ function Invoke-ToolList {
         $text = switch ($t.state) {
             'none'      { 'not installed' }
             'installed' { "up to date ($($t.installedVersion))" }
-            'update'    { "update available ($(if ($t.installedVersion) { $t.installedVersion } else { 'unknown' }) -> $($t.availableVersion)$(if ($t.reason -eq 'engine-changed') { ', engine changed' }))" }
+            'update'    { "update available ($(if ($t.installedVersion) { $t.installedVersion } else { 'unknown' }) -> $($t.availableVersion)$(if ($t.reason -eq 'engine-changed') { ', engine changed' } elseif ($t.reason -eq 'live-state-missing') { ', live state plugin missing' }))" }
             'own'       { 'part of the project itself (not managed)' }
             'legacy'    { 'dwo-Lens 1.x install (update migrates it)' }
         }
@@ -1330,7 +1355,7 @@ function Get-ToolSummary {
     $smText = if ($sm -and $sm.Legacy) { 'installed by dwo-Lens 1.x as Plugins\__StateMonitor (run update to migrate)' }
               elseif ($sm) { "installed (Plugins\__DwoStateMonitor, $(if (Test-RuntimeMode $sm.Uplugin) { 'runtime' } else { 'editor and PIE' }))" }
               elseif (Find-OwnStateMonitor) { 'part of the project itself' }
-              else { 'not installed (optional: tool install statemonitor)' }
+              else { 'not installed (installed with DwoLens: tool install lens)' }
     $canvasText = switch (Get-CanvasState) {
         'managed' { 'installed (Plugins\__DwoCanvas)' }
         'own'     { 'part of the project itself' }
@@ -1356,8 +1381,8 @@ function Invoke-Status {
     $engine = Resolve-Engine $uproject.Json.EngineAssociation
     if ($engine.Version -ne $state.engineVersion) { Say "Engine changed to $($engine.Version). Run __dwookit.bat update." }
     Say "Attached at    : $($state.attachedAt)"
-    Say "DwoLens           : $(if (Test-Path $PluginDest) { 'installed (Plugins\__DwoLensInspector)' } else { 'not installed (optional: tool install lens)' })"
-    Say "DwoStateMonitor: $($tools.StateMonitor)"
+    Say "DwoLens        : $(if (Test-Path $PluginDest) { 'installed (Plugins\__DwoLensInspector)' } else { 'not installed (optional: tool install lens)' })"
+    Say "  live state   : $($tools.StateMonitor)"
     Say "DwoCanvas      : $($tools.Canvas)"
     Say "DwoConvert     : $(if (Test-Path $ConvertDest) { 'installed (Plugins\__DwoConvert)' } else { 'not installed (optional: tool install convert)' })"
     Say "DwoBuilder     : $(if (Test-Path (Join-Path $ForgeDir 'ci.json')) { 'installed' } else { 'not installed (optional: tool install builder)' })"

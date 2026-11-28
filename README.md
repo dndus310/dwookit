@@ -4,8 +4,7 @@
 
 | 도구 | 하는 일 | 프로젝트에 들어가는 것 |
 |---|---|---|
-| **DwoLens** | 분석·검증·로그 검사: 아키텍처 리포트(`analyze`), 검증(`verify`), 로그(`logs`), 맵 스모크(`smoke`), 성능(`perf`), 콘텐츠 용량(`sizes`), Insights 트레이스(`trace`) | `Plugins/__DwoLensInspector` (숨김, 미리 빌드, 기본 비활성) |
-| ↳ DwoLens › 실행 중 관찰 | DwoLens의 세부 기능: 실행 중인 게임의 상태를 실시간으로 봅니다. 켤 때만 런타임 플러그인 DwoStateMonitor(예전 이름 StateMonitor)를 설치합니다(`tool install statemonitor`, DwoLens 필요). DwoLens를 제거하면 함께 제거됩니다 | `Plugins/__DwoStateMonitor` (숨김) |
+| **DwoLens** | 분석·검증·로그 검사: 아키텍처 리포트(`analyze`), 검증(`verify`), 로그(`logs`), 맵 스모크(`smoke`), 성능(`perf`), 콘텐츠 용량(`sizes`), Insights 트레이스(`trace`), **실행 중 관찰**(실행 중인 게임의 상태를 실시간으로 봄). 설치·업데이트·제거가 한 번에 이뤄집니다 | `Plugins/__DwoLensInspector` (숨김, 미리 빌드, 기본 비활성), `Plugins/__DwoStateMonitor` (실행 중 관찰용 런타임 플러그인, 숨김, 기본은 에디터·PIE 전용) |
 | **DwoCanvas** | 디자인 파일(`*.dwocanvas.json`)을 UMG 위젯 블루프린트로 가져오는 플러그인 | `Plugins/__DwoCanvas` (숨김) |
 | **DwoConvert** | 블루프린트를 C++ 기반 클래스로 옮기고(`convert plan`·`generate`·`rebase`), 전환 전후 동작을 비교(`convert verify`, `--net`은 리슨 서버 + 클라이언트). DwoLens의 블루프린트 export가 필요 | `Plugins/__DwoConvert` (숨김, 미리 빌드, 기본 비활성). **프로젝트를 바꿈**: 전환한 블루프린트(백업 후), `Source/<모듈>/DwoNative/`, `<모듈>.Build.cs` |
 | **DwoBuilder** | C++ 컴파일(`compile`)·패키지 빌드(`package`)를 바로 실행하고, push·merge·커밋 때 컴파일 → DwoLens 검사 → 패키지 빌드를 자동 실행 (Jenkins, 폐쇄망 지원) | 설치하면 Jenkins 작업과 `.git/hooks` (Jenkins 자체는 PC에 하나). 컴파일·패키지만 쓸 때는 설치 불필요 |
@@ -54,9 +53,9 @@ DwoLens와 DwoStateMonitor는 프로젝트를 읽기만 하며, 언제 떼어 �
 dwookit.bat connect "C:\Projects\MyGame"  :: 프로젝트 연결 (도구는 설치하지 않음)
 __dwookit.bat                     :: 창 열기 (연결 전이면 연결)
 
-:: 도구 (lens, statemonitor, canvas, builder = DwoLens, DwoStateMonitor, DwoCanvas, DwoBuilder. 전체 이름도 됨). 플러그인 도구는 엔진 버전별 첫 설치 때만 빌드로 몇 분 걸림
+:: 도구 (lens, canvas, convert, builder = DwoLens, DwoCanvas, DwoConvert, DwoBuilder. 전체 이름도 됨. statemonitor는 lens와 같음). 플러그인 도구는 엔진 버전별 첫 설치 때만 빌드로 몇 분 걸림
 __dwookit.bat tools [--json]      :: 도구별 상태: 설치 안 됨 / 최신 / 업데이트 있음 / 프로젝트 자체 포함 / 이전 형식, PC 구성요소
-__dwookit.bat tool install lens   :: 설치 (statemonitor는 --runtime으로 패키지 게임 포함)
+__dwookit.bat tool install lens   :: 설치 (--runtime: DwoLens의 실행 중 관찰을 패키지 게임에도 포함)
 __dwookit.bat tool update builder :: 업데이트.  tool update --all = 업데이트가 있는 도구 모두
 __dwookit.bat tool remove canvas  :: 제거 (프로젝트가 아직 쓰고 있으면 거부, --force)
 dwookit.bat attach "C:\Projects\MyGame"   :: dwo-Lens 방식: 연결 + DwoLens 설치
@@ -80,7 +79,7 @@ __dwookit.bat ctx find|stale|stats  :: 이름 검색, export 뒤 바뀐 것과 �
 __dwookit.bat agent [status|on|off] :: 에이전트 안내(AGENT.md) 다시 쓰기, 상태, 안내 파일 켜기·끄기
 
 :: DwoStateMonitor
-__dwookit.bat sm-install [--runtime] | sm-remove [--force]   :: tool install|remove statemonitor와 같음
+__dwookit.bat sm-install [--runtime] | sm-remove [--force]   :: 예전 명령. sm-install은 tool install lens와 같고, sm-remove는 실행 중 관찰 플러그인만 뺌 (다음 tool update lens 때 다시 설치)
 
 :: DwoCanvas
 __dwookit.bat canvas-validate <파일>                  :: 디자인 파일 검사
@@ -193,19 +192,19 @@ __dwookit.bat uninstall           :: 한 번에 완전 제거. 기록·생성 �
 
 ## 제공 도구: DwoStateMonitor
 
-실행 중인 게임의 상태를 dwookit 창으로 실시간 전송하는 런타임 플러그인입니다. **프로젝트 코드 없이** 동작합니다.
+DwoLens의 세부 기능입니다. 실행 중인 게임의 상태를 dwookit 창으로 실시간 전송하는 런타임 플러그인 DwoStateMonitor를 DwoLens와 함께 설치·업데이트·제거합니다(DwoLens의 에디터 플러그인과 달리 패키지 게임에 들어갈 수 있어서 플러그인만 따로 둡니다). **프로젝트 코드 없이** 동작합니다.
 
 ```bat
-__dwookit.bat tool install statemonitor            :: 에디터·PIE 전용 (기본). 패키지 빌드에 영향 없음
-__dwookit.bat tool install statemonitor --runtime  :: 패키지 게임에도 포함. .uproject(BP 전용) 또는 Build.cs(C++)에 DwoStateMonitor 등록 필요
-__dwookit.bat sm-remove             :: 제거. 프로젝트 코드가 참조 중이면 거부 (--force로 강제)
+__dwookit.bat tool install lens            :: 실행 중 관찰은 에디터·PIE 전용 (기본). 패키지 빌드에 영향 없음
+__dwookit.bat tool install lens --runtime  :: 패키지 게임에도 포함. .uproject(BP 전용) 또는 Build.cs(C++)에 DwoStateMonitor 등록 필요
+__dwookit.bat tool remove lens             :: 함께 제거. 프로젝트 코드가 DwoStateMonitor를 참조 중이면 거부 (--force로 강제)
 __dwookit.bat play [맵]              :: 게임 창을 띄움 (DwoStateMonitor가 자동 연결)
 ```
 
 ### 사용 순서
 
-1. 런처의 도구 목록에서 설치합니다(`tool install statemonitor`, 예전 명령 `sm-install`도 동작). `.uproject`는 수정하지 않으며 `Plugins/__DwoStateMonitor`는 git에서 숨겨집니다.
-2. dwookit 창을 열고 **DwoStateMonitor** 화면(Ctrl+7)으로 갑니다. 창은 `127.0.0.1:47731`에서 기다립니다.
+1. 런처의 도구 목록에서 DwoLens를 설치하거나 업데이트합니다(`tool install lens`, 예전에 설치한 DwoLens는 `tool update lens`). `.uproject`는 수정하지 않으며 `Plugins/__DwoStateMonitor`는 git에서 숨겨집니다.
+2. dwookit 창을 열고 DwoLens의 **실행 중 관찰** 화면(Ctrl+7)으로 갑니다. 창은 `127.0.0.1:47731`에서 기다립니다.
 3. 에디터에서 **Play(PIE)** 하거나, `게임 실행` 버튼(`play`)으로 게임을 띄웁니다. 게임이 시작되면 자동으로 연결됩니다(PIE 클라이언트가 여럿이면 각각 세션으로 표시).
 4. GameInstance, GameMode, GameState, PlayerController, PlayerState, Pawn과 컴포넌트, HUD가 노드로 나타나고, 값이 바뀌면 깜빡입니다. 기본은 프로젝트(BP·C++)가 선언한 프로퍼티만 보내며, `엔진 프로퍼티 포함`을 켜면 전체를 보냅니다.
 5. 그 밖에 볼 객체는 왼쪽 **관찰할 클래스 › 목록에서 고르기**로 고릅니다. 프로젝트의 블루프린트·위젯·C++ 클래스가 폴더 트리로 나오고, 체크한 클래스의 객체(액터, 컴포넌트, 위젯, 런타임에 만든 UObject)를 최대 16개씩 관찰합니다. 목록은 프로젝트의 `__dwookit/sm-watch.txt`에 저장되고, 게임이 시작할 때 플러그인이 직접 읽으므로 창을 나중에 열어도, 게임 화면의 모니터만 켜도 적용됩니다.
@@ -264,7 +263,7 @@ __dwookit.bat canvas-remove                           :: 제거 (Content의 .uas
 | DwoBuilder git 훅 (`dwo-forge-ci-hook`, `*.dwo-forge-orig`) | - | 표시와 보관 파일 이름을 `dwookit`으로 변경 |
 | `%LOCALAPPDATA%\dwo-Forge` | `%LOCALAPPDATA%\dwo-Lens` | `%LOCALAPPDATA%\dwookit` (캐시, 창 설정, 보존한 실행 기록) |
 | 환경 변수 `DWO_FORGE_HOME` | `DWO_LENS_HOME` | `DWOOKIT_HOME` (옛 변수도 계속 읽음. `dwookit.bat`은 `DWO_FORGE_HOME`이 있으면 새 위치로 맞춰 둠) |
-| - | `Plugins/__StateMonitor` | `update` 또는 `sm-install` 때 같은 모드의 `Plugins/__DwoStateMonitor`로 교체 |
+| - | `Plugins/__StateMonitor` | `tool update lens` 때 같은 모드의 `Plugins/__DwoStateMonitor`로 교체 |
 
 - `tools/forge.ps1`(dwo-Forge), `tools/lens.ps1`(dwo-Lens)은 옛 실행 파일, 이름 변경 전에 빌드된 DwoLensInspector 플러그인, 옛 git 훅을 위해 `tools/dwookit.ps1`로 넘겨 주기만 합니다.
 - 프로젝트에 설치된 플러그인(DwoLensInspector, DwoStateMonitor)은 다음 `update` 때 새 폴더 이름(`__dwookit`)을 쓰는 버전으로 바뀝니다. 그 전까지 Live Lens 기록과 관찰 목록은 옛 폴더에 쓰일 수 있고, 다음 명령 때 옮겨집니다.
@@ -552,7 +551,7 @@ rebase 안전장치: 블루프린트에 남는 실행 흐름이 C++로 옮긴 �
 - 같은 이름의 폴더·파일이 이미 있고 dwookit 표식(`.dwookit-managed`, 관리 주석)이 없거나 git에 커밋되어 있으면 건드리지 않고 알려 줍니다. 넣은 경로는 `__dwookit/context/installed.json`에 적어 git exclude에 더하므로 `git status`에 보이지 않습니다.
 - `DWOOKIT_LIBRARY` 환경 변수로 library 위치를 바꿀 수 있습니다(팀 공유 폴더 등).
 
-전체 목록과 계획 중인 도구(Insights 내보내기, PerfReportTool 리포트, 정적 분석 등)는 `tools/catalog.json` 또는 `__dwookit.bat tools`로 확인합니다. 카탈로그 항목은 `tool` 값(lens, statemonitor, canvas, forge)으로 묶입니다.
+전체 목록과 계획 중인 도구(Insights 내보내기, PerfReportTool 리포트, 정적 분석 등)는 `tools/catalog.json` 또는 `__dwookit.bat tools`로 확인합니다. 카탈로그 항목은 `tool` 값(lens, canvas, convert, builder, forge)으로 묶이고, 도구 안의 세부 기능은 `feature`(예: lens의 `live state`)로 표시됩니다.
 
 ## DwoBuilder (Jenkins, 폐쇄망 지원)
 
@@ -631,7 +630,7 @@ rebase 안전장치: 블루프린트에 남는 실행 흐름이 C++로 옮긴 �
 | `tools/lens_export.py` | 실행 결과 → JUnit, SARIF 2.1.0 (이전 실행 대비 new/unchanged) |
 | `tools/ci.ps1`, `tools/dwookit_ci.py` | DwoBuilder: 오프라인 번들, Jenkins 설치·실행, 프로젝트 작업, git 훅과 트리거 판단, 보관 개수 |
 | `tools/vendor/mermaid.min.js` | 리포트 다이어그램용 Mermaid 10.9.1 (MIT). 리포트가 인터넷 없이 그려지도록 실행 기록 폴더로 복사 |
-| `tools/catalog.json` | 도구 레지스트리: 기능마다 소속 도구(lens, statemonitor, canvas, convert, builder, forge), 단계, 명령, 결과 파일 |
+| `tools/catalog.json` | 도구 레지스트리: 기능마다 소속 도구(lens, canvas, convert, builder, forge), 단계, 명령, 결과 파일 |
 | `gui/`, `tools/gui.ps1` | ImGui 제어판 (Dear ImGui 1.91.9b docking, nlohmann/json 3.11.3, MIT). DwoStateMonitor 뷰어, DwoCanvas 화면 포함 |
 | `config/default.json` | DwoLens 규칙과 기준값 |
 | `plugin/DwoLensInspector` | DwoLens 추출 Commandlet (읽기 전용, 패키지를 저장하지 않음) |

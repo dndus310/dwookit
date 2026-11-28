@@ -44,7 +44,7 @@ struct UiState
 	std::string historySel, compareA, compareB;
 	// tools
 	std::string toolSel;
-	std::string toolCategory;      // catalog "tool" (lens, statemonitor, canvas, forge); empty = all
+	std::string toolCategory;      // catalog "tool" (lens, canvas, convert, builder, forge); empty = all
 	// canvas
 	char canvasDoc[96] = {};       // --doc filter for canvas-import
 	int canvasReport = 0;          // index into App::canvasReports
@@ -518,7 +518,7 @@ static void DrawOverviewInspector(App& app)
 		{ "DwoLens 설치", app.lensInstalled, "설치", [&] { if (app.attached) app.Run("tool install lens"); else app.requestActivity = Activity::Launcher; } },
 		{ "아키텍처 분석 실행", analyzed, "실행", [&] { app.Run("analyze"); } },
 		{ "검증 실행 (에디터 닫고)", verified, "실행", [&] { app.Run("verify"); } },
-		{ "DwoStateMonitor 설치", app.stateMonitor != 0, "설치", [&] { app.Run("tool install statemonitor"); } },
+		{ "DwoLens 실행 중 관찰", app.stateMonitor != 0, "DwoLens 업데이트", [&] { app.Run("tool update lens"); } },
 		{ "게임을 실행해 상태 받기", connected, "열기", [&] { app.requestActivity = Activity::Live; } },
 	};
 	for (int i = 0; i < 5; ++i)

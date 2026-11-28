@@ -94,7 +94,7 @@
 
 ## 결정 (2026-11-28, 최종)
 
-1. **DwoLens와 DwoStateMonitor를 DwoLens 하나로 합칩니다.** 실행 중 관찰은 DwoLens의 세부 기능입니다. 런타임 플러그인(`__DwoStateMonitor`)은 지침 2-7에 따라 에디터 플러그인과 따로 두고, DwoLens에서 그 기능을 켤 때만 설치합니다. DwoLens는 다시 **읽기만 하는 도구**입니다(실행 중 관찰 플러그인은 프로젝트 코드를 바꾸지 않고 추가만 합니다).
+1. **DwoLens와 DwoStateMonitor를 DwoLens 하나로 합칩니다.** 실행 중 관찰은 DwoLens의 세부 기능입니다. 런타임 플러그인(`__DwoStateMonitor`)은 지침 2-7에 따라 에디터 플러그인과 따로 두고, DwoLens와 함께 설치·업데이트·제거합니다(별도 켜기 없음, 2026-11-28 변경. `--runtime`이면 패키지 게임에도 포함). DwoLens는 다시 **읽기만 하는 도구**입니다(실행 중 관찰 플러그인은 프로젝트 코드를 바꾸지 않고 추가만 합니다).
 2. **C++ 전환은 새 도구 DwoConvert로 뺍니다.** 전환 계획·C++ 생성·rebase·되돌리기와 전환 전후 동작 비교·네트워크 검사가 여기에 속합니다. 플러그인 `__DwoConvert`(에디터 전용). 프로젝트에서 바꾸는 것: 블루프린트 에셋(백업 후), `Source/<모듈>/DwoNative/`, `<모듈>.Build.cs`. DwoLens의 블루프린트 export 결과 파일을 읽으므로 DwoLens가 필요합니다.
 3. **DwoCanvas와 DwoBuilder는 그대로 따로 둡니다.** DwoBuilder 도구 ID는 `builder`로 통일합니다.
 4. 추가 요청: 언리얼 에디터의 블루프린트 편집기 툴바에 dwookit 메뉴를 넣고, 설치된 도구별로 묶어 그 기능(DwoConvert의 C++ 전환 포함)을 에디터 안에서 실행합니다.

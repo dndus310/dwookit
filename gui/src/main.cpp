@@ -264,7 +264,7 @@ static std::vector<Command> BuildCommands(App& app)
 		list.push_back({ std::string(m->name) + " 제거", "tool remove " + id, [&app, id] { app.Run("tool remove " + id); }, app.attached && managed });
 		list.push_back({ std::string(m->name) + " 열기", m->mono, [&app, m] { app.requestActivity = m->open; } });
 	}
-	list.push_back({ "DwoStateMonitor 설치 (패키지 게임 포함)", "tool install statemonitor --runtime", [&app] { app.Run("tool install statemonitor --runtime"); }, app.attached && app.stateMonitor == 0 });
+	list.push_back({ "DwoLens 설치 (실행 중 관찰을 패키지 게임에도 포함)", "tool install lens --runtime", [&app] { app.Run("tool install lens --runtime"); }, app.attached && !app.lensInstalled });
 	list.push_back({ "모든 도구 업데이트", "tool update --all", [&app] { app.Run("tool update --all"); }, app.attached });
 	list.push_back({ "DwoCanvas: 디자인 파일 열기...", "*.dwocanvas.json", [&app] { PickDesignFile(app); app.requestActivity = Activity::Canvas; } });
 	list.push_back({ "DwoCanvas: 검사", "canvas-validate", [&app] { RunCanvas(app, "canvas-validate"); }, !app.canvasFile.empty() && app.hasUProject });
@@ -449,8 +449,8 @@ static void DrawMenuBar(App& app, bool& quit)
 				if (ImGui::MenuItem("열기", nullptr, false, v.state != "none")) app.requestActivity = m.open;
 				ImGui::Separator();
 				if (ImGui::MenuItem("설치", nullptr, false, idle && app.attached && v.state == "none")) app.Run("tool install " + id);
-				if (id == "statemonitor" && ImGui::MenuItem("설치 (패키지 게임 포함)", nullptr, false, idle && app.attached && v.state == "none"))
-					app.Run("tool install statemonitor --runtime");
+				if (id == "lens" && ImGui::MenuItem("설치 (실행 중 관찰을 패키지 게임에도 포함)", nullptr, false, idle && app.attached && v.state == "none"))
+					app.Run("tool install lens --runtime");
 				if (ImGui::MenuItem("업데이트", nullptr, false, idle && app.attached && managed)) app.Run("tool update " + id);
 				if (ImGui::MenuItem("제거", nullptr, false, idle && app.attached && managed)) app.Run("tool remove " + id);
 				ImGui::EndMenu();
@@ -702,14 +702,12 @@ static void DrawActivityBar(App& app)
 		const ToolMeta& m = kToolMeta[i];
 		const ToolView& v = views[i];
 		std::string id = m.id;
-		if (id == "statemonitor" && v.state != "update" && v.state != "legacy") continue;   // its screen is under DwoLens
 		bool active = activeTool == id;
 		if (!ToolPresent(v) && !active) continue;
 		anyTool = true;
 		ImU32 bc = 0;
 		std::string badge, tip;
 		if (v.state == "update" || v.state == "legacy") { bc = col::Warn; badge = "업데이트"; tip = "업데이트 있음"; }
-		else if (id == "statemonitor" && connected) { bc = col::Pass; badge = Fmt("연결 %d", connected); }
 		else if (id == "lens" && !active && newProblems) { bc = col::Fail; badge = std::to_string(newProblems); tip = Fmt("새 문제 %d", newProblems); }
 		else if (id == "canvas" && !app.canvasReports.empty() && app.CanvasReportAt(0)->errors > 0) { bc = col::Fail; tip = "최근 가져오기에 오류"; }
 		int screens = 0;
