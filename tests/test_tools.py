@@ -988,14 +988,14 @@ class NativeMigrationTests(TempDir):
     FIX = Path(__file__).resolve().parent / "fixtures" / "native"
 
     def plan(self, name, mutate=None):
-        import lens_native
+        import convert_native as lens_native
         doc = json.loads((self.FIX / f"{name}.json").read_text(encoding="utf-8"))
         if mutate:
             mutate(doc)
         return lens_native.Plan(doc, module="Game").build()
 
     def generate(self, name, mutate=None):
-        import lens_native
+        import convert_native as lens_native
         plan = self.plan(name, mutate)
         out = self.tmp / name
         summary = lens_native.write(plan, out)
@@ -1213,7 +1213,7 @@ class NativeMigrationTests(TempDir):
         self.assertTrue(plan.widgets["Thumbstick_Move"].migrated)
 
     def test_network_check_compares_the_client_copy(self):
-        import lens_native
+        import convert_native as lens_native
         def trace(client_total, guid):
             return {"ok": True, "steps": [{"name": "frame 10", "subjectAlive": True,
                                            "subject": {"props": {"Total": "10", "ActorGuid": "A"}},
@@ -1225,7 +1225,7 @@ class NativeMigrationTests(TempDir):
         self.assertEqual(moved["differences"][0]["value"], "client.actor.Total")
 
     def test_bound_event_bindings_compare_equal(self):
-        import lens_native
+        import convert_native as lens_native
         bp = "(/Engine/Transient.GI.Subject.BndEvt__UI_X_K2Node_ComponentBoundEvent_0_Stick Input__DelegateSignature)"
         cpp = "(/Engine/Transient.GI.Subject.OnThumbstick_MoveStickInput)"
         mk = lambda v: {"ok": True, "steps": [{"name": "spawn", "subjectAlive": True, "subject": {"components": {"Thumbstick_Move": {"Stick Input": v}}}}]}
@@ -1365,7 +1365,7 @@ class NativeMigrationTests(TempDir):
                          {"ReceiveActivationAI": "thunk", "ReceiveTickAI": "thunk"})
 
     def test_signature_helpers(self):
-        import lens_native
+        import convert_native as lens_native
         self.assertEqual(lens_native.enum_exec_value("TEnumAsByte<EMoveComponentAction::Type>", "Stop"), "EMoveComponentAction::Stop")
         self.assertEqual(lens_native.enum_exec_value("ETriggerEvent", "Started"), "ETriggerEvent::Started")
         self.assertEqual(lens_native.param_decl({"name": "Hit", "cpp": "FHitResult", "ref": True, "const": True}), "const FHitResult& Hit")
@@ -1400,7 +1400,7 @@ class NativeMigrationTests(TempDir):
         return {"ok": True, "steps": [step]}
 
     def test_behaviour_compare_same_with_float_noise_and_volatile_names(self):
-        import lens_native
+        import convert_native as lens_native
         before = self.trace()
         after = self.trace(var_name="ColorTarget")                               # renamed in C++
         after["steps"][0]["subject"]["props"]["ActorGuid"] = "CD34"               # new for every spawn
@@ -1410,7 +1410,7 @@ class NativeMigrationTests(TempDir):
         self.assertEqual(r["verdict"], "same", r["differences"])
 
     def test_behaviour_compare_reports_a_changed_effect(self):
-        import lens_native
+        import convert_native as lens_native
         r = lens_native.compare_traces(self.trace(), self.trace(launch="X=0.000 Y=0.000 Z=400.000",
                                                                extra={"NativeLiteral_0": "/Game/M.M"}))
         self.assertEqual(r["verdict"], "different")
@@ -1420,7 +1420,7 @@ class NativeMigrationTests(TempDir):
         self.assertEqual(lens_native.compare_traces({"ok": False, "error": "x"}, self.trace())["verdict"], "error")
 
     def test_build_cs_modules_are_added_once(self):
-        import lens_native
+        import convert_native as lens_native
         body = "public class Game : ModuleRules {" + NL + TAB + "public Game(ReadOnlyTargetRules T) : base(T) {" + NL + TAB * 2 + 'PublicDependencyModuleNames.AddRange(new string[] { "Core", "Engine" });' + NL + TAB + "}" + NL + "}" + NL
         cs = write(self.tmp / "Game.Build.cs", body)
         self.assertEqual(lens_native.add_modules(cs, ["Niagara", "Engine"]), ["Niagara"])
@@ -1445,7 +1445,9 @@ class BlueprintContextTests(TempDir):
             exported.append({"package": bp["package"], "name": n, "dir": d})
         (root / "export.json").write_text(json.dumps({"schema": "lens.bpexport/1", "exportedAtUtc": "2026-11-28T00:00:00Z",
                                                       "exported": exported, "missing": [], "failed": []}), encoding="utf-8")
-        import lens_bp
+        import lens_bp, convert_native
+        # DwoConvert's result file, as dwookit writes it after an export when DwoConvert is installed
+        convert_native.write_coverage(root, root.parent / "convert" / "coverage.json")
         lens_bp.write_folder(root, None)
         return root
 
@@ -1496,8 +1498,11 @@ class BlueprintContextTests(TempDir):
         import lens_agent
         text = lens_agent.agent_md(self.tmp, self.tmp)
         self.assertIn("__dwookit.bat ctx refs <Symbol>", text)
-        self.assertIn("let dwookit do it", text)
         self.assertIn("fingerprint", text)
+        self.assertNotIn("let DwoConvert do it", text)                   # only when DwoConvert is installed
+        (self.tmp / "Plugins" / "__DwoConvert").mkdir(parents=True)
+        (self.tmp / "Plugins" / "__DwoConvert" / "DwoConvert.uplugin").write_text("{}", encoding="utf-8")
+        self.assertIn("let DwoConvert do it", lens_agent.agent_md(self.tmp, self.tmp))
 
 
 class LibraryTests(TempDir):
@@ -2099,9 +2104,9 @@ class CatalogAndConfigTests(unittest.TestCase):
             self.assertIn(t["kind"], ("build", "wrap", "ai"))
             self.assertIn(t["status"], ("ready", "planned"))
             self.assertRegex(t["station"], r"^(ST-[1-5]|BUILD|OPS|UI)$")
-            self.assertIn(t["tool"], ("lens", "statemonitor", "canvas", "builder", "forge"))
+            self.assertIn(t["tool"], ("lens", "statemonitor", "canvas", "convert", "builder", "forge"))
         tools = {t["tool"] for t in catalog["tools"]}
-        self.assertEqual(tools, {"lens", "statemonitor", "canvas", "builder", "forge"}, "every dwookit tool group has catalog entries")
+        self.assertEqual(tools, {"lens", "statemonitor", "canvas", "convert", "builder", "forge"}, "every dwookit tool group has catalog entries")
         commands = " ".join(t["command"] for t in catalog["tools"])
         for command in ("canvas-install", "canvas-remove", "canvas-import", "canvas-validate", "sm-install", "sm-remove"):
             self.assertIn(command, commands)

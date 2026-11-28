@@ -1,6 +1,6 @@
-"""DwoLens native migration: Blueprint -> C++ base class, from a Blueprint export (lens.bp/1 with "native").
+"""DwoConvert: Blueprint -> C++ base class, from DwoLens's Blueprint export (lens.bp/1 with "native").
 
-The generated class becomes the Blueprint's new parent (the rebase step in the DwoLensInspector commandlet), so the
+The generated class becomes the Blueprint's new parent (the rebase step in the DwoConvert commandlet), so the
 asset, its references, level instances and everything that was not migrated keep working. Rules:
 
   exact or not at all    a function or event is migrated only when every node in it translates to C++ with the
@@ -11,8 +11,10 @@ asset, its references, level instances and everything that was not migrated keep
                          Blueprint (rebase copies them and verifies them); C++ initializers only mirror simple values
   ubergraph semantics    event graph temporaries live in members, as in the Blueprint's persistent frame
 
-    python lens_native.py plan     <Name.json> [--module M] [--class-name N]           what would migrate, and why not
-    python lens_native.py generate <Name.json> --out <dir> [--module M] [--class-name N] [--api API]
+    python convert_native.py plan     <Name.json> [--module M] [--class-name N]        what would migrate, and why not
+    python convert_native.py coverage --root <__dwookit/blueprints> --out <coverage.json>
+                                   how much of every exported Blueprint would migrate (DwoLens shows it)
+    python convert_native.py generate <Name.json> --out <dir> [--module M] [--class-name N] [--api API]
                                    -> <dir>/<Class>.h, <Class>.cpp, DwoNativeLiterals.h, <Name>.native.json, report
 
 Standard library only, no network.
@@ -1762,7 +1764,7 @@ class Plan:
         if "DwoNative/" in self.parent.get("include", "").replace("\\", "/"):
             # regenerating from a rebased Blueprint would build C++ from what is left in it and overwrite the class
             raise SystemExit(f"{ex.name} is already rebased onto {self.parent_cpp} (generated C++). "
-                             "Restore it first (__dwookit.bat native restore) to migrate it again.")
+                             "Restore it first (__dwookit.bat convert restore) to migrate it again.")
         prefix = self.parent_cpp[0]
         base = re.sub(r"^(BP|B|WBP|WB|ABP|AB|BTT|BTS|BTD|BPI|UI|W)_", "", ex.name)
         self.cpp = class_name or f"{prefix}{ident(base)}Base"
@@ -3602,6 +3604,50 @@ def add_modules(build_cs: Path, modules: list[str]) -> list[str]:
     return missing
 
 
+COVERAGE = "dwoconvert.coverage/1"
+
+
+def coverage(bp: dict) -> dict | None:
+    """What the migration could move today: nodes, migrated, and why the rest stays."""
+    if "native" not in bp:
+        return None
+    try:
+        plan = Plan(json.loads(json.dumps(bp)), module="Game").build()
+    except BaseException as e:                       # a Blueprint the planner refuses (already rebased ...)
+        return {"error": str(e)[:200]}
+    items = list(plan.funcs.values()) + list(plan.events) + list(getattr(plan, "timelines", {}).values())
+    used, stays, ghosts = set(), [], set()
+    for it in items:
+        if it.migrated:
+            used |= set(it.extra.get("nodes", []))
+        elif it.extra.get("empty"):
+            ghosts.add(it.extra.get("node"))            # an event with nothing wired to it: nothing to move
+        elif it.reason:
+            stays.append(f"{it.bp}: {it.reason}")
+    graph_nodes = {n["id"] for g in bp.get("graphs", []) if g.get("kind") in ("event", "function", "interface") for n in g.get("nodes", [])
+                   if n.get("class") != "EdGraphNode_Comment" and n["id"] not in ghosts}
+    return {"nodes": len(graph_nodes), "migrated": len(graph_nodes & used), "stays": stays[:20]}
+
+
+def write_coverage(root: Path, out: Path) -> int:
+    """Coverage of every Blueprint in a DwoLens export, as a result file DwoLens reads (facts.json, ctx bp)."""
+    manifest = json.loads((root / "export.json").read_text(encoding="utf-8-sig"))
+    result = {}
+    for e in manifest.get("exported", []):
+        f = root / e["dir"] / f"{e['name']}.json"
+        try:
+            bp = json.loads(f.read_text(encoding="utf-8-sig"))
+        except (OSError, ValueError):
+            continue
+        c = coverage(bp)
+        if c is not None:
+            result[e["name"]] = c
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps({"schema": COVERAGE, "exportedAtUtc": manifest.get("exportedAtUtc", ""), "blueprints": result},
+                              ensure_ascii=False, indent=1), encoding="utf-8")
+    return len(result)
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -3613,6 +3659,9 @@ def main(argv=None) -> int:
         p.add_argument("--api")
         if name == "generate":
             p.add_argument("--out", type=Path, required=True)
+    p = sub.add_parser("coverage")
+    p.add_argument("--root", type=Path, required=True, help="__dwookit/blueprints (the DwoLens export)")
+    p.add_argument("--out", type=Path, required=True)
     p = sub.add_parser("modules")
     p.add_argument("build_cs", type=Path)
     p.add_argument("modules")
@@ -3638,9 +3687,13 @@ def main(argv=None) -> int:
         for d in result["differences"][:15]:
             print(f"  {d['step']}: {d['value']}: {d['before'][:80]} -> {d['after'][:80]}")
         return 0 if result["verdict"] == "same" else 1
+    if args.cmd == "coverage":
+        n = write_coverage(args.root, args.out)
+        print(f"convert: coverage of {n} Blueprint(s) -> {args.out}")
+        return 0
     if args.cmd == "modules":
         added = add_modules(args.build_cs, [m for m in args.modules.split(",") if m])
-        print(f"native: {args.build_cs.name}: " + (f"added {', '.join(added)}" if added else "already has every module"))
+        print(f"convert: {args.build_cs.name}: " + (f"added {', '.join(added)}" if added else "already has every module"))
         return 0
     doc = json.loads(args.export.read_text(encoding="utf-8-sig"))
     plan = Plan(doc, args.class_name, args.module, args.api).build()
@@ -3650,7 +3703,7 @@ def main(argv=None) -> int:
         return 0
     s = write(plan, args.out)
     cov = s["coverage"]
-    print(f"native: {s['name']} -> {s['class']} ({cov['migrated']}/{cov['nodes']} nodes) -> {args.out}")
+    print(f"convert: {s['name']} -> {s['class']} ({cov['migrated']}/{cov['nodes']} nodes) -> {args.out}")
     return 0
 
 

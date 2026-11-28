@@ -1304,27 +1304,11 @@ def node_refs(bp: dict) -> list[tuple[str, str, str]]:
     return out
 
 
-def native_coverage(bp: dict) -> dict | None:
-    """What the C++ migration (lens_native) could move today: nodes, migrated, and why the rest stays."""
-    if "native" not in bp:
-        return None
-    try:
-        import lens_native
-        plan = lens_native.Plan(json.loads(json.dumps(bp)), module="Game").build()
-    except BaseException as e:                       # a Blueprint the planner refuses (already rebased ...)
-        return {"error": str(e)[:200]}
-    items = list(plan.funcs.values()) + list(plan.events) + list(getattr(plan, "timelines", {}).values())
-    used, stays, ghosts = set(), [], set()
-    for it in items:
-        if it.migrated:
-            used |= set(it.extra.get("nodes", []))
-        elif it.extra.get("empty"):
-            ghosts.add(it.extra.get("node"))            # an event with nothing wired to it: nothing to move
-        elif it.reason:
-            stays.append(f"{it.bp}: {it.reason}")
-    graph_nodes = {n["id"] for g in bp.get("graphs", []) if g.get("kind") in ("event", "function", "interface") for n in g.get("nodes", [])
-                   if n.get("class") != "EdGraphNode_Comment" and n["id"] not in ghosts}
-    return {"nodes": len(graph_nodes), "migrated": len(graph_nodes & used), "stays": stays[:20]}
+def convert_coverage(root: Path) -> dict:
+    """DwoConvert's result file (__dwookit/convert/coverage.json, when that tool is installed): how much of each
+    Blueprint its C++ migration moves. Read, never computed here: the tools meet only through result files."""
+    data = load(root.parent / "convert" / "coverage.json") or {}
+    return data.get("blueprints", {}) if data.get("schema") == "dwoconvert.coverage/1" else {}
 
 
 def write_folder(root: Path, project: Path | None, split_lines: int = SPLIT_LINES) -> int:
@@ -1350,6 +1334,7 @@ def write_folder(root: Path, project: Path | None, split_lines: int = SPLIT_LINE
 
     rows = []
     facts, refs = {}, {}
+    converted = convert_coverage(root)
     for entry in manifest.get("exported", []):
         folder = root / entry["dir"]
         js = folder / f"{entry['name']}.json"
@@ -1382,7 +1367,7 @@ def write_folder(root: Path, project: Path | None, split_lines: int = SPLIT_LINE
             "bytes": {"json": js.stat().st_size, "md": len(md.encode("utf-8")), "parts": sum(part_bytes),
                       "largestPart": max(part_bytes, default=0)},
             "parts": {k: f"parts/{v}" for k, v in where.items()},
-            "native": native_coverage(bp),
+            "native": converted.get(entry["name"]),
             "reused": bool(entry.get("reused")),
         }
         graphs = bp.get("graphs", [])

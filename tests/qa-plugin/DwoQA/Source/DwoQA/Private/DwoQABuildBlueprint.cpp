@@ -20,7 +20,7 @@
 //              ]
 //   defaults   {"node.pin": "value"}   (object and class pins: an object path)
 //   links      [["node.output", "node.input"], ...]
-#include "DwoLensBuildBlueprint.h"
+#include "DwoQABuildBlueprint.h"
 
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "EdGraph/EdGraph.h"
@@ -94,7 +94,7 @@ namespace
 	}
 }
 
-int32 DwoLensInspector::BuildBlueprint(const FString& SpecFile)
+int32 DwoQA::BuildBlueprint(const FString& SpecFile)
 {
 	FString Text;
 	FJson Spec;

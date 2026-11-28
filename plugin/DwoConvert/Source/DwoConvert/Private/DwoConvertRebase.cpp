@@ -1,7 +1,7 @@
 // Native migration, engine side: rebases a Blueprint onto the C++ class dwookit generated for it (tools/lens_native.py)
 // and proves nothing changed that should not have.
 //
-//   -LensRebase=<Name.native.json> -LensRebaseReport=<report.json> [-LensDryRun] [-LensForce]
+//   -ConvertRebase=<Name.native.json> -ConvertRebaseReport=<report.json> [-ConvertDryRun] [-ConvertForce]
 //
 // 1. snapshot   every property of the Blueprint's class default object and of each component template (text form)
 // 2. move       migrated variables, components, functions, events and dispatchers leave the Blueprint; nodes that
@@ -10,8 +10,8 @@
 // 3. reparent   ParentClass = the generated class; children of moved components attach to the native ones
 // 4. restore    the snapshot values are written back onto the new class default object and native components
 // 5. verify     compile must succeed; the snapshot is compared again and any difference fails the rebase
-// 6. save       only when everything above passed (and not -LensDryRun); the caller keeps a backup of the file
-#include "DwoLensNativeRebase.h"
+// 6. save       only when everything above passed (and not -ConvertDryRun); the caller keeps a backup of the file
+#include "DwoConvertRebase.h"
 
 #include "Components/ActorComponent.h"
 #include "Components/SceneComponent.h"
@@ -42,9 +42,9 @@
 #include "UObject/SavePackage.h"
 #include "UObject/UnrealType.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogDwoNative, Log, All);
+DEFINE_LOG_CATEGORY_STATIC(LogDwoConvert, Log, All);
 
-namespace DwoLensInspector::NativeRebase
+namespace DwoConvert::Rebase
 {
 	using FJson = TSharedPtr<FJsonObject>;
 	using FProps = TMap<FString, FString>;
@@ -432,13 +432,13 @@ namespace DwoLensInspector::NativeRebase
 	}
 }
 
-int32 DwoLensInspector::RebaseBlueprint(const FString& MappingFile, const FString& ReportFile, bool bDryRun, bool bForce)
+int32 DwoConvert::RebaseBlueprint(const FString& MappingFile, const FString& ReportFile, bool bDryRun, bool bForce)
 {
-	using namespace DwoLensInspector::NativeRebase;
+	using namespace DwoConvert::Rebase;
 	FJson Report = MakeShared<FJsonObject>();
 	TArray<TSharedPtr<FJsonValue>> Steps, Diffs, Problems;
-	auto Step = [&Steps](const FString& Text) { UE_LOG(LogDwoNative, Display, TEXT("%s"), *Text); Steps.Add(MakeShared<FJsonValueString>(Text)); };
-	auto Problem = [&Problems](const FString& Text) { UE_LOG(LogDwoNative, Warning, TEXT("%s"), *Text); Problems.Add(MakeShared<FJsonValueString>(Text)); };
+	auto Step = [&Steps](const FString& Text) { UE_LOG(LogDwoConvert, Display, TEXT("%s"), *Text); Steps.Add(MakeShared<FJsonValueString>(Text)); };
+	auto Problem = [&Problems](const FString& Text) { UE_LOG(LogDwoConvert, Warning, TEXT("%s"), *Text); Problems.Add(MakeShared<FJsonValueString>(Text)); };
 	auto Finish = [&](bool bOk, bool bSaved) -> int32
 	{
 		Report->SetStringField(TEXT("schema"), TEXT("dwookit.rebase/1"));

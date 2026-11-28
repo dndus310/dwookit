@@ -23,7 +23,7 @@ from pathlib import Path
 
 HEAD_BYTES = 256 << 10        # the name table sits in the package header; most fit in the first 256 KB
 MAX_HEAD_BYTES = 4 << 20      # rigs and large Blueprints: read on while the own class is there but no Blueprint marker yet
-SKIP_PLUGINS = {"__DwoLensInspector", "__DwoStateMonitor", "__DwoCanvas", "__StateMonitor"}
+SKIP_PLUGINS = {"__DwoLensInspector", "__DwoStateMonitor", "__DwoCanvas", "__DwoConvert", "__DwoQA", "__StateMonitor"}
 MARKERS = [(b"ControlRigBlueprintGeneratedClass", "rig"), (b"WidgetBlueprintGeneratedClass", "widget"), (b"AnimBlueprintGeneratedClass", "anim"),
            (b"BlueprintGeneratedClass", "blueprint")]
 UCLASS_RE = re.compile(r"UCLASS\s*\((?P<spec>(?:[^()]|\((?:[^()]|\([^()]*\))*\))*)\)\s*class\s+(?:\w+_API\s+)?(?P<name>[AU]\w+)\s*(?:final\s*)?:\s*public\s+(?P<parent>\w+)")

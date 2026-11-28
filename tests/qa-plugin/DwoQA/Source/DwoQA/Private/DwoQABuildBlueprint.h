@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 
-namespace DwoLensInspector
+namespace DwoQA
 {
 	/**
 	 * Test fixtures for the native migration: creates a Blueprint from a JSON description of its variables and

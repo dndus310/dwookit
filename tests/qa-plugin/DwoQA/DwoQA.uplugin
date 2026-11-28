@@ -1,0 +1,18 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "0.1.0",
+	"FriendlyName": "DwoQA",
+	"Description": "dwookit's own QA, never installed by dwookit into user projects: builds test Blueprints from JSON (tests/fixtures/native/lab/*.build.json) in the QA project.",
+	"Category": "dwookit",
+	"CreatedBy": "dwookit",
+	"CanContainContent": false,
+	"EnabledByDefault": false,
+	"Modules": [
+		{
+			"Name": "DwoQA",
+			"Type": "Editor",
+			"LoadingPhase": "Default"
+		}
+	]
+}

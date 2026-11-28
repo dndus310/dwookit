@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 
-namespace DwoLensInspector
+namespace DwoConvert
 {
 	/**
 	 * Runs the actor, widget or animation Blueprint named in ScenarioFile through a fixed scenario in a headless game world (fixed time

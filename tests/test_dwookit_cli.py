@@ -452,7 +452,7 @@ class ForgeCliTests(unittest.TestCase):
         doc, tools = self.tools()
         self.assertEqual(doc["schema"], "forge.tools/1")
         self.assertFalse(doc["project"]["connected"])
-        self.assertEqual(list(tools), ["lens", "statemonitor", "canvas", "builder"])
+        self.assertEqual(list(tools), ["lens", "statemonitor", "canvas", "convert", "builder"])
         self.assertTrue(all(t["state"] == "none" for t in tools.values()))
         self.assertFalse((self.project / "__dwookit").exists(), "tools never writes into the project")
         self.assertIn("jenkins", doc["pc"])

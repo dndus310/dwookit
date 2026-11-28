@@ -207,8 +207,8 @@ def scan_modules(project_file: Path, g: Graph) -> dict[str, set[str]]:
     plugins_dir = root / "Plugins"
     plugin_files = []
     if plugins_dir.exists():
-        plugin_files = [p for p in plugins_dir.rglob("*.uplugin") if "__DwoLensInspector" not in p.parts]
-        build_files += [p for p in plugins_dir.rglob("*.Build.cs") if "__DwoLensInspector" not in p.parts]
+        plugin_files = [p for p in plugins_dir.rglob("*.uplugin") if "__DwoLensInspector" not in p.parts and "__DwoConvert" not in p.parts and "__DwoQA" not in p.parts]
+        build_files += [p for p in plugins_dir.rglob("*.Build.cs") if "__DwoLensInspector" not in p.parts and "__DwoConvert" not in p.parts and "__DwoQA" not in p.parts]
 
     for plugin in plugin_files:
         desc = load_json(plugin)
@@ -254,7 +254,7 @@ def scan_headers(root: Path) -> dict[str, str]:
     """
     found: dict[str, str] = {}
     dirs = [root / "Source"] + [d / "Source" for d in (root / "Plugins").rglob("*") if d.is_dir() and (d / "Source").is_dir()
-                                and "__DwoLensInspector" not in d.parts and "Intermediate" not in d.parts] if (root / "Plugins").exists() else [root / "Source"]
+                                and "__DwoLensInspector" not in d.parts and "__DwoConvert" not in d.parts and "__DwoQA" not in d.parts and "Intermediate" not in d.parts] if (root / "Plugins").exists() else [root / "Source"]
     for base in dirs:
         if not base.exists():
             continue

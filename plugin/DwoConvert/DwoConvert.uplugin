@@ -1,0 +1,19 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "0.1.0",
+	"FriendlyName": "DwoConvert",
+	"Description": "dwookit tool (DwoConvert): Blueprint to C++ migration. Rebases a Blueprint onto its generated C++ class (saves the asset after a backup) and compares behaviour before and after. Never referenced by project code.",
+	"Category": "dwookit",
+	"CreatedBy": "dwookit",
+	"CanContainContent": false,
+	"EnabledByDefault": false,
+	"IsBetaVersion": true,
+	"Modules": [
+		{
+			"Name": "DwoConvert",
+			"Type": "Editor",
+			"LoadingPhase": "Default"
+		}
+	]
+}

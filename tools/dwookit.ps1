@@ -1,10 +1,12 @@
 # dwookit control script. Runs from the dwookit install folder (a git clone or an extracted zip);
 # invoked by dwookit.bat, the GUI, or the project's __dwookit.bat launcher.
-# Windows PowerShell 5.1 compatible. Never modifies tracked project files.
+# Windows PowerShell 5.1 compatible. Never modifies tracked project files, except DwoConvert, which the user runs
+# to migrate a Blueprint (it backs the asset up, writes Source\<Module>\DwoNative\ and adds modules to Build.cs).
 #
 # dwookit is a launcher: 'connect' prepares a project, then tools are installed, updated and removed one by one
 # ('tool install|update|remove <id>', 'tools' lists versions and updates):
 #   lens          DwoLens: analysis lines (analyze, verify, logs, smoke, perf, sizes, trace) + DwoLensInspector commandlet
+#   convert       DwoConvert: Blueprint -> C++ migration (convert ..., also 'native ...') + DwoConvert commandlet
 #   statemonitor  DwoStateMonitor: live runtime state viewer plugin (also sm-install, sm-remove)
 #   canvas        DwoCanvas: design file -> UMG Widget Blueprint importer (also canvas-install, canvas-remove, canvas-import)
 #   ci            DwoBuilder: compile and package (run here, need nothing installed) + Jenkins job and git hooks for
@@ -13,7 +15,7 @@ param(
     [Parameter(Mandatory = $true)]
     [ValidateSet('connect', 'tool', 'attach', 'update', 'status', 'analyze', 'verify', 'logs', 'smoke', 'perf', 'sizes', 'trace', 'play', 'tools', 'gui',
                  'sm-install', 'sm-remove', 'canvas-install', 'canvas-remove', 'canvas-import', 'canvas-validate',
-                 'doctor', 'uninstall', 'detach', 'compile', 'package', 'bp', 'ctx', 'agent', 'live', 'live-ingest', 'library', 'native',
+                 'doctor', 'uninstall', 'detach', 'compile', 'package', 'bp', 'ctx', 'agent', 'live', 'live-ingest', 'library', 'native', 'convert',
                  'ci-job', 'ci-trigger', 'ci-hook', 'ci-hooks', 'ci-status', 'ci-install', 'ci-start', 'ci-stop', 'ci-remove', 'ci-bundle')]
     [string]$Command,
     [Parameter(Mandatory = $true)]
@@ -37,12 +39,13 @@ $BlockEnd    = '# <<< dwookit managed <<<'
 $SmDest      = Join-Path $Project 'Plugins\__DwoStateMonitor'
 $SmLegacyDest = Join-Path $Project 'Plugins\__StateMonitor'      # dwo-Lens 1.x install location
 $CanvasDest  = Join-Path $Project 'Plugins\__DwoCanvas'
+$ConvertDest = Join-Path $Project 'Plugins\__DwoConvert'
 $CanvasOldDest = Join-Path $Project 'Plugins\DwoCanvas'           # 2.0.0 installed it here, visible to git
 $CanvasOldMarker = '.dwo-forge-installed'                      # ... with this marker
 # Legacy names stay listed so leftovers of a migration in progress never show up in git.
 # CLAUDE.local.md and the Copilot instructions files point coding agents at __dwookit\context\AGENT.md and the
 # user's own project.instructions.md (tools\lens_agent.py). A file committed to git is never changed or removed.
-$ManagedPaths = @('__dwookit/', '__dwookit.bat', 'Plugins/__DwoLensInspector/', 'Plugins/__DwoStateMonitor/',
+$ManagedPaths = @('__dwookit/', '__dwookit.bat', 'Plugins/__DwoLensInspector/', 'Plugins/__DwoStateMonitor/', 'Plugins/__DwoConvert/',
                   'Plugins/__DwoCanvas/', '__dwo-forge/', '__dwo-forge.bat', '__dwo-lens/', '__dwo-lens.bat', 'Plugins/__StateMonitor/',
                   '.github/instructions/dwo-forge.instructions.md',
                   'CLAUDE.local.md', '.github/instructions/dwookit.instructions.md',
@@ -989,6 +992,7 @@ $ToolDefs = [ordered]@{
     lens         = @{ Name = 'DwoLens';            Scope = 'project' }
     statemonitor = @{ Name = 'DwoStateMonitor'; Scope = 'project' }
     canvas       = @{ Name = 'DwoCanvas';       Scope = 'project' }
+    convert      = @{ Name = 'DwoConvert';      Scope = 'project' }
     builder      = @{ Name = 'DwoBuilder';        Scope = 'project+pc' }
 }
 
@@ -1015,6 +1019,7 @@ function Get-ToolSourceHash([string]$Id) {
         'lens'         { return Get-PluginSourceHash 'DwoLensInspector' }
         'statemonitor' { return Get-PluginSourceHash 'DwoStateMonitor' }
         'canvas'       { return Get-PluginSourceHash 'DwoCanvas' }
+        'convert'      { return Get-PluginSourceHash 'DwoConvert' }
         'builder'      { return Get-CiSourceHash }
     }
 }
@@ -1024,6 +1029,7 @@ function Test-ToolSource([string]$Id) {
         'lens'         { return Test-Path (Join-Path $SystemDir 'plugin\DwoLensInspector\DwoLensInspector.uplugin') }
         'statemonitor' { return Test-Path (Join-Path $SystemDir 'plugin\DwoStateMonitor\DwoStateMonitor.uplugin') }
         'canvas'       { return Test-Path (Join-Path $SystemDir 'plugin\DwoCanvas\DwoCanvas.uplugin') }
+        'convert'      { return Test-Path (Join-Path $SystemDir 'plugin\DwoConvert\DwoConvert.uplugin') }
         'builder'      { return Test-Path (Join-Path $SystemDir 'tools\ci.ps1') }
     }
     return $false
@@ -1103,6 +1109,9 @@ function Get-ToolStatus([string]$Id, $EngineVersion) {
         'canvas' {
             switch (Get-CanvasState) { 'managed' { $state = 'installed' } 'own' { $state = 'own' } }
         }
+        'convert' {
+            if (Test-Path (Join-Path $ConvertDest 'DwoConvert.uplugin')) { $state = $(if (Test-Managed $ConvertDest) { 'installed' } else { 'own' }) }
+        }
         'builder' {
             $ciFile = Join-Path $ForgeDir 'ci.json'
             if (Test-Path $ciFile) { $state = 'installed'; $rec = Get-Content -Raw -Encoding UTF8 $ciFile | ConvertFrom-Json; $detail = "$($rec.job)" }
@@ -1167,6 +1176,41 @@ function Install-Lens($Engine) {
     Say "DwoLens installed: Plugins\__DwoLensInspector (UE $($Engine.Version), editor-only, disabled by default)."
 }
 
+# DwoConvert (Blueprint -> C++ migration): its own editor plugin, installed like DwoLens's (prebuilt, disabled by
+# default, enabled only for its own commandlet runs). Removing it leaves the generated C++ and rebased Blueprints:
+# they are the project's code now.
+function Install-Convert($Engine) {
+    $build = Get-PluginBuild $Engine 'DwoConvert'
+    if (Test-Path $ConvertDest) {
+        if (-not (Test-Managed $ConvertDest)) { Fail "$ConvertDest exists but is not managed by dwookit. Leaving it untouched." }
+        Remove-Folder $ConvertDest 'Plugins\__DwoConvert'
+    }
+    New-Item -ItemType Directory -Force $ConvertDest | Out-Null
+    Copy-Item (Join-Path $build.Dir 'DwoConvert.uplugin') $ConvertDest
+    # BuildPlugin drops "EnabledByDefault": false, and a project plugin without it is enabled: the project's own
+    # build would then look for its source. Disabled, it loads only for dwookit's runs (-EnablePlugins=DwoConvert).
+    $upluginPath = Join-Path $ConvertDest 'DwoConvert.uplugin'
+    $uplugin = Get-Content -Raw -Encoding UTF8 $upluginPath | ConvertFrom-Json
+    $uplugin | Add-Member -NotePropertyName EnabledByDefault -NotePropertyValue $false -Force
+    [IO.File]::WriteAllText($upluginPath, ($uplugin | ConvertTo-Json -Depth 10), $Utf8)
+    Copy-Item -Recurse (Join-Path $build.Dir 'Binaries') $ConvertDest
+    [IO.File]::WriteAllText((Join-Path $ConvertDest $Marker), "Managed by dwookit (DwoConvert). Removed by '__dwookit.bat tool remove convert' or uninstall.`n", $Utf8)
+    Set-ToolInstalled 'convert' @{ engine = $Engine.Version }
+    Say "DwoConvert installed: Plugins\__DwoConvert (UE $($Engine.Version), editor-only, disabled by default)."
+}
+
+function Remove-Convert {
+    if (-not (Test-Path $ConvertDest)) { Say 'DwoConvert is not installed.'; Save-ToolRecord 'convert' $null; return }
+    if (-not (Test-Managed $ConvertDest)) { Fail "$ConvertDest exists but is not managed by dwookit. Leaving it untouched." }
+    Remove-Folder $ConvertDest 'Plugins\__DwoConvert'
+    Save-ToolRecord 'convert' $null
+    Say 'DwoConvert removed (Plugins\__DwoConvert). Generated C++ and rebased Blueprints stay: they are the project''s code.'
+}
+
+function Assert-ConvertInstalled {
+    if (-not (Test-Path (Join-Path $ConvertDest 'DwoConvert.uplugin'))) { Fail 'DwoConvert is not installed in this project. Install it: __dwookit.bat tool install convert' }
+}
+
 function Update-StateMonitor($Engine) {
     if (Move-LegacyStateMonitor $Engine) { return }
     $sm = Get-InstalledStateMonitor
@@ -1213,6 +1257,11 @@ function Invoke-ToolAction([string]$Action, [string]$Id) {
         'canvas' {
             if ($Action -eq 'remove') { Invoke-CanvasRemove } else { Invoke-CanvasInstall }
         }
+        'convert' {
+            if ($Action -eq 'remove') { Remove-Convert; return }
+            $null = Set-ExcludeBlock
+            Install-Convert (Resolve-Engine (Get-UProject).Json.EngineAssociation)
+        }
         'builder' { Invoke-CiTool $Action }
     }
 }
@@ -1234,9 +1283,9 @@ function Invoke-Tool {
     $action = if ($a.Count) { $a[0] } else { '' }
     $id = if ($a.Count -gt 1) { "$($a[1])".ToLowerInvariant() } else { '' }
     # Tool names work too: DwoLens, DwoStateMonitor, DwoCanvas, DwoBuilder ('ci' is DwoBuilder's id before 3.x).
-    $aliases = @{ dwolens = 'lens'; dwostatemonitor = 'statemonitor'; dwocanvas = 'canvas'; dwobuilder = 'builder'; ci = 'builder' }
+    $aliases = @{ dwolens = 'lens'; dwostatemonitor = 'statemonitor'; dwocanvas = 'canvas'; dwobuilder = 'builder'; ci = 'builder'; dwoconvert = 'convert' }
     if ($aliases.ContainsKey($id)) { $id = $aliases[$id] }
-    $usage = 'Usage: __dwookit.bat tool install|update|remove <lens|statemonitor|canvas|builder>   or   tool update --all'
+    $usage = 'Usage: __dwookit.bat tool install|update|remove <lens|statemonitor|canvas|convert|builder>   or   tool update --all'
     if ($action -notin @('install', 'update', 'remove')) { Fail $usage }
     if (-not (Read-State)) { Fail 'This project is not connected. Connect it first: __dwookit.bat connect' }
     if ($action -eq 'update' -and $id -eq '--all') { Update-AllTools; return }
@@ -1303,6 +1352,7 @@ function Invoke-Status {
     Say "DwoLens           : $(if (Test-Path $PluginDest) { 'installed (Plugins\__DwoLensInspector)' } else { 'not installed (optional: tool install lens)' })"
     Say "DwoStateMonitor: $($tools.StateMonitor)"
     Say "DwoCanvas      : $($tools.Canvas)"
+    Say "DwoConvert     : $(if (Test-Path $ConvertDest) { 'installed (Plugins\__DwoConvert)' } else { 'not installed (optional: tool install convert)' })"
     Say "DwoBuilder     : $(if (Test-Path (Join-Path $ForgeDir 'ci.json')) { 'installed' } else { 'not installed (optional: tool install builder)' })"
     Say 'Versions and updates: __dwookit.bat tools'
     $null = Write-StaleDepsWarning
@@ -1323,7 +1373,7 @@ function Invoke-Doctor {
         if ($vcs.Kind -eq 'parent') { Write-Host "  [info] inside the git repository $($vcs.Top) (entries prefixed /$($vcs.Prefix))" }
         Check 'exclude block present' (Test-BlockPresent) 'run: __dwookit.bat connect'
         Check 'no exclude block of an earlier name left (dwo-Forge, dwo-Lens)' (-not (Test-BlockPresent -Legacy)) 'run update'
-        $leaks = Invoke-Git @('status', '--porcelain', '--untracked-files=all', '--', '__dwookit', '__dwookit.bat', 'Plugins/__DwoLensInspector', 'Plugins/__DwoStateMonitor', 'Plugins/__DwoCanvas', '__dwo-forge', '__dwo-forge.bat', '__dwo-lens', '__dwo-lens.bat', 'Plugins/__StateMonitor')
+        $leaks = Invoke-Git @('status', '--porcelain', '--untracked-files=all', '--', '__dwookit', '__dwookit.bat', 'Plugins/__DwoLensInspector', 'Plugins/__DwoStateMonitor', 'Plugins/__DwoCanvas', 'Plugins/__DwoConvert', '__dwo-forge', '__dwo-forge.bat', '__dwo-lens', '__dwo-lens.bat', 'Plugins/__StateMonitor')
         Check 'dwookit files hidden from git' (-not $leaks) "visible to git: $leaks"
     }
     if (Test-Path $PluginDest) { Check 'DwoLens inspector complete' (Test-Path (Join-Path $PluginDest 'Binaries\Win64\UnrealEditor-DwoLensInspector.dll')) 'run: tool update lens' }
@@ -1986,6 +2036,10 @@ function Invoke-BpExport {
     & cmd /c "`"$($engine.Cmd)`" `"$($uproject.Path)`" -run=DwoLensInspector -EnablePlugins=DwoLensInspector -LensBpList=`"$BpTrackPath`" -LensBpOut=`"$BpDir`"$all -ABSLOG=`"$(Join-Path $logDir 'bp-export-editor.log')`" -unattended -nullrhi -nosplash -nopause -NoSound -stdout -FullStdOutLogOutput > `"$log`" 2>&1"
     $code = $LASTEXITCODE
     if (-not (Test-Path (Join-Path $BpDir 'export.json'))) { Fail "The commandlet exported nothing (exit code $code). See $log" }
+    # DwoConvert, when installed, says how much of each Blueprint it would move; DwoLens shows its result file
+    if (Test-Path (Join-Path $ConvertDest 'DwoConvert.uplugin')) {
+        & python (Join-Path $SystemDir 'tools\convert_native.py') coverage --root $BpDir --out (Join-Path $ForgeDir 'convert\coverage.json') | Out-Null
+    }
     Invoke-BpMarkdown
     Update-AgentContext
     $manifest = Get-Content -Raw -Encoding UTF8 (Join-Path $BpDir 'export.json') | ConvertFrom-Json
@@ -2046,21 +2100,21 @@ function Invoke-Bp {
     }
 }
 
-# ---------------------------------------------------------------- native migration (native)
-# Blueprint -> C++ base class (tools\lens_native.py), then the Blueprint is rebased onto it by the DwoLensInspector
-# commandlet (DwoLensNativeRebase.cpp), which verifies every class default and component value and saves only when
-# nothing differs. Steps, editor closed:
-#   native plan <bp>                 export it and show what moves to C++, and why the rest stays in Blueprint
-#   native generate <bp> [--module M] [--class-name N] [--no-export]
+# ---------------------------------------------------------------- DwoConvert: Blueprint -> C++ (convert, also native)
+# Blueprint -> C++ base class (tools\convert_native.py, from DwoLens's Blueprint export), then the Blueprint is rebased
+# onto it by the DwoConvert commandlet (DwoConvertRebase.cpp), which verifies every class default and component value
+# and saves only when nothing differs. Needs DwoConvert and DwoLens installed. Steps, editor closed:
+#   convert plan <bp>                 export it and show what moves to C++, and why the rest stays in Blueprint
+#   convert generate <bp> [--module M] [--class-name N] [--no-export]
 #                                    Source\<Module>\DwoNative\<Name>\ (your code from now on: commit it) and the
 #                                    modules it needs in <Module>.Build.cs (a backup is kept)
 #   compile                          build the editor target with the new class
-#   native rebase <bp> [--dry-run] [--force]
+#   convert rebase <bp> [--dry-run] [--force]
 #                                    back up the .uasset, rebase, verify; the backup goes back when it fails
-#   native restore <bp>              put the last backup of the .uasset back (and of Build.cs)
-#   native verify <bp> [--frames N] [--record-every N] [--no-probe] [--probe-offset X:Y:Z] [--pawn <bp>] [--call [Child.]Function@Frame[@Arg...] ...]
+#   convert restore <bp>              put the last backup of the .uasset back (and of Build.cs)
+#   convert verify <bp> [--frames N] [--record-every N] [--no-probe] [--probe-offset X:Y:Z] [--pawn <bp>] [--call [Child.]Function@Frame[@Arg...] ...]
 #                                    behaviour check: runs the rebased Blueprint and its pre-migration backup through
-#                                    the same scenario in a headless world (DwoLensBehaviour.cpp) and compares them;
+#                                    the same scenario in a headless world (DwoConvertBehaviour.cpp) and compares them;
 #                                    --probe-offset: where the probe lands, from the actor (cm);
 #                                    --call runs an event or function on the actor at that frame (an implementable
 #                                    event its C++ parent fires in the game); arguments as text in parameter order
@@ -2076,7 +2130,7 @@ function Invoke-Bp {
 #                                    --net: an actor on a listen server and one client (PIE in the editor, null RHI),
 #                                    spawned on the server and owned by the client; --call client:F@N / server:F@N
 #                                    picks the copy that calls; both copies are recorded and compared.
-#   native status                    what was generated and rebased
+#   convert status                    what was generated and rebased
 $NativeDir = Join-Path $ForgeDir 'native'
 
 function Get-NativeArg([string]$Name, [string]$Default = '') {
@@ -2095,7 +2149,7 @@ function Get-GameModule($UProject) {
 
 function Get-NativeTarget([string]$Arg) {
     $entry = ConvertTo-BpEntry $Arg
-    if ($entry.EndsWith('/')) { Fail 'native works on one Blueprint at a time, not a folder.' }
+    if ($entry.EndsWith('/')) { Fail 'convert works on one Blueprint at a time, not a folder.' }
     if (-not (Test-BpEntryExists $entry)) { Fail "No asset at $entry" }
     $name = Split-Path -Leaf $entry
     return [pscustomobject]@{ Entry = $entry; Name = $name
@@ -2112,7 +2166,7 @@ function Update-NativeExport($Target) {
 }
 
 function Invoke-NativeRebase($Target, $UProject) {
-    if (-not (Test-Path $Target.Map)) { Fail "Generate first: __dwookit.bat native generate $($Target.Entry)" }
+    if (-not (Test-Path $Target.Map)) { Fail "Generate first: __dwookit.bat convert generate $($Target.Entry)" }
     $engine = Resolve-Engine $UProject.Json.EngineAssociation
     Assert-ModulesBuilt $UProject
     $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
@@ -2129,8 +2183,8 @@ function Invoke-NativeRebase($Target, $UProject) {
     $logDir = Join-Path $DataDir 'logs'
     New-Item -ItemType Directory -Force $logDir | Out-Null
     $log = Join-Path $logDir "native-rebase-$($Target.Name).log"
-    Say "native rebase: $($Target.Entry) (backup $backup)"
-    & cmd /c "`"$($engine.Cmd)`" `"$($UProject.Path)`" -run=DwoLensInspector -EnablePlugins=DwoLensInspector -LensRebase=`"$($Target.Map)`" -LensRebaseReport=`"$report`" $($flags -join ' ') -unattended -nullrhi -nosplash -nopause -NoSound -stdout -FullStdOutLogOutput > `"$log`" 2>&1"
+    Say "convert rebase: $($Target.Entry) (backup $backup)"
+    & cmd /c "`"$($engine.Cmd)`" `"$($UProject.Path)`" -run=DwoConvert -EnablePlugins=DwoConvert -ConvertRebase=`"$($Target.Map)`" -ConvertRebaseReport=`"$report`" $($flags -join ' ') -unattended -nullrhi -nosplash -nopause -NoSound -stdout -FullStdOutLogOutput > `"$log`" 2>&1"
     if (-not (Test-Path $report)) { Fail "The rebase wrote no report (see $log). The Blueprint was not saved." }
     $r = Get-Content -Raw -Encoding UTF8 $report | ConvertFrom-Json
     foreach ($s_ in @($r.steps)) { Write-Host "  $s_" }
@@ -2138,16 +2192,16 @@ function Invoke-NativeRebase($Target, $UProject) {
     $diffs = @($r.diffs)
     foreach ($d in ($diffs | Select-Object -First 20)) { if ($d) { Write-Host "  [differs] $($d.scope) $($d.property): $($d.before) -> $($d.after)" -ForegroundColor Yellow } }
     if ($diffs.Count -gt 20) { Write-Host "  ... $($diffs.Count - 20) more in $report" }
-    if ($r.ok -and $r.saved) { Say "native rebase: $($Target.Name) now derives from $($r.class). Backup: $backup"; return }
-    if ($r.ok -and $r.dryRun) { Say 'native rebase: dry run passed; nothing was saved. Run it again without --dry-run.'; return }
+    if ($r.ok -and $r.saved) { Say "convert rebase: $($Target.Name) now derives from $($r.class). Backup: $backup"; return }
+    if ($r.ok -and $r.dryRun) { Say 'convert rebase: dry run passed; nothing was saved. Run it again without --dry-run.'; return }
     # not saved: the file on disk is the original; put the backup back anyway in case a save happened half-way
     Copy-Item (Join-Path $backup (Split-Path -Leaf $Target.Asset)) $Target.Asset -Force
-    Fail "native rebase failed; the Blueprint is unchanged (report: $report)."
+    Fail "convert rebase failed; the Blueprint is unchanged (report: $report)."
 }
 
 function Invoke-BehaviourRun($UProject, $Engine, [string]$Scenario, [string]$Out, [string]$Log) {
     Remove-Item -Force $Out -ErrorAction SilentlyContinue
-    & cmd /c "`"$($Engine.Cmd)`" `"$($UProject.Path)`" -run=DwoLensInspector -EnablePlugins=DwoLensInspector -LensBehave=`"$Scenario`" -LensBehaveOut=`"$Out`" -unattended -nullrhi -nosplash -nopause -NoSound -stdout -FullStdOutLogOutput > `"$Log`" 2>&1"
+    & cmd /c "`"$($Engine.Cmd)`" `"$($UProject.Path)`" -run=DwoConvert -EnablePlugins=DwoConvert -ConvertBehave=`"$Scenario`" -ConvertBehaveOut=`"$Out`" -unattended -nullrhi -nosplash -nopause -NoSound -stdout -FullStdOutLogOutput > `"$Log`" 2>&1"
     if (-not (Test-Path $Out)) { return $false }
     return $true
 }
@@ -2156,14 +2210,14 @@ function Invoke-NetRun($UProject, $Engine, [string]$Scenario, [string]$Out, [str
     # the network check needs PIE, so the editor itself (no window, null RHI) runs it as an automation test
     Remove-Item -Force $Out -ErrorAction SilentlyContinue
     $editor = Join-Path (Split-Path -Parent $Engine.Cmd) 'UnrealEditor.exe'
-    & cmd /c "`"$editor`" `"$($UProject.Path)`" -EnablePlugins=DwoLensInspector -LensNetScenario=`"$Scenario`" -LensNetOut=`"$Out`" -ExecCmds=`"Automation RunTests DwoLens.NativeNetCheck`" -TestExit=`"Automation Test Queue Empty`" -unattended -nullrhi -nosplash -NoSound -stdout -FullStdOutLogOutput > `"$Log`" 2>&1"
+    & cmd /c "`"$editor`" `"$($UProject.Path)`" -EnablePlugins=DwoConvert -ConvertNetScenario=`"$Scenario`" -ConvertNetOut=`"$Out`" -ExecCmds=`"Automation RunTests DwoConvert.NetCheck`" -TestExit=`"Automation Test Queue Empty`" -unattended -nullrhi -nosplash -NoSound -stdout -FullStdOutLogOutput > `"$Log`" 2>&1"
     return (Test-Path $Out)
 }
 
 function Invoke-NativeVerify($Target, $UProject) {
     $last = Join-Path $NativeDir "$($Target.Name).last-backup.txt"
     $rb = Join-Path $NativeDir "$($Target.Name).rebase.json"
-    if (-not (Test-Path $last) -or -not (Test-Path $rb)) { Fail "Rebase it first: __dwookit.bat native rebase $($Target.Entry)" }
+    if (-not (Test-Path $last) -or -not (Test-Path $rb)) { Fail "Rebase it first: __dwookit.bat convert rebase $($Target.Entry)" }
     $r = Get-Content -Raw -Encoding UTF8 $rb | ConvertFrom-Json
     if (-not $r.saved) { Fail "The last rebase of $($Target.Name) was not saved; nothing to compare." }
     $original = Join-Path ((Get-Content -Raw $last).Trim()) (Split-Path -Leaf $Target.Asset)
@@ -2208,13 +2262,13 @@ function Invoke-NativeVerify($Target, $UProject) {
     $logDir = Join-Path $DataDir 'logs'
     New-Item -ItemType Directory -Force $logDir | Out-Null
     $what = switch ("$($j.kind)") { 'widget' { 'widget created and ticked' } 'anim' { 'on a Character launched at frame 20' } 'object' { 'in a behavior tree run by an AI (a behavior tree node)' } default { "probe $($doc.probe)" } }
-    Say "native verify: $($Target.Name), $frames frames, $what$(if ($doc.calls.Count) { ", $($doc.calls.Count) call(s)" })"
+    Say "convert verify: $($Target.Name), $frames frames, $what$(if ($doc.calls.Count) { ", $($doc.calls.Count) call(s)" })"
     $after = Join-Path $dir 'after.json'
     $before = Join-Path $dir 'before.json'
     $net = $Rest -contains '--net'
     if ($net) { $what = 'listen server + 1 client (PIE in the editor, a few minutes)' }
     $run = { param($out, $log) if ($net) { Invoke-NetRun $UProject $engine $scenario $out $log } else { Invoke-BehaviourRun $UProject $engine $scenario $out $log } }
-    if ($net) { Say "native verify: network check, $what" }
+    if ($net) { Say "convert verify: network check, $what" }
     if (-not (& $run $after (Join-Path $logDir "native-verify-after-$($Target.Name).log"))) { Fail "The migrated run wrote no trace (see $logDir)." }
     # the original: its backup in place of the migrated asset for one run, then the migrated asset back no matter what
     $keep = Join-Path $dir 'migrated.uasset'
@@ -2227,7 +2281,7 @@ function Invoke-NativeVerify($Target, $UProject) {
         Remove-Item -Force $keep -ErrorAction SilentlyContinue
     }
     if (-not $ok) { Fail "The original run wrote no trace (see $logDir)." }
-    & python (Join-Path $SystemDir 'tools\lens_native.py') compare $before $after --map $Target.Map --out (Join-Path $NativeDir "$($Target.Name).behaviour")
+    & python (Join-Path $SystemDir 'tools\convert_native.py') compare $before $after --map $Target.Map --out (Join-Path $NativeDir "$($Target.Name).behaviour")
     $code = $LASTEXITCODE
     Say "  report: $(Join-Path $NativeDir "$($Target.Name).behaviour.md")"
     if ($code -ne 0) { exit 1 }
@@ -2235,13 +2289,14 @@ function Invoke-NativeVerify($Target, $UProject) {
 
 function Invoke-Native {
     if (-not (Read-State)) { Fail 'Not connected. Connect the project first: __dwookit.bat connect' }
+    Assert-ConvertInstalled
     $action = if ($Rest.Count) { $Rest[0] } else { 'status' }
     $uproject = Get-UProject
     New-Item -ItemType Directory -Force $NativeDir | Out-Null
-    $py = Join-Path $SystemDir 'tools\lens_native.py'
+    $py = Join-Path $SystemDir 'tools\convert_native.py'
     if ($action -eq 'status') {
         $maps = @(Get-ChildItem $NativeDir -Filter '*.native.json' -ErrorAction SilentlyContinue)
-        if (-not $maps.Count) { Say 'native: nothing generated yet. Start with: __dwookit.bat native plan <Blueprint>'; return }
+        if (-not $maps.Count) { Say 'convert: nothing generated yet. Start with: __dwookit.bat convert plan <Blueprint>'; return }
         foreach ($m in $maps) {
             $j = Get-Content -Raw -Encoding UTF8 $m.FullName | ConvertFrom-Json
             $rb = Join-Path $NativeDir ($m.Name -replace '\.native\.json$', '.rebase.json')
@@ -2250,7 +2305,7 @@ function Invoke-Native {
         }
         return
     }
-    if ($Rest.Count -lt 2) { Fail "Usage: native $action <Blueprint: /Game/... or Content\...\X.uasset>" }
+    if ($Rest.Count -lt 2) { Fail "Usage: convert $action <Blueprint: /Game/... or Content\...\X.uasset>" }
     $target = Get-NativeTarget $Rest[1]
     switch ($action) {
         'plan' {
@@ -2266,7 +2321,7 @@ function Invoke-Native {
             $cls = Get-NativeArg '--class-name'
             if ($cls) { $pyArgs += @('--class-name', $cls) }
             & python @pyArgs
-            if ($LASTEXITCODE -ne 0) { Fail 'native generate failed (see above).' }
+            if ($LASTEXITCODE -ne 0) { Fail 'convert generate failed (see above).' }
             Copy-Item (Join-Path $out "$($target.Name).native.json") $target.Map -Force
             $j = Get-Content -Raw -Encoding UTF8 $target.Map | ConvertFrom-Json
             $mods = @($j.modules | Where-Object { $_ })
@@ -2278,9 +2333,9 @@ function Invoke-Native {
                 Copy-Item $buildCs (Join-Path $bk "$module.Build.cs") -Force
                 & python $py modules $buildCs ($mods -join ',')
             }
-            Say "native generate: $out"
+            Say "convert generate: $out"
             Say "  report: $(Join-Path $out "$($target.Name).native.md")"
-            Say "  next: __dwookit.bat compile (editor closed), then __dwookit.bat native rebase $($target.Entry) [--dry-run]"
+            Say "  next: __dwookit.bat compile (editor closed), then __dwookit.bat convert rebase $($target.Entry) [--dry-run]"
         }
         'rebase' { Invoke-NativeRebase $target $uproject }
         'verify' { Invoke-NativeVerify $target $uproject }
@@ -2291,9 +2346,9 @@ function Invoke-Native {
             Copy-Item (Join-Path $dir (Split-Path -Leaf $target.Asset)) $target.Asset -Force
             $rb = Join-Path $NativeDir "$($target.Name).rebase.json"
             if (Test-Path $rb) { Move-Item -Force $rb (Join-Path $NativeDir "$($target.Name).restored.json") }
-            Say "native restore: $($target.Asset) is back as it was before the rebase ($dir). The generated C++ stays; delete Source\...\DwoNative\$($target.Name) yourself if you no longer want it."
+            Say "convert restore: $($target.Asset) is back as it was before the rebase ($dir). The generated C++ stays; delete Source\...\DwoNative\$($target.Name) yourself if you no longer want it."
         }
-        default { Fail "Unknown native action '$action'. Use: native plan | generate | rebase | verify | restore | status" }
+        default { Fail "Unknown convert action '$action'. Use: convert plan | generate | rebase | verify | restore | status" }
     }
 }
 
@@ -2516,8 +2571,8 @@ function Invoke-LiveIngest {
 # the GUI dialog.
 
 # Plugin and module names dwookit provides now or provided before (dwo-Lens 1.x, DesignBridge).
-$OurPlugins = @('DwoStateMonitor', 'StateMonitor', 'DwoCanvas', 'DesignBridge', 'DwoLensInspector')
-$OurModules = @('DwoStateMonitor', 'StateMonitor', 'DwoCanvasRuntime', 'DwoCanvasEditor', 'DesignBridgeRuntime', 'DesignBridgeEditor', 'DwoLensInspector')
+$OurPlugins = @('DwoStateMonitor', 'StateMonitor', 'DwoCanvas', 'DesignBridge', 'DwoLensInspector', 'DwoConvert')
+$OurModules = @('DwoStateMonitor', 'StateMonitor', 'DwoCanvasRuntime', 'DwoCanvasEditor', 'DesignBridgeRuntime', 'DesignBridgeEditor', 'DwoLensInspector', 'DwoConvert')
 # Folders only dwookit tools write: reports, logs and test leftovers. Removed with the run history choice.
 $OurArtifacts = @('Saved\DwoCanvas', 'Saved\DwoCanvasTests', 'Saved\DesignBridge', 'Saved\DesignBridgeTests',
                   'Content\DwoCanvasTests', 'Content\DesignBridgeTests')
@@ -2893,6 +2948,7 @@ function Invoke-Uninstall {
     # 2. Plugins: checks already happened above, so remove unconditionally.
     $null = Remove-StateMonitor $true
     if ((Get-CanvasState) -eq 'managed') { $null = Remove-Canvas $true }
+    if ((Test-Path $ConvertDest) -and (Test-Managed $ConvertDest)) { Remove-Folder $ConvertDest 'Plugins\__DwoConvert' }
     Remove-Plugin
 
     # 3. Generated widgets and their import records.
@@ -2975,6 +3031,7 @@ switch ($Command) {
     'bp'      { Invoke-Bp }
     'ctx'     { Invoke-Ctx }
     'native'  { Invoke-Native }
+    'convert' { Invoke-Native }
     'agent'   { Invoke-Agent }
     'library' { Invoke-Library }
     'live'    { Invoke-Live }

@@ -7,11 +7,12 @@
 | **DwoLens** | 분석·검증·로그 검사: 아키텍처 리포트(`analyze`), 검증(`verify`), 로그(`logs`), 맵 스모크(`smoke`), 성능(`perf`), 콘텐츠 용량(`sizes`), Insights 트레이스(`trace`) | `Plugins/__DwoLensInspector` (숨김, 미리 빌드, 기본 비활성) |
 | **DwoStateMonitor** | 실행 중인 게임의 상태를 실시간으로 보는 런타임 플러그인 (예전 이름 StateMonitor) | `Plugins/__DwoStateMonitor` (숨김) |
 | **DwoCanvas** | 디자인 파일(`*.dwocanvas.json`)을 UMG 위젯 블루프린트로 가져오는 플러그인 | `Plugins/__DwoCanvas` (숨김) |
+| **DwoConvert** | 블루프린트를 C++ 기반 클래스로 옮기고(`convert plan`·`generate`·`rebase`), 전환 전후 동작을 비교(`convert verify`, `--net`은 리슨 서버 + 클라이언트). DwoLens의 블루프린트 export가 필요 | `Plugins/__DwoConvert` (숨김, 미리 빌드, 기본 비활성). **프로젝트를 바꿈**: 전환한 블루프린트(백업 후), `Source/<모듈>/DwoNative/`, `<모듈>.Build.cs` |
 | **DwoBuilder** | C++ 컴파일(`compile`)·패키지 빌드(`package`)를 바로 실행하고, push·merge·커밋 때 컴파일 → DwoLens 검사 → 패키지 빌드를 자동 실행 (Jenkins, 폐쇄망 지원) | 설치하면 Jenkins 작업과 `.git/hooks` (Jenkins 자체는 PC에 하나). 컴파일·패키지만 쓸 때는 설치 불필요 |
 
 모든 도구는 선택 설치입니다. 프로젝트 연결은 도구와 별개로, `__dwookit` 폴더와 실행 파일을 만들고 git에서 숨기는 일만 합니다.
 
-DwoLens와 DwoStateMonitor는 프로젝트를 읽기만 하며, 언제 떼어 내도 프로젝트는 그대로 동작합니다. DwoCanvas도 같은 방식으로 숨겨 설치하고 떼어 낼 수 있습니다. 다만 DwoCanvas로 만든 위젯이 남아 있는 동안에는 제거를 막습니다(아래 [DwoCanvas](#제공-도구-dwocanvas)).
+DwoLens와 DwoStateMonitor는 프로젝트를 읽기만 하며, 언제 떼어 내도 프로젝트는 그대로 동작합니다. 프로젝트를 바꾸는 도구는 DwoConvert뿐이고, 사용자가 블루프린트 하나씩 실행할 때만 바꿉니다(제거해도 생성된 C++와 전환한 블루프린트는 프로젝트 코드로 남음). DwoCanvas도 같은 방식으로 숨겨 설치하고 떼어 낼 수 있습니다. 다만 DwoCanvas로 만든 위젯이 남아 있는 동안에는 제거를 막습니다(아래 [DwoCanvas](#제공-도구-dwocanvas)).
 
 > 이전 이름은 dwo-Forge(그 전에는 dwo-Lens)입니다. 이전 이름으로 연결한 프로젝트는 dwookit 명령을 처음 실행할 때(창에서 열 때 포함) 자동으로 옮겨집니다. 아래 [이전 이름에서 옮기기](#이전-이름에서-옮기기-dwo-forge-dwo-lens-1x)를 보세요.
 
@@ -441,20 +442,22 @@ __dwookit.bat live off | status | rebuild
 
 추적 대상은 **파일 분석 › 목록에서 고르기**에서 프로젝트 블루프린트 트리로 고릅니다(명령줄의 `bp add`와 같은 `bp-track.txt`를 씁니다). 후보 목록은 에디터 없이 `.uasset` 헤더에서 읽습니다(`tools/lens_targets.py`, Lyra 506개 약 2초).
 
-### 네이티브 C++ 마이그레이션 (`native`, 개발 중)
+## DwoConvert: 블루프린트 → C++ 전환 (`convert`, 개발 중)
+
+설치: `__dwookit.bat tool install convert` (DwoLens도 필요: 블루프린트 export를 읽음). 명령은 `convert …`이고, 예전 이름 `native …`도 받습니다. 플러그인은 `Plugins/__DwoConvert`(에디터 전용, 기본 비활성, dwookit 실행 때만 켬)이고, 동작 비교의 네트워크 검사는 에디터 자동화 테스트 `DwoConvert.NetCheck`입니다.
 
 블루프린트(액터·컴포넌트, 위젯, 애니메이션 블루프린트)의 구성 요소, 값, 노드 로직을 C++ 부모 클래스로 옮기고, 원래 블루프린트를 그 클래스를 상속하도록 바꿉니다(rebase). 에셋, 참조, 레벨에 놓인 인스턴스, 옮기지 못한 로직은 블루프린트에 그대로 남아 계속 동작합니다.
 
 ```bat
-__dwookit.bat native plan     /Game/Props/BP_JumpPad        :: 무엇이 C++로 가고 무엇이 왜 남는지
-__dwookit.bat native generate /Game/Props/BP_JumpPad        :: Source\<모듈>\DwoNative\BP_JumpPad\ + Build.cs 모듈 추가(백업)
+__dwookit.bat convert plan     /Game/Props/BP_JumpPad        :: 무엇이 C++로 가고 무엇이 왜 남는지
+__dwookit.bat convert generate /Game/Props/BP_JumpPad        :: Source\<모듈>\DwoNative\BP_JumpPad\ + Build.cs 모듈 추가(백업)
 __dwookit.bat compile                                        :: 에디터 대상 빌드 (에디터 닫고)
-__dwookit.bat native rebase   /Game/Props/BP_JumpPad --dry-run   :: 검증만
-__dwookit.bat native rebase   /Game/Props/BP_JumpPad        :: 백업 후 상속 전환, 검증 통과 시에만 저장
-__dwookit.bat native verify   /Game/Props/BP_JumpPad        :: 동작 비교: 원본과 마이그레이션본을 같은 시나리오로 실행
-__dwookit.bat native verify   /Game/Props/BP_Box --frames 220 --no-probe --call OnBoxDestroyed@10   :: 부모 C++가 부르는 이벤트를 10프레임에 실행
-__dwookit.bat native verify   /Game/Props/BP_Door --probe-offset 0:200:100                         :: 프로브가 떨어질 위치(액터 기준)
-__dwookit.bat native restore  /Game/Props/BP_JumpPad        :: 마지막 백업으로 되돌리기
+__dwookit.bat convert rebase   /Game/Props/BP_JumpPad --dry-run   :: 검증만
+__dwookit.bat convert rebase   /Game/Props/BP_JumpPad        :: 백업 후 상속 전환, 검증 통과 시에만 저장
+__dwookit.bat convert verify   /Game/Props/BP_JumpPad        :: 동작 비교: 원본과 마이그레이션본을 같은 시나리오로 실행
+__dwookit.bat convert verify   /Game/Props/BP_Box --frames 220 --no-probe --call OnBoxDestroyed@10   :: 부모 C++가 부르는 이벤트를 10프레임에 실행
+__dwookit.bat convert verify   /Game/Props/BP_Door --probe-offset 0:200:100                         :: 프로브가 떨어질 위치(액터 기준)
+__dwookit.bat convert restore  /Game/Props/BP_JumpPad        :: 마지막 백업으로 되돌리기
 ```
 
 정확도 원칙:
@@ -471,7 +474,7 @@ __dwookit.bat native restore  /Game/Props/BP_JumpPad        :: 마지막 백업�
 4. 기록한 값을 새 기본값과 네이티브 컴포넌트에 되돌려 씁니다.
 5. 컴파일 오류가 없고, 다시 기록한 값이 처음과 하나도 다르지 않을 때만 저장합니다. 실패하면 저장하지 않고 백업을 되돌립니다. 결과는 `__dwookit/native/<이름>.rebase.json`.
 
-동작 비교(`native verify`, 액터·위젯·애니메이션 블루프린트):
+동작 비교(`convert verify`, 액터·위젯·애니메이션 블루프린트):
 - 같은 시나리오를 두 번 실행합니다. 한 번은 전환한 에셋으로, 한 번은 전환 전 백업을 잠시 제자리에 두고(끝나면 전환한 에셋을 반드시 되돌림).
 - 시나리오: 엔진 테스트 월드(게임 인스턴스, 프로젝트 게임 모드, 고정 시간 간격)에서 90프레임 실행합니다.
   - 액터: 블루프린트를 놓고 20프레임에 프로브 캐릭터를 위에서 쓸어내리듯 내려 겹침, 캐스트, 발사 같은 상호작용을 일으킵니다.
@@ -483,7 +486,7 @@ __dwookit.bat native restore  /Game/Props/BP_JumpPad        :: 마지막 백업�
 - 비교: 숫자는 부동소수 오차(1e-3)까지 같으면 같음으로 봅니다. 스폰마다 바뀌는 GUID와 임시 월드 이름은 제외하고, C++에만 있는 멤버는 따로 나열합니다. 결과는 `__dwookit/native/<이름>.behaviour.md`.
 - 같은 원본을 두 번 돌린 결과가 같음(결정적)을 확인했습니다. 생성된 C++에 일부러 넣은 오류(발사 속도 절반)는 바로 "다름"으로 잡힙니다.
 - `--call 함수@프레임[@인자...]`: 부모 C++가 게임 중에 부르는 이벤트(BlueprintImplementableEvent, 인터페이스 이벤트 등)를 실행합니다. 인자는 매개변수 순서대로 텍스트로(쉼표가 든 값은 따옴표로), 나머지는 기본값. 예: `--call SetLifePercentage@5@0.35`. `자식.이름`은 대상이 가진 위젯·컴포넌트의 함수나 이벤트 디스패처를 그 자식이 부르듯 실행합니다(버튼 누름, 자식 위젯의 디스패처). 예: `--call "Btn_Jump.OnPressed@10" --call "Thumbstick_Move.Stick Input@5@(X=1.0,Y=0.5)"`. `--probe-offset X:Y:Z`: 프로브가 떨어질 위치.
-- `--net`: 네트워크 검사. 에디터가 PIE로 리슨 서버 하나와 클라이언트 하나를 띄우고(창 없음, null RHI, 한 번에 몇 분), 서버에서 액터를 스폰해 복제하고 클라이언트 컨트롤러가 소유하게 합니다(그래야 클라이언트가 Server 함수를 부를 수 있음). `--call client:함수@프레임` / `server:함수@프레임`으로 어느 쪽 사본이 부를지 정하고, 양쪽 사본을 모두 기록해 비교합니다. Server는 서버에서, Client는 소유 클라이언트에서, Multicast는 양쪽에서 실행되는지까지 확인됩니다. 예: `__dwookit.bat native verify /Game/BP_X --net --call "client:ServerAdd@5@10" --call "server:MulticastPing@25"`.
+- `--net`: 네트워크 검사. 에디터가 PIE로 리슨 서버 하나와 클라이언트 하나를 띄우고(창 없음, null RHI, 한 번에 몇 분), 서버에서 액터를 스폰해 복제하고 클라이언트 컨트롤러가 소유하게 합니다(그래야 클라이언트가 Server 함수를 부를 수 있음). `--call client:함수@프레임` / `server:함수@프레임`으로 어느 쪽 사본이 부를지 정하고, 양쪽 사본을 모두 기록해 비교합니다. Server는 서버에서, Client는 소유 클라이언트에서, Multicast는 양쪽에서 실행되는지까지 확인됩니다. 예: `__dwookit.bat convert verify /Game/BP_X --net --call "client:ServerAdd@5@10" --call "server:MulticastPing@25"`.
 - `--record-every N`: N프레임마다 기록합니다(기본 10). 짧게 지나가는 상태(처음 몇 프레임의 분기)까지 비교하려면 `--record-every 1`.
 - 바운드 이벤트의 바인딩은 블루프린트가 만든 함수(`BndEvt__...`)와 그것을 옮긴 C++ 함수를 같은 바인딩으로 봅니다.
 - 한계: 위젯은 그리지 않으므로 바인딩(속성 바인딩 함수)과 그리기 결과는 비교하지 않습니다. 무작위 값이나 실제 시간을 쓰는 로직은 차이로 나올 수 있습니다. 시나리오가 건드리지 않는 경로(특정 입력, 다른 액터와의 상호작용)는 검증되지 않습니다.
@@ -501,7 +504,7 @@ __dwookit.bat native restore  /Game/Props/BP_JumpPad        :: 마지막 백업�
 - **다른 블루프린트 클래스의 변수 읽기·쓰기**: C++ 타입이 없으므로 이름으로 읽고 씁니다(`DwoNative::GetProperty` / `SetProperty`). 복제 변수 쓰기는 블루프린트에 남습니다.
 - **델리게이트**: Create Event, 커스텀 이벤트를 Set Timer by Event 등 델리게이트 인자로 넘기기, Bind / Unbind / Unbind All(디스패처를 이름으로 찾아 VM처럼 묶음; 블루프린트 클래스의 디스패처에도 동작).
 
-이 노드들은 QA 프로젝트에서 실제 블루프린트로 검증했습니다: `tests/fixtures/native/lab/*.build.json`으로 테스트 블루프린트를 만들고(DwoLens `-LensBuildBlueprint`, dwookit 자체 QA용), rebase(값 차이 0)와 동작 비교(같음)를 거쳤습니다.
+이 노드들은 QA 프로젝트에서 실제 블루프린트로 검증했습니다: `tests/fixtures/native/lab/*.build.json`으로 테스트 블루프린트를 만들고(`tests/qa-lab.ps1`, QA 전용 플러그인 DwoQA), rebase(값 차이 0)와 동작 비교(같음)를 거쳤습니다.
 
 엔진과 같은 방식으로 옮기는 것:
 - **지연(latent) 액션**(Delay, RetriggerableDelay, MoveComponentTo …): 호출은 그대로 두고, Completed 뒤의 흐름을 별도 UFUNCTION(`Latent_<노드>`)으로 만들어 latent 액션 매니저가 부르게 합니다. UUID는 블루프린트 컴파일러와 같은 노드 GUID 해시라, 대기 중 재호출 무시 같은 동작이 같습니다. 이벤트 인자는 멤버로 복사해 나중에 읽어도 블루프린트 프레임처럼 남아 있습니다. `Move`/`Stop`처럼 실행 핀이 여러 개인 노드(ExpandEnumAsExecs)는 들어온 핀에 맞는 값을 넘깁니다. 루프 안의 지연은 블루프린트에 남습니다.
@@ -628,10 +631,12 @@ rebase 안전장치: 블루프린트에 남는 실행 흐름이 C++로 옮긴 �
 | `tools/lens_export.py` | 실행 결과 → JUnit, SARIF 2.1.0 (이전 실행 대비 new/unchanged) |
 | `tools/ci.ps1`, `tools/dwookit_ci.py` | DwoBuilder: 오프라인 번들, Jenkins 설치·실행, 프로젝트 작업, git 훅과 트리거 판단, 보관 개수 |
 | `tools/vendor/mermaid.min.js` | 리포트 다이어그램용 Mermaid 10.9.1 (MIT). 리포트가 인터넷 없이 그려지도록 실행 기록 폴더로 복사 |
-| `tools/catalog.json` | 도구 레지스트리 (세 도구별로 묶음) |
+| `tools/catalog.json` | 도구 레지스트리: 기능마다 소속 도구(lens, statemonitor, canvas, convert, builder, forge), 단계, 명령, 결과 파일 |
 | `gui/`, `tools/gui.ps1` | ImGui 제어판 (Dear ImGui 1.91.9b docking, nlohmann/json 3.11.3, MIT). DwoStateMonitor 뷰어, DwoCanvas 화면 포함 |
 | `config/default.json` | DwoLens 규칙과 기준값 |
 | `plugin/DwoLensInspector` | DwoLens 추출 Commandlet (읽기 전용, 패키지를 저장하지 않음) |
+| `plugin/DwoConvert`, `tools/convert_native.py` | DwoConvert: 블루프린트 → C++ 변환기(Python), rebase·동작 비교·네트워크 검사(플러그인). rebase는 백업 뒤 에셋을 저장 |
+| `tests/qa-plugin/DwoQA`, `tests/qa-lab.ps1` | dwookit 자체 QA 전용: JSON 명세로 테스트 블루프린트를 만드는 플러그인(사용자 프로젝트에는 설치하지 않음) |
 | `plugin/DwoStateMonitor` | DwoStateMonitor 런타임 플러그인 |
 | `plugin/DwoCanvas`, `canvas/` | DwoCanvas 플러그인, 검사기(`canvas/python`), 어댑터, 설계 문서 |
 

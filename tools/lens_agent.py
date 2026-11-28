@@ -161,14 +161,7 @@ When the task spans more than ~300 lines of pseudocode (refactoring, review, "wh
   duplicated or dead logic; candidates to move into a function, an interface, a component or C++."
 - Make the design decisions yourself from those summaries. Do not pull whole graphs into your own context.
 
-## Moving Blueprint logic to C++: let dwookit do it
-dwookit translates a Blueprint into a C++ base class and reparents the Blueprint onto it, checked value by value
-and by running both versions (`ctx bp <Name>` shows how much it moves). For a Blueprint it covers, propose that
-instead of writing the C++ by hand; the user runs, with the editor closed:
-`__dwookit.bat native plan|generate <bp>`, `compile`, `native rebase <bp>`, `native verify <bp>`.
-Write C++ by hand only for what `ctx bp` lists as staying, or for new logic.
-
-## What to deliver
+{convert_section(project)}## What to deliver
 Agents cannot edit Blueprint assets. Deliver one of:
 - **C++** (preferred for heavy or repeated logic): a C++ base class, component or BlueprintFunctionLibrary,
   exposed with `UFUNCTION(BlueprintCallable)`, `BlueprintImplementableEvent` or `BlueprintNativeEvent`, plus the
@@ -184,6 +177,20 @@ Output: the change list or the code only. No explanations, background or summari
 - `__dwookit.bat bp export`: refresh the pseudocode after Blueprint edits (only changed Blueprints; `--all` for every one).
 - `__dwookit.bat analyze`: architecture report and quality checks.
 Never run these while the Unreal Editor has the project open.
+"""
+
+
+def convert_section(project: Path) -> str:
+    """Only when DwoConvert (the Blueprint -> C++ migration tool) is installed in the project."""
+    if not (project / "Plugins" / "__DwoConvert" / "DwoConvert.uplugin").exists():
+        return ""
+    return """## Moving Blueprint logic to C++: let DwoConvert do it
+DwoConvert translates a Blueprint into a C++ base class and reparents the Blueprint onto it, checked value by value
+and by running both versions (`ctx bp <Name>` shows how much it moves). For a Blueprint it covers, propose that
+instead of writing the C++ by hand; the user runs, with the editor closed:
+`__dwookit.bat convert plan|generate <bp>`, `compile`, `convert rebase <bp>`, `convert verify <bp>`.
+Write C++ by hand only for what `ctx bp` lists as staying, or for new logic.
+
 """
 
 

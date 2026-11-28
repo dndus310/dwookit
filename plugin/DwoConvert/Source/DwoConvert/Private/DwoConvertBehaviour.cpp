@@ -2,7 +2,7 @@
 // records what it does, so the same scenario can be run on the Blueprint before and after the migration and the two
 // traces compared (tools/lens_native.py compare).
 //
-//   -LensBehave=<scenario.json> -LensBehaveOut=<trace.json>
+//   -ConvertBehave=<scenario.json> -ConvertBehaveOut=<trace.json>
 //
 // scenario: {"blueprint": "/Game/A/BP_X.BP_X", "frames": 90, "dt": 0.0333, "probe": "character" | "none",
 //            "probeOffset": [x, y, z], "probeFrame": 30, "recordEvery": 10}
@@ -16,7 +16,7 @@
 // recorded: its properties and those of every widget in its tree. An animation Blueprint runs on a Character's mesh
 // (a skeletal mesh of its target skeleton), launched at the probe frame; recorded: the anim instance's properties,
 // the character's movement and a sample of the pose.
-#include "DwoLensBehaviour.h"
+#include "DwoConvertBehaviour.h"
 
 #include "AIController.h"
 #include "Editor.h"
@@ -76,7 +76,7 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogDwoBehaviour, Log, All);
 
-namespace DwoLensInspector::Behaviour
+namespace DwoConvert::Behaviour
 {
 	using FJson = TSharedPtr<FJsonObject>;
 
@@ -266,9 +266,9 @@ namespace DwoLensInspector::Behaviour
 	}
 }
 
-int32 DwoLensInspector::RunBehaviour(const FString& ScenarioFile, const FString& OutFile)
+int32 DwoConvert::RunBehaviour(const FString& ScenarioFile, const FString& OutFile)
 {
-	using namespace DwoLensInspector::Behaviour;
+	using namespace DwoConvert::Behaviour;
 	FJson Trace = MakeShared<FJsonObject>();
 	TArray<TSharedPtr<FJsonValue>> Steps;
 	auto Write = [&](bool bOk, const FString& Error) -> int32
@@ -650,10 +650,10 @@ int32 DwoLensInspector::RunBehaviour(const FString& ScenarioFile, const FString&
 // may call its Server functions); calls run on either side; both copies are recorded. Shows where replicated events
 // run (Server on the server, Client on the owning client, Multicast on both), not only what their bodies do.
 // Run in the editor (a commandlet has no PIE):
-//   UnrealEditor <project> -LensNetScenario=<scenario.json> -LensNetOut=<trace.json>
-//       -ExecCmds="Automation RunTests DwoLens.NativeNetCheck" -TestExit="Automation Test Queue Empty" -nullrhi
+//   UnrealEditor <project> -ConvertNetScenario=<scenario.json> -ConvertNetOut=<trace.json>
+//       -ExecCmds="Automation RunTests DwoConvert.NetCheck" -TestExit="Automation Test Queue Empty" -nullrhi
 #if WITH_DEV_AUTOMATION_TESTS
-namespace DwoLensInspector::Behaviour
+namespace DwoConvert::Behaviour
 {
 	static FString InvokeByName(UObject* Target, const FString& Name, const TArray<FString>& Args)
 	{
@@ -849,17 +849,17 @@ namespace DwoLensInspector::Behaviour
 	};
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDwoLensNativeNetCheck, "DwoLens.NativeNetCheck", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDwoConvertNetCheck, "DwoConvert.NetCheck", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FDwoLensNativeNetCheck::RunTest(const FString& Parameters)
+bool FDwoConvertNetCheck::RunTest(const FString& Parameters)
 {
 	FString Scenario, Out;
-	if (!FParse::Value(FCommandLine::Get(), TEXT("LensNetScenario="), Scenario) || !FParse::Value(FCommandLine::Get(), TEXT("LensNetOut="), Out))
+	if (!FParse::Value(FCommandLine::Get(), TEXT("ConvertNetScenario="), Scenario) || !FParse::Value(FCommandLine::Get(), TEXT("ConvertNetOut="), Out))
 	{
-		AddError(TEXT("run with -LensNetScenario=<scenario.json> -LensNetOut=<trace.json>"));
+		AddError(TEXT("run with -ConvertNetScenario=<scenario.json> -ConvertNetOut=<trace.json>"));
 		return false;
 	}
-	ADD_LATENT_AUTOMATION_COMMAND(DwoLensInspector::Behaviour::FNetCheckCommand(Scenario, Out));
+	ADD_LATENT_AUTOMATION_COMMAND(DwoConvert::Behaviour::FNetCheckCommand(Scenario, Out));
 	return true;
 }
 #endif

@@ -24,9 +24,11 @@ static const ToolMeta kToolMeta[] = {
 	{ "lens", "DwoLens", "Ln", ICON_SEARCH, col::Accent, "아키텍처·문제·검증·로그·성능·용량 검사와 실행 기록", Activity::Overview, "Plugins/__DwoLensInspector (편집기 전용, 기본 꺼짐)" },
 	{ "statemonitor", "DwoStateMonitor", "SM", ICON_EYE, col::Pass, "실행 중인 게임의 상태를 실시간으로 보는 플러그인", Activity::Live, "Plugins/__DwoStateMonitor" },
 	{ "canvas", "DwoCanvas", "Cv", ICON_CANVAS, col::Purple, "디자인 파일(*.dwocanvas.json)을 UMG 위젯 블루프린트로 가져오기", Activity::Canvas, "Plugins/__DwoCanvas" },
+	// DwoConvert has no screen of its own yet: its row opens the launcher (the command line runs it: convert ...)
+	{ "convert", "DwoConvert", "Cn", ICON_CODE, col::Warn, "블루프린트를 C++로 옮기고 전환 전후 동작 비교 (프로젝트를 바꿈: 블루프린트·Source·Build.cs)", Activity::Launcher, "Plugins/__DwoConvert (편집기 전용, 기본 꺼짐)" },
 	{ "builder", "DwoBuilder", "Bd", ICON_PACKAGE, col::Teal, "C++ 컴파일·패키지 빌드, push·merge·커밋 때 자동 빌드(Jenkins)", Activity::Ci, "Jenkins 작업, .git/hooks (Jenkins는 PC에 하나)" },
 };
-static const int kToolCount = 4;
+static const int kToolCount = 5;
 
 static const ToolMeta* ToolMetaOf(const std::string& id)
 {
@@ -153,7 +155,9 @@ static std::vector<ToolView> ToolViews(App& app)
 		if (!found)
 		{
 			std::string id = m.id;
-			bool installed = id == "lens" ? app.lensInstalled : id == "statemonitor" ? app.stateMonitor == 1 : id == "canvas" ? app.canvas == 1 : app.ciInstalled;
+			std::error_code ec;
+			bool installed = id == "lens" ? app.lensInstalled : id == "statemonitor" ? app.stateMonitor == 1 : id == "canvas" ? app.canvas == 1
+			               : id == "convert" ? fs::exists(app.project / "Plugins" / "__DwoConvert" / "DwoConvert.uplugin", ec) : app.ciInstalled;
 			bool own = id == "statemonitor" ? app.stateMonitor == 2 : id == "canvas" ? app.canvas == 2 : false;
 			v.state = own ? "own" : id == "statemonitor" && app.stateMonitorLegacy ? "legacy" : installed ? "installed" : "none";
 		}

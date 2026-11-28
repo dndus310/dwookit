@@ -1,8 +1,5 @@
 #include "DwoLensInspectorCommandlet.h"
 #include "DwoLensBlueprintExport.h"
-#include "DwoLensNativeRebase.h"
-#include "DwoLensBehaviour.h"
-#include "DwoLensBuildBlueprint.h"
 
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetRegistry/IAssetRegistry.h"
@@ -464,37 +461,6 @@ UDwoLensInspectorCommandlet::UDwoLensInspectorCommandlet()
 int32 UDwoLensInspectorCommandlet::Main(const FString& Params)
 {
 	using namespace DwoLensInspector;
-
-	// dwookit QA: -LensBuildBlueprint=<spec.json> creates a test Blueprint (DwoLensBuildBlueprint.cpp)
-	FString BuildSpec;
-	if (FParse::Value(*Params, TEXT("LensBuildBlueprint="), BuildSpec) && !BuildSpec.IsEmpty())
-	{
-		return BuildBlueprint(BuildSpec);
-	}
-
-	// Native migration, behaviour check: -LensBehave=<scenario.json> -LensBehaveOut=<trace.json>
-	FString BehaveScenario;
-	if (FParse::Value(*Params, TEXT("LensBehave="), BehaveScenario) && !BehaveScenario.IsEmpty())
-	{
-		FString BehaveOut;
-		if (!FParse::Value(*Params, TEXT("LensBehaveOut="), BehaveOut) || BehaveOut.IsEmpty())
-		{
-			BehaveOut = FPaths::ChangeExtension(BehaveScenario, TEXT("trace.json"));
-		}
-		return RunBehaviour(BehaveScenario, BehaveOut);
-	}
-
-	// Native migration: -LensRebase=<Name.native.json> -LensRebaseReport=<file> [-LensDryRun] [-LensForce]
-	FString RebaseMap;
-	if (FParse::Value(*Params, TEXT("LensRebase="), RebaseMap) && !RebaseMap.IsEmpty())
-	{
-		FString RebaseReport;
-		if (!FParse::Value(*Params, TEXT("LensRebaseReport="), RebaseReport) || RebaseReport.IsEmpty())
-		{
-			RebaseReport = FPaths::ChangeExtension(RebaseMap, TEXT("rebase.json"));
-		}
-		return RebaseBlueprint(RebaseMap, RebaseReport, FParse::Param(*Params, TEXT("LensDryRun")), FParse::Param(*Params, TEXT("LensForce")));
-	}
 
 	// Tracked Blueprints: -LensBpList=<file> -LensBpOut=<dir>. Alone, or together with the full -LensOut dump
 	// so one editor start serves both.

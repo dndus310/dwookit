@@ -1162,7 +1162,7 @@ struct App
 		std::istringstream in(command);
 		std::string verb, action, id;
 		in >> verb >> action >> id;
-		std::string name = id == "lens" ? "DwoLens" : id == "statemonitor" ? "DwoStateMonitor" : id == "canvas" ? "DwoCanvas" : id == "ci" || id == "builder" ? "DwoBuilder" : id == "--all" ? "모든 도구" : id;
+		std::string name = id == "lens" ? "DwoLens" : id == "statemonitor" ? "DwoStateMonitor" : id == "canvas" ? "DwoCanvas" : id == "convert" ? "DwoConvert" : id == "ci" || id == "builder" ? "DwoBuilder" : id == "--all" ? "모든 도구" : id;
 		return name + (action == "install" ? " 설치" : action == "update" ? " 업데이트" : action == "remove" ? " 제거" : " " + action);
 	}
 

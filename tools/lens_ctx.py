@@ -104,7 +104,7 @@ class Context:
         elif nat:
             share = round(100 * nat["migrated"] / nat["nodes"]) if nat["nodes"] else 100
             out.append(f"  C++         the migration moves {nat['migrated']}/{nat['nodes']} nodes ({share}%): "
-                       f"__dwookit.bat native plan {f.get('package')}")
+                       f"__dwookit.bat convert plan {f.get('package')} (DwoConvert)")
             for reason in nat.get("stays", [])[:8]:
                 out.append(f"              stays: {reason}")
         defined = sorted({s for s, refs in self.symbols.items() if s.startswith(name + ".")})

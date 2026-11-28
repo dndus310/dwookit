@@ -1,6 +1,6 @@
 {
   "schema": "forge.catalog/0.2",
-  "_comment": "Tool registry of dwookit. tool: lens (DwoLens analysis lines), statemonitor (DwoStateMonitor), canvas (DwoCanvas), builder (DwoBuilder: compile, package, local Jenkins), forge (shared operations). kind: build = implemented by dwookit, wrap = Epic/engine tool driven headless, ai = interpretation. status: ready | planned.",
+  "_comment": "Tool registry of dwookit. tool: lens (DwoLens analysis lines), statemonitor (DwoStateMonitor), canvas (DwoCanvas), convert (DwoConvert: Blueprint -> C++ migration; changes the project), builder (DwoBuilder: compile, package, local Jenkins), forge (shared operations). kind: build = implemented by dwookit, wrap = Epic/engine tool driven headless, ai = interpretation. status: ready | planned.",
   "tools": [
     {
       "id": "reflection-dump",
@@ -511,6 +511,86 @@
       "output": "interactive"
     },
     {
+      "id": "convert-plan",
+      "tool": "convert",
+      "station": "ST-2",
+      "kind": "build",
+      "status": "ready",
+      "command": "convert plan",
+      "invocation": "convert_native.py plan over DwoLens's export of the Blueprint",
+      "output": "what moves to C++ per variable, component, event and function, and why the rest stays"
+    },
+    {
+      "id": "convert-coverage",
+      "tool": "convert",
+      "station": "ST-2",
+      "kind": "build",
+      "status": "ready",
+      "command": "bp export",
+      "invocation": "convert_native.py coverage after every bp export (when DwoConvert is installed)",
+      "output": "__dwookit/convert/coverage.json (dwoconvert.coverage/1), shown by DwoLens in index.md and ctx bp"
+    },
+    {
+      "id": "convert-generate",
+      "tool": "convert",
+      "station": "ST-5",
+      "kind": "build",
+      "status": "ready",
+      "command": "convert generate",
+      "invocation": "convert_native.py generate",
+      "output": "Source/<Module>/DwoNative/<Name>/<Class>.h/.cpp, DwoNativeLiterals.h, <Name>.native.json, modules added to <Module>.Build.cs (backup kept)"
+    },
+    {
+      "id": "convert-rebase",
+      "tool": "convert",
+      "station": "ST-5",
+      "kind": "build",
+      "status": "ready",
+      "command": "convert rebase",
+      "invocation": "UnrealEditor-Cmd -run=DwoConvert -ConvertRebase=<Name.native.json> (DwoConvertRebase.cpp); backup of the .uasset first",
+      "output": "the Blueprint reparented onto the generated class, saved only with 0 value differences; __dwookit/native/<Name>.rebase.json"
+    },
+    {
+      "id": "convert-restore",
+      "tool": "convert",
+      "station": "ST-5",
+      "kind": "build",
+      "status": "ready",
+      "command": "convert restore",
+      "invocation": "copies the last backup back (and Build.cs)",
+      "output": "the Blueprint as it was before the rebase"
+    },
+    {
+      "id": "convert-behaviour-check",
+      "tool": "convert",
+      "station": "ST-3",
+      "kind": "build",
+      "status": "ready",
+      "command": "convert verify",
+      "invocation": "-run=DwoConvert -ConvertBehave=<scenario.json> twice: the rebased Blueprint and its backup (actors, widgets, anim, behavior tree nodes)",
+      "output": "__dwookit/native/<Name>.behaviour.md/.json: same or every difference"
+    },
+    {
+      "id": "convert-net-check",
+      "tool": "convert",
+      "station": "ST-3",
+      "kind": "build",
+      "status": "ready",
+      "command": "convert verify --net",
+      "invocation": "the editor (null RHI) runs the automation test DwoConvert.NetCheck: a listen server and one client in PIE",
+      "output": "both copies of the actor compared before and after (Server, Client and Multicast events run where they should)"
+    },
+    {
+      "id": "convert-status",
+      "tool": "convert",
+      "station": "OPS",
+      "kind": "build",
+      "status": "ready",
+      "command": "convert status",
+      "invocation": "reads __dwookit/native/*.native.json and *.rebase.json",
+      "output": "per Blueprint: generated class, nodes moved, rebased or not"
+    },
+    {
       "id": "ubt-editor-compile",
       "tool": "builder",
       "station": "BUILD",
@@ -532,7 +612,7 @@
     },
     {
       "id": "ci-export",
-      "tool": "lens",
+      "tool": "forge",
       "station": "OPS",
       "kind": "build",
       "status": "ready",
