@@ -452,7 +452,7 @@ class ForgeCliTests(unittest.TestCase):
         doc, tools = self.tools()
         self.assertEqual(doc["schema"], "forge.tools/1")
         self.assertFalse(doc["project"]["connected"])
-        self.assertEqual(list(tools), ["lens", "statemonitor", "canvas", "ci"])
+        self.assertEqual(list(tools), ["lens", "statemonitor", "canvas", "builder"])
         self.assertTrue(all(t["state"] == "none" for t in tools.values()))
         self.assertFalse((self.project / "__dwookit").exists(), "tools never writes into the project")
         self.assertIn("jenkins", doc["pc"])
@@ -561,28 +561,28 @@ class ForgeCliTests(unittest.TestCase):
         self.assertEqual(list(state["tools"]), ["lens"])
 
     def test_tool_names_work_as_ids(self):
-        # DwoCanvas / DwoBuilder (and builder) name the same tools as canvas / ci.
+        # DwoCanvas / DwoBuilder (and ci, its id before 3.x) name the same tools as canvas / builder.
         self.make_canvas()
         write(self.project / "__dwookit" / "ci.json", json.dumps({"job": "dwookit-Game", "hash": "x"}))
         self.connect_fake(tools={"canvas": {"version": "3.0.0", "hash": "x"}})
         code, out = self.forge("tool", "remove", "DwoCanvas")
         self.assertEqual(code, 0, out)
         self.assertFalse((self.project / "Plugins" / "__DwoCanvas").exists())
-        code, out = self.forge("tool", "remove", "builder", DWOOKIT_CI_HOME=str(self.tmp / "no-ci"))
+        code, out = self.forge("tool", "remove", "ci", DWOOKIT_CI_HOME=str(self.tmp / "no-ci"))
         self.assertEqual(code, 0, out)
         self.assertFalse((self.project / "__dwookit" / "ci.json").exists())
 
     def test_local_ci_record_lives_in_ci_json(self):
         self.connect_fake()
         _, tools = self.tools()
-        current = tools["ci"]["availableHash"]
+        current = tools["builder"]["availableHash"]
         write(self.project / "__dwookit" / "ci.json", json.dumps({"job": "dwookit-Game", "version": "2.1.0", "hash": "old"}))
         _, tools = self.tools()
-        self.assertEqual(tools["ci"]["state"], "update")
-        self.assertEqual(tools["ci"]["detail"], "dwookit-Game")
+        self.assertEqual(tools["builder"]["state"], "update")
+        self.assertEqual(tools["builder"]["detail"], "dwookit-Game")
         write(self.project / "__dwookit" / "ci.json", json.dumps({"job": "dwookit-Game", "version": "3.0.0", "hash": current}))
         _, tools = self.tools()
-        self.assertEqual(tools["ci"]["state"], "installed")
+        self.assertEqual(tools["builder"]["state"], "installed")
 
     def test_ci_hash_formula_matches_ci_ps1(self):
         # dwookit.ps1 and ci.ps1 each compute the Local CI source hash; they must agree or every CI shows an update.
@@ -592,7 +592,7 @@ class ForgeCliTests(unittest.TestCase):
         expected = hashlib.sha256(parts.encode("utf-8")).hexdigest()[:12]
         self.connect_fake()
         _, tools = self.tools()
-        self.assertEqual(tools["ci"]["availableHash"], expected)
+        self.assertEqual(tools["builder"]["availableHash"], expected)
         text = (ROOT / "tools" / "ci.ps1").read_text(encoding="utf-8")
         self.assertIn("foreach ($f in @('tools\\dwookit_ci.py', 'tools\\ci.ps1'))", text)
 
