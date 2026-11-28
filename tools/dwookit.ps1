@@ -13,7 +13,7 @@ param(
     [Parameter(Mandatory = $true)]
     [ValidateSet('connect', 'tool', 'attach', 'update', 'status', 'analyze', 'verify', 'logs', 'smoke', 'perf', 'sizes', 'trace', 'play', 'tools', 'gui',
                  'sm-install', 'sm-remove', 'canvas-install', 'canvas-remove', 'canvas-import', 'canvas-validate',
-                 'doctor', 'uninstall', 'detach', 'compile', 'package', 'bp', 'agent', 'live', 'live-ingest', 'library', 'native',
+                 'doctor', 'uninstall', 'detach', 'compile', 'package', 'bp', 'ctx', 'agent', 'live', 'live-ingest', 'library', 'native',
                  'ci-job', 'ci-trigger', 'ci-hook', 'ci-hooks', 'ci-status', 'ci-install', 'ci-start', 'ci-stop', 'ci-remove', 'ci-bundle')]
     [string]$Command,
     [Parameter(Mandatory = $true)]
@@ -1981,7 +1981,9 @@ function Invoke-BpExport {
     New-Item -ItemType Directory -Force $logDir, $BpDir | Out-Null
     $log = Join-Path $logDir 'bp-export.log'
     Say "bp export: $($tracked.Count) entr$(if ($tracked.Count -eq 1) { 'y' } else { 'ies' }) -> $BpDir"
-    & cmd /c "`"$($engine.Cmd)`" `"$($uproject.Path)`" -run=DwoLensInspector -EnablePlugins=DwoLensInspector -LensBpList=`"$BpTrackPath`" -LensBpOut=`"$BpDir`" -ABSLOG=`"$(Join-Path $logDir 'bp-export-editor.log')`" -unattended -nullrhi -nosplash -nopause -NoSound -stdout -FullStdOutLogOutput > `"$log`" 2>&1"
+    # unchanged Blueprints (same .uasset, dependencies and build) keep their export; --all writes every one again
+    $all = if ($Rest -contains '--all') { ' -LensBpAll' } else { '' }
+    & cmd /c "`"$($engine.Cmd)`" `"$($uproject.Path)`" -run=DwoLensInspector -EnablePlugins=DwoLensInspector -LensBpList=`"$BpTrackPath`" -LensBpOut=`"$BpDir`"$all -ABSLOG=`"$(Join-Path $logDir 'bp-export-editor.log')`" -unattended -nullrhi -nosplash -nopause -NoSound -stdout -FullStdOutLogOutput > `"$log`" 2>&1"
     $code = $LASTEXITCODE
     if (-not (Test-Path (Join-Path $BpDir 'export.json'))) { Fail "The commandlet exported nothing (exit code $code). See $log" }
     Invoke-BpMarkdown
@@ -1989,8 +1991,16 @@ function Invoke-BpExport {
     $manifest = Get-Content -Raw -Encoding UTF8 (Join-Path $BpDir 'export.json') | ConvertFrom-Json
     foreach ($m in @($manifest.missing)) { if ($m) { Say "bp: no Blueprint found at $m" } }
     foreach ($f in @($manifest.failed)) { if ($f) { Say "bp: could not export $f (see $log)" } }
-    Say "bp export: $(@($manifest.exported).Count) Blueprint(s). Start here: $(Join-Path $BpDir 'index.md')"
+    $reused = if ($manifest.reused) { " ($($manifest.reused) unchanged, kept)" } else { '' }
+    Say "bp export: $(@($manifest.exported).Count) Blueprint(s)$reused. Start here: $(Join-Path $BpDir 'index.md')"
     if ($code -ne 0) { exit 2 }
+}
+
+function Invoke-Ctx {
+    # ctx bp|refs|find|stale|stats: small answers from the Blueprint export for coding agents (tools/lens_ctx.py)
+    if (-not (Test-Path (Join-Path $BpDir 'facts.json'))) { Fail 'No Blueprint export yet (or one from an older dwookit). Run: __dwookit.bat bp export' }
+    & python (Join-Path $SystemDir 'tools\lens_ctx.py') --root $BpDir --project $Project @Rest
+    exit $LASTEXITCODE
 }
 
 function Invoke-Bp {
@@ -2963,6 +2973,7 @@ switch ($Command) {
     'doctor'  { if (-not (Invoke-Doctor)) { exit 1 } }
     'analyze' { Invoke-Analyze }
     'bp'      { Invoke-Bp }
+    'ctx'     { Invoke-Ctx }
     'native'  { Invoke-Native }
     'agent'   { Invoke-Agent }
     'library' { Invoke-Library }

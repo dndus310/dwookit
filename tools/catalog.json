@@ -29,7 +29,7 @@
       "kind": "build",
       "status": "ready",
       "command": "bp",
-      "invocation": "UnrealEditor-Cmd <uproject> -run=DwoLensInspector -LensBpList=<bp-track.txt> -LensBpOut=<dir>, then lens_bp.py md (also inside analyze when Blueprints are tracked)",
+      "invocation": "UnrealEditor-Cmd <uproject> -run=DwoLensInspector -LensBpList=<bp-track.txt> -LensBpOut=<dir>, then lens_bp.py md (also inside analyze when Blueprints are tracked); unchanged Blueprints (same .uasset, /Game dependencies and build) keep their export (<Name>.stamp), --all writes every one",
       "output": "__dwookit/blueprints/<path>/<Name>.md (pseudocode; overview + parts/ when long), <Name>.json (lens.bp/1), index.md"
     },
     {
@@ -61,6 +61,26 @@
       "command": "bp",
       "invocation": "lens_explain.py (after lens_bp.py md, in bp export and analyze); window: DwoLens > 파일 분석",
       "output": "__dwookit/blueprints/<path>/<Name>.explain.json (lens.explain/1), <Name>.html, <Name>.explain-prompt.md, index.html"
+    },
+    {
+      "id": "blueprint-context",
+      "tool": "lens",
+      "station": "ST-1",
+      "kind": "build",
+      "status": "ready",
+      "command": "ctx",
+      "invocation": "lens_ctx.py bp|refs|find|stale|stats over facts.json and refs.json (written by lens_bp.py md after every bp export)",
+      "output": "a few lines per question: a Blueprint's files and part files, freshness, C++ migration coverage; where a symbol is used across Blueprints; size savings"
+    },
+    {
+      "id": "blueprint-references",
+      "tool": "lens",
+      "station": "ST-1",
+      "kind": "build",
+      "status": "ready",
+      "command": "bp",
+      "invocation": "lens_bp.py md: node_refs + node_owners per exported Blueprint",
+      "output": "__dwookit/blueprints/refs.json (lens.refs/1: symbol -> Blueprint, read/write/call/define/implement/bind/cast/spawn, event or function, part file), facts.json (lens.bpfacts/1: fingerprint, sizes, C++ coverage, part files)"
     },
     {
       "id": "agent-context",

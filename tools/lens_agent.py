@@ -126,9 +126,21 @@ open its files by path.
   Start at `__dwookit/blueprints/index.md`.
 - Architecture analysis: {f'latest run `__dwookit/data/runs/{run}/out/` (report.html, findings.json)' if run else 'none yet (`__dwookit.bat analyze`)'}.
 
+## Ask before you open (`ctx`, a few lines each, no editor needed)
+- `__dwookit.bat ctx bp <Name>`: its files, the part file of each event and function, whether the export is older
+  than the asset, how much of it the C++ migration moves and why the rest stays.
+- `__dwookit.bat ctx refs <Symbol>`: every place a variable, function, event or dispatcher is read, written,
+  called, defined, implemented, bound, cast to or spawned, across all tracked Blueprints, with the part file to
+  open (`Health`, `BP_Player.Health`, `BPI_Touch.Primary Thumbstick`). Use it to trace an issue or to find what a
+  change affects before you read anything. It covers Blueprints only; search C++ yourself.
+- `__dwookit.bat ctx find <text>`: names containing the text. `ctx stale`: what changed since the export.
+If `ctx` says CHANGED, the exported files are older than the asset: ask the user to run `__dwookit.bat bp export`
+(editor closed; it re-exports only what changed) before relying on them.
+
 ## Reading Blueprints (cheapest first)
 `.uasset` files are binary: never open them, never ask for copied T3D text. Use the exported files:
-1. `blueprints/index.md`: one row per tracked Blueprint (type, parent, size, parts, changed since export).
+1. `blueprints/index.md`: one row per tracked Blueprint (type, parent, size, parts, C++ migration coverage,
+   changed since export).
 2. `<Name>.md`: pseudocode. Small Blueprints are complete in this one file. Large ones are an overview (vars,
    components, defaults, widgets) plus a `## parts` table: one row per event or function with its size,
    the variables it writes and the own functions it calls. Decide from the table which parts matter.
@@ -136,7 +148,8 @@ open its files by path.
 4. `<Name>.json`: every node, pin, default and link. Open it only for one exact detail, never to read it all.
 5. `<Name>.explain.json`: the same Blueprint in plain words (composition, behaviors, flows that go into own
    functions, other tracked Blueprints and C++ bodies). When the user asks to explain a file for a person, follow
-   `<Name>.explain-prompt.md` (it writes `<Name>.agent.json`, which the dwookit window shows).
+   `<Name>.explain-prompt.md` (it writes `<Name>.agent.json`, which the dwookit window shows). An agent.json
+   carries the fingerprint of the version it explains: if it matches explain.json, reuse it instead of rewriting.
 Pseudocode: `on X():` event, `fn` function, `await` latent call, `goto Ln` exec wires that join, `# ...` author
 comment, `X as T` cast, arguments only where the author changed the default.
 
@@ -147,6 +160,13 @@ When the task spans more than ~300 lines of pseudocode (refactoring, review, "wh
   "Read <path>. Reply in at most 8 lines, no prose: purpose; state read/written; calls (own and engine);
   duplicated or dead logic; candidates to move into a function, an interface, a component or C++."
 - Make the design decisions yourself from those summaries. Do not pull whole graphs into your own context.
+
+## Moving Blueprint logic to C++: let dwookit do it
+dwookit translates a Blueprint into a C++ base class and reparents the Blueprint onto it, checked value by value
+and by running both versions (`ctx bp <Name>` shows how much it moves). For a Blueprint it covers, propose that
+instead of writing the C++ by hand; the user runs, with the editor closed:
+`__dwookit.bat native plan|generate <bp>`, `compile`, `native rebase <bp>`, `native verify <bp>`.
+Write C++ by hand only for what `ctx bp` lists as staying, or for new logic.
 
 ## What to deliver
 Agents cannot edit Blueprint assets. Deliver one of:
@@ -161,7 +181,7 @@ Output: the change list or the code only. No explanations, background or summari
 ## Checking the work (the user runs these with the editor closed)
 - `__dwookit.bat compile`: C++ build (editor target).
 - `__dwookit.bat verify`: compiles every Blueprint, data validation, automation tests.
-- `__dwookit.bat bp export`: refresh the pseudocode after Blueprint edits.
+- `__dwookit.bat bp export`: refresh the pseudocode after Blueprint edits (only changed Blueprints; `--all` for every one).
 - `__dwookit.bat analyze`: architecture report and quality checks.
 Never run these while the Unreal Editor has the project open.
 """

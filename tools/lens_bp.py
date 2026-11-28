@@ -17,6 +17,7 @@ Standard library only, no network.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import shutil
@@ -1149,9 +1150,10 @@ def pack_events(parts: list[dict], limit: int = PACK_LINES) -> list[dict]:
     return out
 
 
-def render_split(bp: dict, pack_lines: int = PACK_LINES) -> tuple[str, dict[str, str]]:
+def render_split(bp: dict, pack_lines: int = PACK_LINES, where: dict | None = None) -> tuple[str, dict[str, str]]:
     """A Blueprint too long to read at once: <Name>.md becomes the overview (everything but the graphs, and a
-    table of parts) and every event and function goes to parts/<file>.md. Returns (overview, {file: text})."""
+    table of parts) and every event and function goes to parts/<file>.md. Returns (overview, {file: text}).
+    where: filled with {event or function name: part file}."""
     out = render_head(bp)
     parts, unused = graph_parts(bp)
     parts = pack_events(parts, pack_lines)
@@ -1166,6 +1168,9 @@ def render_split(bp: dict, pack_lines: int = PACK_LINES) -> tuple[str, dict[str,
         facts = part_facts(bp, part, parts)
         fname = part_file_name(part, taken)
         files[fname] = render_part(bp, part, facts)
+        if where is not None:
+            for key in (part.get("events") or []) + (part.get("members") or []) + [part["name"]]:
+                where.setdefault(key, fname)
         out.append(f"| [{part_title(part).replace('|', '/')}](parts/{fname}) | {len(part['lines'])} | "
                    f"{', '.join(facts['writes']) or '-'} | {', '.join(facts['calls']) or '-'} |")
     out.append("")
@@ -1198,6 +1203,130 @@ def source_changed(bp: dict, project: Path | None) -> bool | None:
     return abs((now - exported).total_seconds()) > 2 or f.stat().st_size != src.get("bytes")
 
 
+# ----------------------------------------------------------------------------------------------- facts and references
+# Written next to index.md for `ctx` (lens_ctx.py) and the agent guide, so an agent asks one small question instead
+# of opening every export:
+#   facts.json (lens.bpfacts/1)  per Blueprint: fingerprint, changed since export, sizes (bytes of json, md, parts),
+#                                C++ migration coverage and why nodes stay, the part file of each event / function
+#   refs.json  (lens.refs/1)     symbol -> where it is read, written, called, defined, bound, cast to or spawned
+
+FACTS = "lens.bpfacts/1"
+REFS = "lens.refs/1"
+VOLATILE_KEYS = ("exportedAtUtc", "source", "status")
+
+
+def fingerprint(bp: dict) -> str:
+    """The Blueprint's content, without when it was exported or the file's time: equal fingerprints mean the
+    exported graphs, variables and defaults are the same (an explanation written for one fits the other)."""
+    data = {k: v for k, v in bp.items() if k not in VOLATILE_KEYS}
+    return hashlib.sha1(json.dumps(data, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()[:16]
+
+
+EVENT_CLASSES = ("K2Node_Event", "K2Node_CustomEvent", "K2Node_ComponentBoundEvent", "K2Node_InputAction", "K2Node_InputKey",
+                 "K2Node_EnhancedInputAction", "K2Node_InputAxisEvent", "K2Node_InputAxisKeyEvent", "K2Node_InputTouch",
+                 "K2Node_WidgetAnimationEvent", "K2Node_InputVectorAxisEvent")
+
+
+def node_owners(bp: dict) -> dict[str, tuple[str, str]]:
+    """node id -> (kind, name) of the event or function it belongs to: a function graph's nodes are that
+    function's; an event graph's node belongs to the first event whose flow reaches it (exec forward, data back)."""
+    owners: dict[str, tuple[str, str]] = {}
+    for g in bp.get("graphs", []):
+        nodes = {n["id"]: n for n in g.get("nodes", [])}
+        if g.get("kind") != "event":
+            for nid in nodes:
+                owners[nid] = ("fn", g.get("name", ""))
+            continue
+        feeds: dict[str, list[str]] = {}          # node -> nodes whose outputs it reads
+        for n in nodes.values():
+            for pin in n.get("pins", []):
+                if pin.get("dir") == "out":
+                    for link in pin.get("links", []):
+                        if not is_exec(pin):
+                            feeds.setdefault(link["node"], []).append(n["id"])
+        for root in (n for n in nodes.values() if n.get("class") in EVENT_CLASSES):
+            name = root.get("member") or (root.get("title") or "").splitlines()[0]
+            if root.get("class") == "K2Node_ComponentBoundEvent" and root.get("component"):
+                name = f"{root['component']}.{name}"
+            stack = [root["id"]]
+            while stack:
+                nid = stack.pop()
+                if nid in owners or nid not in nodes:
+                    continue
+                owners[nid] = ("on", name)
+                n = nodes[nid]
+                stack += feeds.get(nid, [])
+                for pin in n.get("pins", []):
+                    if pin.get("dir") == "out" and is_exec(pin):
+                        stack += [l["node"] for l in pin.get("links", [])]
+    return owners
+
+
+def symbol_of(bp: dict, owner: str | None, member: str) -> str:
+    o = short((owner or "").replace(".SKEL_", "."))
+    return f"{o or bp.get('name')}.{member}"
+
+
+def node_refs(bp: dict) -> list[tuple[str, str, str]]:
+    """(symbol, kind, node id) for what each node reads, writes, calls, defines, binds, casts to or spawns."""
+    out = []
+    for g in bp.get("graphs", []):
+        for n in g.get("nodes", []):
+            cls, member, owner = n.get("class", ""), n.get("member") or "", n.get("memberOwner")
+            if cls == "K2Node_VariableGet" and member:
+                out.append((symbol_of(bp, owner, member), "read", n["id"]))
+            elif cls == "K2Node_VariableSet" and member:
+                out.append((symbol_of(bp, owner, member), "write", n["id"]))
+            elif cls in ("K2Node_CallFunction", "K2Node_CallArrayFunction", "K2Node_Message", "K2Node_CallParentFunction",
+                         "K2Node_CommutativeAssociativeBinaryOperator", "K2Node_PromotableOperator") and member:
+                out.append((symbol_of(bp, owner, member), "call", n["id"]))
+            elif cls == "K2Node_CustomEvent" and member:
+                out.append((symbol_of(bp, None, member), "define", n["id"]))
+            elif cls == "K2Node_Event" and member:
+                # an override or interface event: filed under what it implements, next to its callers
+                out.append((symbol_of(bp, owner, member), "implement", n["id"]))
+            elif cls == "K2Node_FunctionEntry" and g.get("kind") == "interface" and g.get("interface"):
+                out.append((symbol_of(bp, g["interface"], g.get("name", "")), "implement", n["id"]))
+            elif cls == "K2Node_FunctionEntry":
+                out.append((f"{bp.get('name')}.{g.get('name')}", "define", n["id"]))
+            elif cls == "K2Node_CallDelegate" and member:
+                out.append((symbol_of(bp, owner, member), "broadcast", n["id"]))
+            elif cls in ("K2Node_AddDelegate", "K2Node_RemoveDelegate", "K2Node_ClearDelegate") and member:
+                out.append((symbol_of(bp, owner, member), "bind" if cls == "K2Node_AddDelegate" else "unbind", n["id"]))
+            elif cls == "K2Node_ComponentBoundEvent" and member:
+                out.append((f"{bp.get('name')}.{n.get('component', '')}.{member}", "bind", n["id"]))
+            elif cls in ("K2Node_DynamicCast", "K2Node_ClassDynamicCast") and member:
+                out.append((short(member), "cast", n["id"]))
+            elif cls in ("K2Node_SpawnActorFromClass", "K2Node_GenericCreateObject", "K2Node_ConstructObjectFromClass", "K2Node_CreateWidget"):
+                target = n.get("spawnClass") or next((p.get("defaultObject") for p in n.get("pins", []) if p.get("name") == "Class"), "")
+                if target:
+                    out.append((short(target.replace(".SKEL_", ".")), "spawn", n["id"]))
+    return out
+
+
+def native_coverage(bp: dict) -> dict | None:
+    """What the C++ migration (lens_native) could move today: nodes, migrated, and why the rest stays."""
+    if "native" not in bp:
+        return None
+    try:
+        import lens_native
+        plan = lens_native.Plan(json.loads(json.dumps(bp)), module="Game").build()
+    except BaseException as e:                       # a Blueprint the planner refuses (already rebased ...)
+        return {"error": str(e)[:200]}
+    items = list(plan.funcs.values()) + list(plan.events) + list(getattr(plan, "timelines", {}).values())
+    used, stays, ghosts = set(), [], set()
+    for it in items:
+        if it.migrated:
+            used |= set(it.extra.get("nodes", []))
+        elif it.extra.get("empty"):
+            ghosts.add(it.extra.get("node"))            # an event with nothing wired to it: nothing to move
+        elif it.reason:
+            stays.append(f"{it.bp}: {it.reason}")
+    graph_nodes = {n["id"] for g in bp.get("graphs", []) if g.get("kind") in ("event", "function", "interface") for n in g.get("nodes", [])
+                   if n.get("class") != "EdGraphNode_Comment" and n["id"] not in ghosts}
+    return {"nodes": len(graph_nodes), "migrated": len(graph_nodes & used), "stays": stays[:20]}
+
+
 def write_folder(root: Path, project: Path | None, split_lines: int = SPLIT_LINES) -> int:
     manifest = load(root / "export.json")
     if not manifest:
@@ -1220,6 +1349,7 @@ def write_folder(root: Path, project: Path | None, split_lines: int = SPLIT_LINE
             d.rmdir()
 
     rows = []
+    facts, refs = {}, {}
     for entry in manifest.get("exported", []):
         folder = root / entry["dir"]
         js = folder / f"{entry['name']}.json"
@@ -1231,12 +1361,30 @@ def write_folder(root: Path, project: Path | None, split_lines: int = SPLIT_LINE
         parts_dir = folder / "parts"
         shutil.rmtree(parts_dir, ignore_errors=True)
         part_files: dict[str, str] = {}
+        where: dict[str, str] = {}
         if whole_lines > split_lines:
-            md, part_files = render_split(bp)
+            md, part_files = render_split(bp, where=where)
             parts_dir.mkdir()
             for fname, text in part_files.items():
                 (parts_dir / fname).write_text(text, encoding="utf-8")
         (folder / f"{entry['name']}.md").write_text(md, encoding="utf-8")
+        md_file = f"{entry['dir']}/{entry['name']}.md"
+        owners = node_owners(bp)
+        for symbol, kind, nid in node_refs(bp):
+            okind, oname = owners.get(nid, ("", ""))
+            part = where.get(oname)
+            refs.setdefault(symbol, []).append([entry["name"], kind, f"{okind} {oname}".strip(),
+                                                f"{entry['dir']}/parts/{part}" if part else md_file])
+        part_bytes = [len(t.encode("utf-8")) for t in part_files.values()]
+        facts[entry["name"]] = {
+            "dir": entry["dir"], "package": entry.get("package"), "fingerprint": fingerprint(bp), "source": bp.get("source"),
+            "changed": source_changed(bp, project),
+            "bytes": {"json": js.stat().st_size, "md": len(md.encode("utf-8")), "parts": sum(part_bytes),
+                      "largestPart": max(part_bytes, default=0)},
+            "parts": {k: f"parts/{v}" for k, v in where.items()},
+            "native": native_coverage(bp),
+            "reused": bool(entry.get("reused")),
+        }
         graphs = bp.get("graphs", [])
         rows.append({
             "name": entry["name"], "dir": entry["dir"], "parent": short(bp.get("parent")), "class": bp.get("assetClass"),
@@ -1254,19 +1402,27 @@ def write_folder(root: Path, project: Path | None, split_lines: int = SPLIT_LINE
         "function is a file in `parts/` that reads on its own.",
         "Refresh: `__dwookit.bat bp export` (editor closed). Track more: `__dwookit.bat bp add <path>`.",
         "",
-        "| Blueprint | type : parent | vars | functions | nodes | pseudocode lines | parts | |",
-        "|---|---|---|---|---|---|---|---|",
+        "| Blueprint | type : parent | vars | functions | nodes | pseudocode lines | parts | C++ migration | |",
+        "|---|---|---|---|---|---|---|---|---|",
     ]
     for r in sorted(rows, key=lambda r: r["dir"]):
         note = "changed since export" if r["changed"] else ""
+        nat = (facts.get(r["name"]) or {}).get("native") or {}
+        cpp = "-" if not nat else ("rebased or refused" if nat.get("error") else f"{nat['migrated']}/{nat['nodes']} nodes")
         lines.append(f"| [{r['name']}]({r['dir']}/{r['name']}.md) | {r['class']} : {r['parent']} | {r['vars']} | {r['fns']} | "
-                     f"{r['nodes']} | {r['mdLines']} | {r['parts'] or '-'} | {note} |")
+                     f"{r['nodes']} | {r['mdLines']} | {r['parts'] or '-'} | {cpp} | {note} |")
     if manifest.get("missing"):
         lines += ["", "Not found (no Blueprint at this path): " + ", ".join(manifest["missing"])]
     if manifest.get("failed"):
         lines += ["", "Could not export: " + ", ".join(manifest["failed"])]
     lines += ["", LEGEND, ""]
     (root / "index.md").write_text("\n".join(lines), encoding="utf-8")
+    stamp = manifest.get("exportedAtUtc", "")
+    (root / "facts.json").write_text(json.dumps({"schema": FACTS, "exportedAtUtc": stamp, "blueprints": facts},
+                                                ensure_ascii=False, indent=1), encoding="utf-8")
+    (root / "refs.json").write_text(json.dumps({"schema": REFS, "exportedAtUtc": stamp,
+                                               "symbols": {k: refs[k] for k in sorted(refs)}}, ensure_ascii=False),
+                                    encoding="utf-8")
     print(f"lens_bp: {len(rows)} Blueprint(s) -> {root}")
     return 0
 

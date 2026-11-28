@@ -1141,6 +1141,52 @@ TArray<TSharedPtr<FJsonValue>> DwoLensInspector::BlueprintComponents(const UBlue
 	return Blueprint ? BpExport::DescribeComponents(Blueprint) : TArray<TSharedPtr<FJsonValue>>();
 }
 
+namespace DwoLensInspector::BpExport
+{
+	// Incremental export: a Blueprint is written again only when something its export depends on changed. Its stamp
+	// (<Name>.stamp next to the JSON) holds the .uasset's size and time and the build stamp of that export.
+	static FString StampOf(const FString& File)
+	{
+		return FString::Printf(TEXT("%lld|%s"), IFileManager::Get().FileSize(*File), *IFileManager::Get().GetTimeStamp(*File).ToIso8601());
+	}
+
+	/** The engine and every binary the export reads types from (the project's modules, its plugins, this exporter):
+	 *  a rebuilt C++ parent or a new DwoLens changes what the JSON would say about the same .uasset. */
+	static FString BuildStamp()
+	{
+		FDateTime Newest(0);
+		TArray<FString> Dlls;
+		const FString Project = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir());
+		IFileManager::Get().FindFilesRecursive(Dlls, *(Project / TEXT("Binaries")), TEXT("*.dll"), true, false);
+		TArray<FString> PluginDlls;
+		IFileManager::Get().FindFilesRecursive(PluginDlls, *(Project / TEXT("Plugins")), TEXT("*.dll"), true, false);
+		Dlls.Append(PluginDlls);
+		for (const FString& Dll : Dlls) { Newest = FMath::Max(Newest, IFileManager::Get().GetTimeStamp(*Dll)); }
+		return FString::Printf(TEXT("%s|%s"), *FEngineVersion::Current().ToString(), *Newest.ToIso8601());
+	}
+
+	/** Reuse the existing export: the .uasset and the build are as stamped, and no /Game package it depends on was
+	 *  saved after it (a parent Blueprint, an interface, a struct it uses). */
+	static bool CanReuse(IAssetRegistry& Registry, const FAssetData& Asset, const FString& JsonFile, const FString& Build)
+	{
+		FString Stamp, File;
+		if (!FFileHelper::LoadFileToString(Stamp, *FPaths::ChangeExtension(JsonFile, TEXT("stamp"))) || !IFileManager::Get().FileExists(*JsonFile)) { return false; }
+		if (!FPackageName::TryConvertLongPackageNameToFilename(Asset.PackageName.ToString(), File, FPackageName::GetAssetPackageExtension())) { return false; }
+		if (Stamp.TrimEnd() != StampOf(File) + TEXT("|") + Build) { return false; }
+		const FDateTime Exported = IFileManager::Get().GetTimeStamp(*JsonFile);
+		TArray<FName> Dependencies;
+		Registry.GetDependencies(Asset.PackageName, Dependencies);
+		for (const FName& Dependency : Dependencies)
+		{
+			FString DependencyFile;
+			const FString Name = Dependency.ToString();
+			if (!Name.StartsWith(TEXT("/Game/")) || !FPackageName::TryConvertLongPackageNameToFilename(Name, DependencyFile, FPackageName::GetAssetPackageExtension())) { continue; }
+			if (IFileManager::Get().GetTimeStamp(*DependencyFile) > Exported) { return false; }
+		}
+		return true;
+	}
+}
+
 int32 DwoLensInspector::ExportTrackedBlueprints(const FString& ListFile, const FString& OutDirIn)
 {
 	using namespace DwoLensInspector::BpExport;
@@ -1197,12 +1243,26 @@ int32 DwoLensInspector::ExportTrackedBlueprints(const FString& ListFile, const F
 
 	FJsonValues Exported;
 	FJsonValues Failed;
+	const bool bAll = FParse::Param(FCommandLine::Get(), TEXT("LensBpAll"));     // bp export --all
+	const FString Build = BuildStamp();
+	int32 Reused = 0;
 	for (const FAssetData& Asset : Targets)
 	{
-		const UBlueprint* Blueprint = Cast<UBlueprint>(Asset.GetAsset());
 		const FString Package = Asset.PackageName.ToString();
 		const FString Dir = OutDir / Package.RightChop(1);
 		const FString File = Dir / (Asset.AssetName.ToString() + TEXT(".json"));
+		FJsonRef Entry = MakeShared<FJsonObject>();
+		Entry->SetStringField(TEXT("package"), Package);
+		Entry->SetStringField(TEXT("name"), Asset.AssetName.ToString());
+		Entry->SetStringField(TEXT("dir"), Package.RightChop(1));
+		if (!bAll && CanReuse(Registry, Asset, File, Build))
+		{
+			Entry->SetBoolField(TEXT("reused"), true);           // not loaded: the existing JSON stands
+			PushObject(Exported, Entry);
+			++Reused;
+			continue;
+		}
+		const UBlueprint* Blueprint = Cast<UBlueprint>(Asset.GetAsset());
 		IFileManager::Get().MakeDirectory(*Dir, true);
 		if (!Blueprint || !WriteJson(File, DescribeBlueprint(Blueprint, Asset)))
 		{
@@ -1210,10 +1270,11 @@ int32 DwoLensInspector::ExportTrackedBlueprints(const FString& ListFile, const F
 			PushString(Failed, Package);
 			continue;
 		}
-		FJsonRef Entry = MakeShared<FJsonObject>();
-		Entry->SetStringField(TEXT("package"), Package);
-		Entry->SetStringField(TEXT("name"), Asset.AssetName.ToString());
-		Entry->SetStringField(TEXT("dir"), Package.RightChop(1));
+		FString AssetFile;
+		if (FPackageName::TryConvertLongPackageNameToFilename(Package, AssetFile, FPackageName::GetAssetPackageExtension()))
+		{
+			FFileHelper::SaveStringToFile(StampOf(AssetFile) + TEXT("|") + Build, *FPaths::ChangeExtension(File, TEXT("stamp")));
+		}
 		PushObject(Exported, Entry);
 	}
 
@@ -1225,11 +1286,12 @@ int32 DwoLensInspector::ExportTrackedBlueprints(const FString& ListFile, const F
 	Manifest->SetArrayField(TEXT("exported"), Exported);
 	Manifest->SetArrayField(TEXT("missing"), Missing);
 	Manifest->SetArrayField(TEXT("failed"), Failed);
+	Manifest->SetNumberField(TEXT("reused"), Reused);
 	if (!WriteJson(OutDir / TEXT("export.json"), Manifest))
 	{
 		return 1;
 	}
-	UE_LOG(LogDwoLensBp, Display, TEXT("DwoLens Blueprint export: %d exported, %d missing, %d failed -> %s"),
-		Exported.Num(), Missing.Num(), Failed.Num(), *OutDir);
+	UE_LOG(LogDwoLensBp, Display, TEXT("DwoLens Blueprint export: %d exported (%d unchanged, reused), %d missing, %d failed -> %s"),
+		Exported.Num(), Reused, Missing.Num(), Failed.Num(), *OutDir);
 	return Failed.Num();
 }

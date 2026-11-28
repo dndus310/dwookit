@@ -15,6 +15,7 @@ struct FilesState
 	fs::path loadedPath;
 	fs::file_time_type loadedTime;
 	json doc, agent;
+	bool agentOutdated = false;      // an agent.json written for another version of the Blueprint (fingerprint)
 	std::string openBehavior;
 };
 static FilesState g_files;
@@ -47,7 +48,9 @@ static void LoadExplain(App& app, const TrackedFile& f)
 	auto d = ReadJson(p);
 	g_files.doc = d ? *d : json();
 	auto a = ReadJson(FileFolder(app, f) / fs::u8path(f.name + ".agent.json"));
-	g_files.agent = a ? *a : json();
+	// shown only for the version it was written for: the fingerprint it copied from explain.json must match
+	g_files.agentOutdated = a && a->is_object() && g_files.doc.is_object() && Str(*a, "fingerprint") != Str(g_files.doc, "fingerprint");
+	g_files.agent = (a && !g_files.agentOutdated) ? *a : json();
 }
 
 static void DrawFilesNav(App& app)
@@ -314,6 +317,7 @@ static void DrawFilesInspector(App& app)
 		PushToast("복사됨", "에이전트 대화창에 붙여 넣으세요.", col::Pass);
 	}
 	if (g_files.agent.is_object()) TextColored(col::Pass, "에이전트 설명 있음");
+	else if (g_files.agentOutdated) TextColored(col::Warn, "에이전트 설명이 이 블루프린트의 이전 버전 것이라 숨겼습니다. 요청 문장으로 다시 쓰게 하세요.");
 	const json& d = g_files.doc;
 	if (d.is_object())
 	{

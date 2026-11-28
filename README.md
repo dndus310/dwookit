@@ -72,7 +72,10 @@ __dwookit.bat play [맵]           :: 게임 창 실행 (DwoStateMonitor 연결�
 __dwookit.bat bp add <경로> [...]  :: 블루프린트 추적 시작 (Content\...\BP_X.uasset, /Game/.../BP_X, 폴더)
 __dwookit.bat bp remove <경로>     :: 추적 중지 (파일은 다음 export 때 지워짐)
 __dwookit.bat bp list              :: 추적 목록, export 뒤 바뀐 블루프린트
-__dwookit.bat bp export            :: 추적 중인 블루프린트만 내보내기: 의사코드 .md + 전체 .json (에디터 닫고)
+__dwookit.bat bp export [--all]    :: 추적 중인 블루프린트 내보내기: 의사코드 .md + 전체 .json (에디터 닫고; 바뀐 것만, --all은 전부)
+__dwookit.bat ctx bp <이름>         :: 에이전트용 짧은 답: 파일·부분 파일, 오래됨 여부, C++ 전환 범위와 남는 이유
+__dwookit.bat ctx refs <심볼>       :: 변수·함수·이벤트·디스패처를 읽고·쓰고·부르고·구현하고·묶는 곳 (추적 블루프린트 전체)
+__dwookit.bat ctx find|stale|stats  :: 이름 검색, export 뒤 바뀐 것과 오래된 AI 설명, md로 줄인 크기
 __dwookit.bat agent [status|on|off] :: 에이전트 안내(AGENT.md) 다시 쓰기, 상태, 안내 파일 켜기·끄기
 
 :: DwoStateMonitor
@@ -368,6 +371,9 @@ __dwookit/blueprints/
 - `bp add`는 `Content\...\BP_X.uasset`, `/Game/.../BP_X`(오브젝트 경로도 됨), 폴더(`Content\UI` 또는 `/Game/UI/`: 그 아래 블루프린트 전부), 플러그인 `Content` 경로를 받습니다. 목록은 `__dwookit/bp-track.txt`입니다.
 - `bp export`는 추적 대상만 로드하므로 빠릅니다(에디터 시작 포함 10~30초). `analyze`도 추적 목록이 있으면 같은 에디터 실행에서 함께 갱신합니다. 추적을 그만둔 블루프린트의 폴더는 다음 export 때 지웁니다.
 - `bp list`는 `.uasset`이 export 뒤 바뀐 블루프린트를 표시합니다.
+- **바뀐 것만 다시 내보냅니다.** 블루프린트마다 `<이름>.stamp`에 `.uasset`의 크기·시각과 그때의 빌드(엔진 버전, 프로젝트·플러그인 DLL)를 적어 두고, 그 셋이 같고 그 블루프린트가 쓰는 `/Game` 에셋(부모 블루프린트, 인터페이스, 스폰하는 클래스 등)도 그 뒤 저장되지 않았으면 로드하지 않고 이전 export를 씁니다. `--all`은 전부 다시 씁니다.
+- **에이전트용 조회(`ctx`)**: export가 끝날 때 `facts.json`(블루프린트마다 내용 지문, 크기, C++ 전환 범위, 이벤트·함수별 부분 파일)과 `refs.json`(심볼마다 어느 블루프린트의 어느 이벤트·함수가 읽고·쓰고·부르고·정의·구현·묶고·형변환·스폰하는지)을 함께 씁니다. 에이전트는 파일을 열기 전에 `ctx refs BP_Player.Health`처럼 물어 필요한 부분 파일만 엽니다. 블루프린트만 다루고 C++ 호출은 포함하지 않습니다. 예: QA 프로젝트 블루프린트 67개의 의사코드는 JSON의 1.3%(약 2만 토큰 대 165만 토큰, 4바이트=1토큰 어림).
+- **AI 설명은 버전을 따릅니다.** `explain.json`의 지문(fingerprint)을 에이전트가 `agent.json`에 옮겨 적고, 블루프린트가 바뀌어 지문이 달라지면 창과 HTML이 그 설명을 숨기고 다시 쓰라고 알립니다. 내용이 같으면(다시 export만 한 경우) 그대로 씁니다.
 - **큰 블루프린트는 나눕니다.** 의사코드가 150줄을 넘으면 `<이름>.md`는 개요(변수, 컴포넌트, 기본값, 위젯)와 **부분 표**만 담고, 이벤트·함수는 `parts/on_X.md`, `parts/fn_X.md`로 나뉩니다. 표에는 부분마다 줄 수, 쓰는 변수, 호출하는 자체 함수·이벤트가 있어 필요한 부분만 고를 수 있습니다. 부분 파일은 그것만 읽어도 되도록 쓰는 변수·컴포넌트를 타입과 함께 적습니다. `goto`로 이어진 이벤트(같은 타임라인을 여닫는 Open/Close 등)는 한 부분에 두고, 몇 줄짜리 이벤트들은 30줄까지 한 부분으로 묶습니다.
 
 ### DwoLens 쓰는 순서

@@ -1430,6 +1430,76 @@ class NativeMigrationTests(TempDir):
         self.assertIn('{ "Niagara", "UMG" }', text)
 
 
+class BlueprintContextTests(TempDir):
+    """lens_bp.py facts/refs and lens_ctx.py: small answers for agents from the Blueprint export."""
+    FIX = Path(__file__).resolve().parent / "fixtures" / "native"
+
+    def export(self, names):
+        root = self.tmp / "blueprints"
+        exported = []
+        for n in names:
+            bp = json.loads((self.FIX / f"{n}.json").read_text(encoding="utf-8"))
+            d = bp["package"].lstrip("/")
+            (root / d).mkdir(parents=True, exist_ok=True)
+            (root / d / f"{n}.json").write_text(json.dumps(bp), encoding="utf-8")
+            exported.append({"package": bp["package"], "name": n, "dir": d})
+        (root / "export.json").write_text(json.dumps({"schema": "lens.bpexport/1", "exportedAtUtc": "2026-11-28T00:00:00Z",
+                                                      "exported": exported, "missing": [], "failed": []}), encoding="utf-8")
+        import lens_bp
+        lens_bp.write_folder(root, None)
+        return root
+
+    def ctx(self, root, *args):
+        import io, contextlib, lens_ctx
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            lens_ctx.main(["--root", str(root), *args])
+        return buf.getvalue()
+
+    def test_references_cross_blueprints(self):
+        root = self.export(["UI_TouchSimple", "BP_SideScrollingCharacter"])
+        refs = json.loads((root / "refs.json").read_text(encoding="utf-8"))["symbols"]
+        self.assertIn(("UI_TouchSimple", "call"), {(r[0], r[1]) for r in refs["BPI_TouchInterface.Primary Thumbstick"]})   # a message
+        # the character implements another interface of the same function name: kept apart, by interface
+        self.assertEqual({(r[0], r[1]) for r in refs["BPI_TouchInterface_SideScrolling.Primary Thumbstick"]},
+                         {("BP_SideScrollingCharacter", "implement")})
+        call = next(r for r in refs["BPI_TouchInterface.Primary Thumbstick"] if r[1] == "call")
+        self.assertEqual(call[2], "on Thumbstick_Move.Stick Input")              # the event whose flow makes the call
+        out = self.ctx(root, "refs", "Primary Thumbstick")
+        self.assertIn("implement BP_SideScrollingCharacter", out)            # both symbols match the bare name
+        self.assertIn("__dwookit/blueprints/Game/Input/Touch/UI_TouchSimple/UI_TouchSimple.md", out)
+
+    def test_facts_coverage_sizes_and_fingerprint(self):
+        root = self.export(["BP_LabFlow", "BTT_LabCount"])
+        facts = json.loads((root / "facts.json").read_text(encoding="utf-8"))["blueprints"]
+        flow = facts["BP_LabFlow"]
+        self.assertEqual(flow["native"]["migrated"], flow["native"]["nodes"])     # the whole lab moves to C++
+        self.assertLess(flow["bytes"]["md"], flow["bytes"]["json"] / 5)
+        self.assertEqual(len(flow["fingerprint"]), 16)
+        self.assertIn("nodes |", (root / "index.md").read_text(encoding="utf-8"))   # the C++ migration column
+        out = self.ctx(root, "bp", "BP_LabFlow")
+        self.assertIn("the migration moves 44/44 nodes (100%)", out)
+        self.assertIn("% of the JSON", self.ctx(root, "stats"))
+        self.assertIn("Changed since the export: none", self.ctx(root, "stale"))
+
+    def test_fingerprint_ignores_export_time(self):
+        import lens_bp
+        bp = json.loads((self.FIX / "BP_LabFlow.json").read_text(encoding="utf-8"))
+        again = json.loads(json.dumps(bp))
+        again["exportedAtUtc"] = "2030-01-01T00:00:00Z"
+        again["source"] = {"file": "x", "bytes": 1, "modifiedUtc": "2030-01-01T00:00:00Z"}
+        self.assertEqual(lens_bp.fingerprint(bp), lens_bp.fingerprint(again))     # same content, same version
+        again["variables"] = again["variables"][1:]
+        self.assertNotEqual(lens_bp.fingerprint(bp), lens_bp.fingerprint(again))
+
+    def test_agent_guide_points_at_ctx_and_migration(self):
+        import lens_agent
+        text = lens_agent.agent_md(self.tmp, self.tmp)
+        self.assertIn("__dwookit.bat ctx refs <Symbol>", text)
+        self.assertIn("let dwookit do it", text)
+        self.assertIn("fingerprint", text)
+
+
 class LibraryTests(TempDir):
     """lens_library.py: the instruction and skill library, and what a project gets for Claude Code and Copilot."""
 
@@ -1741,10 +1811,17 @@ class ExplainTests(TempDir):
             self.assertIn(text, page)
         self.assertIn("BP_DoorFrame.agent.json", (door / "BP_DoorFrame.explain-prompt.md").read_text(encoding="utf-8"))
         self.assertIn("BP_DoorFrame.html", (root / "index.html").read_text(encoding="utf-8"))
-        # an agent's wording is shown next to the rule-based text
-        write(door / "BP_DoorFrame.agent.json", json.dumps({"summary": "캐릭터가 다가오면 열리는 문", "behaviors": {"b1": "문이 열린다"}}, ensure_ascii=False))
+        # an agent's wording is shown next to the rule-based text, for the version it was written for only
+        self.assertIn("fingerprint", (door / "BP_DoorFrame.explain-prompt.md").read_text(encoding="utf-8"))
+        write(door / "BP_DoorFrame.agent.json", json.dumps({"fingerprint": doc["fingerprint"], "summary": "캐릭터가 다가오면 열리는 문",
+                                                           "behaviors": {"b1": "문이 열린다"}}, ensure_ascii=False))
         lens_explain.write_all(root, None)
         self.assertIn("캐릭터가 다가오면 열리는 문", (door / "BP_DoorFrame.html").read_text(encoding="utf-8"))
+        write(door / "BP_DoorFrame.agent.json", json.dumps({"fingerprint": "0000", "summary": "캐릭터가 다가오면 열리는 문"}, ensure_ascii=False))
+        lens_explain.write_all(root, None)
+        page = (door / "BP_DoorFrame.html").read_text(encoding="utf-8")
+        self.assertNotIn("캐릭터가 다가오면 열리는 문", page)                       # written for another version: hidden
+        self.assertIn("이전 버전", page)
 
 
 class GameFlowTests(TempDir):

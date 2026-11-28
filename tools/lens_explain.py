@@ -865,6 +865,7 @@ def explain(bp: dict, others: dict[str, Explainer] | None = None, cpp: CppIndex 
     comp = ex.composition(behaviors)
     return fix_particles({"schema": SCHEMA, "name": bp.get("name"), "package": bp.get("package"), "assetClass": bp.get("assetClass"),
             "parent": lens_bp.short(bp.get("parent")), "parentChain": [lens_bp.short(c) for c in bp.get("parentChain", [])],
+            "fingerprint": lens_bp.fingerprint(bp),
             "kind": kind_words(bp), "summary": ex.summary(comp, behaviors), "composition": comp, "behaviors": behaviors})
 
 
@@ -876,11 +877,13 @@ PROMPT = """\
 Read `{name}.explain.json` (rule-based) and, only where a step is unclear, `{name}.md` or `parts/`. Write
 `{name}.agent.json` next to them, in Korean, exactly this shape, nothing else:
 
-{{"summary": "2-3 sentences: what this object is and what it does in the game",
+{{"fingerprint": "copy the fingerprint from {name}.explain.json (it says which version of the Blueprint this is for)",
+  "summary": "2-3 sentences: what this object is and what it does in the game",
   "behaviors": {{"<behavior id from explain.json>": "1-2 sentences: when it runs and what the player sees happen"}},
   "notes": ["at most 5 short remarks: risks, duplicated logic, things to move to C++"]}}
 
 Describe gameplay ("the door slides open when a character walks in"), not nodes. No explanation of your process.
+If `{name}.agent.json` exists with the same fingerprint as `{name}.explain.json`, it is still correct: do not rewrite it.
 """
 
 
@@ -927,6 +930,11 @@ a{color:var(--acc)}label{user-select:none}
 """
 
 
+def agent_current(doc: dict, agent: dict | None) -> bool:
+    """An agent's explanation fits this version of the Blueprint (same fingerprint as the rule-based one)."""
+    return bool(agent) and agent.get("fingerprint") == doc.get("fingerprint")
+
+
 def render_html(doc: dict, agent: dict | None) -> str:
     c = doc["composition"]
     rows = lambda items, cols: "".join("<tr>" + "".join(f"<td>{esc(i.get(k, '')) if not isinstance(i.get(k), list) else esc(', '.join(i.get(k)))}</td>" for k in cols) + "</tr>" for i in items)
@@ -935,6 +943,10 @@ def render_html(doc: dict, agent: dict | None) -> str:
              f"<p class='sub'><a href='{'../' * (doc['package'].count('/') - 1)}index.html'>추적 중인 파일</a> · {esc(doc['package'])}</p>",
              f"<h1>{esc(doc['name'])}</h1><div class='sub'>{esc(doc['kind'])} · {esc(' < '.join(doc['parentChain']) or doc['parent'])}</div>",
              f"<div class='summary'>{esc(doc['summary'])}"]
+    if agent and not agent_current(doc, agent):
+        parts.append("<p class='sub'>에이전트 설명이 이 블루프린트의 이전 버전에 대한 것이라 표시하지 않습니다. "
+                     f"{esc(doc.get('name'))}.explain-prompt.md로 다시 쓰게 하세요.</p>")
+        agent = None
     if agent and agent.get("summary"):
         parts.append(f"<div class='agent'><span class='tag'>에이전트 설명</span><br>{esc(agent['summary'])}</div>")
     parts.append("</div>")
@@ -997,6 +1009,7 @@ def write_all(root: Path, project: Path | None) -> int:
         comp = ex.composition(behaviors)
         doc = fix_particles({"schema": SCHEMA, "name": name, "package": bp.get("package"), "assetClass": bp.get("assetClass"),
                "parent": lens_bp.short(bp.get("parent")), "parentChain": [lens_bp.short(c) for c in bp.get("parentChain", [])],
+            "fingerprint": lens_bp.fingerprint(bp),
                "kind": kind_words(bp, cpp), "summary": ex.summary(comp, behaviors), "composition": comp, "behaviors": behaviors})
         agent = lens_bp.load(folder / f"{name}.agent.json")
         (folder / f"{name}.explain.json").write_text(json.dumps(doc, ensure_ascii=False, indent=1), encoding="utf-8")
