@@ -1,6 +1,6 @@
 {
   "schema": "forge.catalog/0.2",
-  "_comment": "Tool registry of dwookit. tool: lens (DwoLens analysis lines), statemonitor (DwoStateMonitor), canvas (DwoCanvas), convert (DwoConvert: Blueprint -> C++ migration; changes the project), builder (DwoBuilder: compile, package, local Jenkins), forge (shared operations). kind: build = implemented by dwookit, wrap = Epic/engine tool driven headless, ai = interpretation. status: ready | planned.",
+  "_comment": "Tool registry of dwookit. tool: lens (DwoLens analysis lines; feature 'live state' = the DwoStateMonitor runtime plugin), canvas (DwoCanvas), convert (DwoConvert: Blueprint -> C++ migration; changes the project), builder (DwoBuilder: compile, package, local Jenkins), forge (shared operations). kind: build = implemented by dwookit, wrap = Epic/engine tool driven headless, ai = interpretation. status: ready | planned.",
   "tools": [
     {
       "id": "reflection-dump",
@@ -184,13 +184,14 @@
     },
     {
       "id": "state-monitor-adapter",
-      "tool": "statemonitor",
+      "tool": "lens",
       "station": "ST-4",
       "kind": "build",
       "status": "ready",
       "command": "analyze, verify",
       "invocation": "detects the project's DwoStateMonitor (or 1.x StateMonitor) plugin, BP and C++ submit points; adds StateMonitor.* tests to verify",
-      "output": "statemonitor.json"
+      "output": "statemonitor.json",
+      "feature": "live state"
     },
     {
       "id": "compile-all-blueprints",
@@ -354,7 +355,7 @@
     },
     {
       "id": "state-monitor-history",
-      "tool": "statemonitor",
+      "tool": "lens",
       "station": "ST-4",
       "kind": "build",
       "status": "ready",
@@ -362,7 +363,8 @@
       "invocation": "dwookit GUI > DwoStateMonitor > 녹화 저장 / 녹화 열기 (or --open-recording <file.jsonl>)",
       "output": "<name>_state.jsonl",
       "category": "runtime",
-      "description": "Records every live snapshot the viewer receives and saves or reopens it as JSON Lines; the timeline replays it."
+      "description": "Records every live snapshot the viewer receives and saves or reopens it as JSON Lines; the timeline replays it.",
+      "feature": "live state"
     },
     {
       "id": "ai-interpretation",
@@ -386,7 +388,7 @@
     },
     {
       "id": "state-monitor-live",
-      "tool": "statemonitor",
+      "tool": "lens",
       "station": "ST-4",
       "kind": "build",
       "status": "ready",
@@ -394,7 +396,8 @@
       "command": "gui (State Monitor), play",
       "description": "Live viewer for running games: object graph with ownership and references, per-field state machines with transition counts, property inspector, scrubbable timeline and event list.",
       "invocation": "DwoStateMonitor plugin connects to 127.0.0.1:47731 (JSON Lines protocol v1); zero-code auto-observe of GameMode, GameState, players, pawns and components",
-      "output": "interactive"
+      "output": "interactive",
+      "feature": "live state"
     },
     {
       "id": "run-compare",
@@ -434,13 +437,14 @@
     },
     {
       "id": "state-monitor-provided",
-      "tool": "statemonitor",
+      "tool": "lens",
       "station": "ST-4",
       "kind": "build",
       "status": "ready",
       "command": "sm-install [--runtime], sm-remove",
       "invocation": "installs the bundled DwoStateMonitor (prebuilt editor binaries + source) into Plugins/__DwoStateMonitor; editor/PIE only by default so packages are unaffected, --runtime keeps it in game targets; refuses removal while project code references it; migrates a dwo-Lens 1.x Plugins/__StateMonitor install",
-      "output": "runtime USTRUCT snapshots, change history, viewer; StateMonitor.* tests in verify"
+      "output": "runtime USTRUCT snapshots, change history, viewer; StateMonitor.* tests in verify",
+      "feature": "live state"
     },
     {
       "id": "selftest",

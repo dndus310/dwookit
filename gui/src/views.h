@@ -3057,8 +3057,8 @@ struct ForgeToolDef
 
 static const ForgeToolDef kForgeTools[] = {
 	{ "lens", ICON_LAYERS, "DwoLens", "분석·검증 검사: 아키텍처, 문제, 검증, 로그, 성능·용량 (DwoLensInspector)" },
-	{ "statemonitor", ICON_EYE, "DwoStateMonitor", "실행 중인 게임의 상태를 실시간으로 보는 런타임 플러그인" },
 	{ "canvas", ICON_CANVAS, "DwoCanvas", "디자인 파일(*.dwocanvas.json)을 UMG 위젯 블루프린트로 가져오는 플러그인" },
+	{ "convert", ICON_CODE, "DwoConvert", "블루프린트를 C++로 옮기고 전환 전후 동작 비교 (프로젝트를 바꿈)" },
 	{ "builder", ICON_SYNC, "DwoBuilder", "C++ 컴파일·패키지 빌드, Jenkins 자동 빌드" },
 	{ "forge", ICON_FORGE, "dwookit", "프로젝트 연결, 도구 설치·업데이트, 런처, 자체 검증" },
 };
@@ -3073,8 +3073,8 @@ static const char* ToolNameOf(const std::string& key)
 // The tool catalog (tools/catalog.json): every check and integration the tools provide, shown in the launcher.
 static void DrawCatalogTable(App& app)
 {
-	static const char* const kinds[] = { "전체", "DwoLens", "DwoStateMonitor", "DwoCanvas", "DwoBuilder", "dwookit" };
-	static const char* const keys[] = { "", "lens", "statemonitor", "canvas", "builder", "forge" };
+	static const char* const kinds[] = { "전체", "DwoLens", "DwoCanvas", "DwoConvert", "DwoBuilder", "dwookit" };
+	static const char* const keys[] = { "", "lens", "canvas", "convert", "builder", "forge" };
 	int kind = 0;
 	for (int i = 0; i < 6; ++i) if (ui.toolCategory == keys[i]) kind = i;
 	if (Segmented("##catkind", kinds, 6, kind)) ui.toolCategory = keys[kind];
@@ -3101,7 +3101,8 @@ static void DrawCatalogTable(App& app)
 			Pill(status == "ready" ? "사용 가능" : status == "planned" ? "계획" : status, status == "ready" ? col::Pass : col::Muted);
 			ImGui::TableNextColumn();
 			ImGui::TextUnformatted(Str(t, "name", id).c_str());
-			ImGui::TableNextColumn(); TextDim(std::string(ToolNameOf(tool)) + " · " + Str(t, "category", Str(t, "station")));
+			std::string feature = Str(t, "feature");     // a tool's feature (DwoLens > live state)
+			ImGui::TableNextColumn(); TextDim(std::string(ToolNameOf(tool)) + (feature.empty() ? "" : " > " + feature) + " · " + Str(t, "category", Str(t, "station")));
 			ImGui::TableNextColumn(); ImGui::TextWrapped("%s", Str(t, "description", Str(t, "invocation")).c_str());
 			ImGui::PopID();
 		}

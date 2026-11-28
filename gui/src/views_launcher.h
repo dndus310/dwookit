@@ -22,7 +22,8 @@ struct ToolMeta
 
 static const ToolMeta kToolMeta[] = {
 	{ "lens", "DwoLens", "Ln", ICON_SEARCH, col::Accent, "아키텍처·문제·검증·로그·성능·용량 검사와 실행 기록", Activity::Overview, "Plugins/__DwoLensInspector (편집기 전용, 기본 꺼짐)" },
-	{ "statemonitor", "DwoStateMonitor", "SM", ICON_EYE, col::Pass, "실행 중인 게임의 상태를 실시간으로 보는 플러그인", Activity::Live, "Plugins/__DwoStateMonitor" },
+	// DwoLens's live-state feature: listed under DwoLens; its runtime plugin is installed only when turned on
+	{ "statemonitor", "실행 중 관찰 (DwoLens)", "SM", ICON_EYE, col::Pass, "DwoLens 세부 기능: 실행 중인 게임의 상태를 실시간으로 봅니다. 켜면 런타임 플러그인 DwoStateMonitor를 설치합니다", Activity::Live, "Plugins/__DwoStateMonitor" },
 	{ "canvas", "DwoCanvas", "Cv", ICON_CANVAS, col::Purple, "디자인 파일(*.dwocanvas.json)을 UMG 위젯 블루프린트로 가져오기", Activity::Canvas, "Plugins/__DwoCanvas" },
 	// DwoConvert has no screen of its own yet: its row opens the launcher (the command line runs it: convert ...)
 	{ "convert", "DwoConvert", "Cn", ICON_CODE, col::Warn, "블루프린트를 C++로 옮기고 전환 전후 동작 비교 (프로젝트를 바꿈: 블루프린트·Source·Build.cs)", Activity::Launcher, "Plugins/__DwoConvert (편집기 전용, 기본 꺼짐)" },
@@ -400,6 +401,26 @@ static void DrawToolDetails(App& app, const ToolMeta& m, const ToolView& v)
 	KeyValue("범위", m.id == std::string("builder") ? "프로젝트 + PC" : "프로젝트", 90);
 	KeyValue("설치 위치", m.folder, 90);
 	ImGui::Spacing();
+	// the tool's features, from the catalog (tools/catalog.json): what it does, where it runs, what it writes.
+	// DwoLens's live state (the statemonitor row) is the catalog's lens entries with feature "live state".
+	std::string key = std::string(m.id) == "statemonitor" ? "lens" : m.id;
+	bool liveOnly = std::string(m.id) == "statemonitor";
+	int count = 0;
+	for (auto& t : Arr(app.catalog, "tools"))
+	{
+		if (Str(t, "tool") != key || (liveOnly != (Str(t, "feature") == "live state"))) continue;
+		if (!count++) TextDim("세부 기능");
+		ImGui::PushID(Str(t, "id").c_str());
+		std::string status = Str(t, "status");
+		Pill(status == "ready" ? "사용 가능" : status == "planned" ? "계획" : status, status == "ready" ? col::Pass : col::Muted);
+		ImGui::SameLine();
+		ImGui::TextUnformatted(Str(t, "name", Str(t, "id")).c_str());
+		std::string where = Str(t, "command");
+		if (!where.empty()) { ImGui::SameLine(); TextDim(where.rfind("gui", 0) == 0 ? "(창)" : "(명령줄: " + where + ")"); }
+		if (!Str(t, "output").empty()) { ImGui::Indent(S(12)); TextDim("결과: " + Str(t, "output")); ImGui::Unindent(S(12)); }
+		ImGui::PopID();
+	}
+	if (count) ImGui::Spacing();
 	TextDim("명령줄 (누르면 복사)");
 	std::string id = m.id;
 	for (const char* verb : { "install", "update", "remove" })
@@ -723,13 +744,22 @@ static void DrawProjectPage(App& app)
 	{
 		const ToolView& v = views[i];
 		if (u.tab == 1 && !ToolPresent(v)) continue;
+		// DwoLens's live state is offered once DwoLens is there (still listed while installed, so it can be removed)
+		if (std::string(kToolMeta[i].id) == "statemonitor" && !ToolPresent(v) && !ToolPresent(views[0])) continue;
 		if (u.tab == 2 && !(v.state == "update" || v.state == "legacy")) continue;
 		if (u.search[0] && !ContainsNoCase(std::string(kToolMeta[i].name) + " " + kToolMeta[i].summary, u.search)) continue;
 		shown.push_back(i);
 	}
 	TextDim(Fmt("도구 (%d)", (int)shown.size()) + (g_tools.busy ? "   ·   버전 확인 중..." : ""));
 	ImGui::BeginChild("tools", ImVec2(0, 0), ImGuiChildFlags_None);
-	for (size_t k = 0; k < shown.size(); ++k) DrawToolItem(app, kToolMeta[shown[k]], views[shown[k]], doc, k + 1 == shown.size());
+	for (size_t k = 0; k < shown.size(); ++k)
+	{
+		// a feature of the tool above it (DwoLens > live state) is drawn indented under that tool
+		bool feature = std::string(kToolMeta[shown[k]].id) == "statemonitor";
+		if (feature) ImGui::Indent(S(28));
+		DrawToolItem(app, kToolMeta[shown[k]], views[shown[k]], doc, k + 1 == shown.size());
+		if (feature) ImGui::Unindent(S(28));
+	}
 	if (shown.empty()) TextDim(u.tab == 2 ? "업데이트할 도구가 없습니다." : u.tab == 1 ? "설치한 도구가 없습니다. '모든 도구'에서 설치하세요." : "검색과 일치하는 도구가 없습니다.");
 	ImGui::EndChild();
 }

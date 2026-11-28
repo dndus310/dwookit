@@ -5,7 +5,7 @@
 | 도구 | 하는 일 | 프로젝트에 들어가는 것 |
 |---|---|---|
 | **DwoLens** | 분석·검증·로그 검사: 아키텍처 리포트(`analyze`), 검증(`verify`), 로그(`logs`), 맵 스모크(`smoke`), 성능(`perf`), 콘텐츠 용량(`sizes`), Insights 트레이스(`trace`) | `Plugins/__DwoLensInspector` (숨김, 미리 빌드, 기본 비활성) |
-| **DwoStateMonitor** | 실행 중인 게임의 상태를 실시간으로 보는 런타임 플러그인 (예전 이름 StateMonitor) | `Plugins/__DwoStateMonitor` (숨김) |
+| ↳ DwoLens › 실행 중 관찰 | DwoLens의 세부 기능: 실행 중인 게임의 상태를 실시간으로 봅니다. 켤 때만 런타임 플러그인 DwoStateMonitor(예전 이름 StateMonitor)를 설치합니다(`tool install statemonitor`, DwoLens 필요). DwoLens를 제거하면 함께 제거됩니다 | `Plugins/__DwoStateMonitor` (숨김) |
 | **DwoCanvas** | 디자인 파일(`*.dwocanvas.json`)을 UMG 위젯 블루프린트로 가져오는 플러그인 | `Plugins/__DwoCanvas` (숨김) |
 | **DwoConvert** | 블루프린트를 C++ 기반 클래스로 옮기고(`convert plan`·`generate`·`rebase`), 전환 전후 동작을 비교(`convert verify`, `--net`은 리슨 서버 + 클라이언트). DwoLens의 블루프린트 export가 필요 | `Plugins/__DwoConvert` (숨김, 미리 빌드, 기본 비활성). **프로젝트를 바꿈**: 전환한 블루프린트(백업 후), `Source/<모듈>/DwoNative/`, `<모듈>.Build.cs` |
 | **DwoBuilder** | C++ 컴파일(`compile`)·패키지 빌드(`package`)를 바로 실행하고, push·merge·커밋 때 컴파일 → DwoLens 검사 → 패키지 빌드를 자동 실행 (Jenkins, 폐쇄망 지원) | 설치하면 Jenkins 작업과 `.git/hooks` (Jenkins 자체는 PC에 하나). 컴파일·패키지만 쓸 때는 설치 불필요 |

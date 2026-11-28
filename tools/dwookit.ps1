@@ -516,6 +516,7 @@ function Move-LegacyStateMonitor($Engine) {
 
 function Invoke-SmInstall {
     if (-not (Read-State)) { Fail 'Not connected. Connect the project first: __dwookit.bat connect' }
+    if (-not (Test-Path (Join-Path $PluginDest 'DwoLensInspector.uplugin'))) { Fail 'Live state is a DwoLens feature: install DwoLens first (__dwookit.bat tool install lens), then turn it on (tool install statemonitor).' }
     $own = Find-OwnStateMonitor
     if ($own) { Fail "The project already contains a state monitor plugin ($($own.FullName.Substring($Project.Length + 1))). Nothing to install." }
     $uproject = Get-UProject
@@ -990,7 +991,9 @@ function Invoke-Attach([string]$Mode) {
 # DwoBuilder keeps its record in __dwookit\ci.json (written by ci.ps1).
 $ToolDefs = [ordered]@{
     lens         = @{ Name = 'DwoLens';            Scope = 'project' }
-    statemonitor = @{ Name = 'DwoStateMonitor'; Scope = 'project' }
+    # DwoLens's live-state feature: its own runtime plugin (it can ship in a packaged game, DwoLens's cannot),
+    # installed and removed as part of DwoLens. 'tool install statemonitor' and sm-install still turn it on.
+    statemonitor = @{ Name = 'DwoStateMonitor'; Scope = 'project'; PartOf = 'lens'; Feature = 'live state' }
     canvas       = @{ Name = 'DwoCanvas';       Scope = 'project' }
     convert      = @{ Name = 'DwoConvert';      Scope = 'project' }
     builder      = @{ Name = 'DwoBuilder';        Scope = 'project+pc' }
@@ -1133,6 +1136,7 @@ function Get-ToolStatus([string]$Id, $EngineVersion) {
     }
     return [ordered]@{
         id = $Id; name = $ToolDefs[$Id].Name; scope = $ToolDefs[$Id].Scope; state = $state; reason = $reason; detail = $detail
+        partOf = "$($ToolDefs[$Id].PartOf)"; feature = "$($ToolDefs[$Id].Feature)"
         installedVersion = $(if ($rec -and $rec.PSObject.Properties['version']) { "$($rec.version)" } else { '' })
         availableVersion = Get-SystemVersion
         availableHash = $availableHash
@@ -1238,6 +1242,8 @@ function Invoke-ToolAction([string]$Action, [string]$Id) {
         'lens' {
             if ($Action -eq 'remove') {
                 if (-not (Test-Path $PluginDest)) { Say 'DwoLens is not installed.'; Save-ToolRecord 'lens' $null; return }
+                # its live-state feature goes with it (Invoke-SmRemove refuses while project code still uses it)
+                if (Get-InstalledStateMonitor) { Invoke-SmRemove }
                 Remove-Plugin
                 Save-ToolRecord 'lens' $null
                 Say 'DwoLens removed (Plugins\__DwoLensInspector). Run history in __dwookit\data stays; uninstall removes it.'
@@ -1310,7 +1316,8 @@ function Invoke-ToolList {
             'own'       { 'part of the project itself (not managed)' }
             'legacy'    { 'dwo-Lens 1.x install (update migrates it)' }
         }
-        Say ("  {0,-16} {1}{2}" -f $t.name, $text, $(if ($t.detail) { " - $($t.detail)" } else { '' }))
+        $label = if ($t.partOf) { "  > $($t.feature)" } else { $t.name }      # a feature of the tool above it
+        Say ("  {0,-16} {1}{2}" -f $label, $text, $(if ($t.detail) { " - $($t.detail)" } else { '' }))
     }
     if ($doc.project.launcherOutdated) { Say ("  {0,-16} {1}" -f 'Project launcher', 'older version (update refreshes __dwookit.bat)') }
     $j = $doc.pc.jenkins
